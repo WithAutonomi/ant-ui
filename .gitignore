@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.output/
+.nuxt/
+.data/
+*.log
+
+# Tauri
+src-tauri/target/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,9 @@
+[
+  {
+    "type": "function",
+    "name": "calculateGasCostInANT",
+    "inputs": [{ "name": "gasCostETH", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view"
+  }
+]

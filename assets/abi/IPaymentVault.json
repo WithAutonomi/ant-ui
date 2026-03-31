@@ -1,0 +1,45 @@
+[
+  {
+    "type": "function",
+    "name": "payForQuotes",
+    "inputs": [
+      {
+        "name": "_payments",
+        "type": "tuple[]",
+        "components": [
+          { "name": "rewardsAddress", "type": "address" },
+          { "name": "amount", "type": "uint256" },
+          { "name": "quoteHash", "type": "bytes32" }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "batchLimit",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "completedPayments",
+    "inputs": [{ "name": "", "type": "bytes32" }],
+    "outputs": [
+      { "name": "rewardsAddress", "type": "bytes16" },
+      { "name": "amount", "type": "uint128" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "DataPaymentMade",
+    "inputs": [
+      { "name": "rewardsAddress", "type": "address", "indexed": true },
+      { "name": "amount", "type": "uint256", "indexed": true },
+      { "name": "quoteHash", "type": "bytes32", "indexed": true }
+    ]
+  }
+]
