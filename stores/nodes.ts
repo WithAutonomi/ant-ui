@@ -45,10 +45,12 @@ export const useNodesStore = defineStore('nodes', {
   state: () => ({
     nodes: [] as NodeInfo[],
     loading: false,
+    initializing: true,
     daemonConnected: false,
     daemonStatus: null as DaemonStatus | null,
     _pollTimer: null as ReturnType<typeof setInterval> | null,
     _sseDisconnect: null as (() => void) | null,
+    _reconnectTimer: null as ReturnType<typeof setTimeout> | null,
   }),
 
   getters: {
@@ -63,6 +65,7 @@ export const useNodesStore = defineStore('nodes', {
   actions: {
     /** Initialize: ensure daemon is running, discover port, connect, start polling. */
     async init() {
+      this.initializing = true
       const settings = useSettingsStore()
 
       // Ensure the daemon is running (starts it if needed) and discover the port.
@@ -84,6 +87,9 @@ export const useNodesStore = defineStore('nodes', {
       } catch {
         console.warn('Daemon not available')
         this.daemonConnected = false
+        this.scheduleReconnect()
+      } finally {
+        this.initializing = false
       }
     },
 
@@ -110,7 +116,11 @@ export const useNodesStore = defineStore('nodes', {
         })
         this.daemonConnected = true
       } catch {
-        this.daemonConnected = false
+        if (this.daemonConnected) {
+          // Was connected, now lost — schedule reconnect
+          this.daemonConnected = false
+          this.scheduleReconnect()
+        }
       } finally {
         this.loading = false
       }
@@ -185,10 +195,41 @@ export const useNodesStore = defineStore('nodes', {
       }
     },
 
+    /** Retry connecting to the daemon every 10s when disconnected. */
+    scheduleReconnect() {
+      this.cancelReconnect()
+      this._reconnectTimer = setTimeout(async () => {
+        this._reconnectTimer = null
+        try {
+          // Try to re-discover in case daemon restarted on a new port
+          const url = await invoke<string>('ensure_daemon_running')
+          const settings = useSettingsStore()
+          if (url && url !== settings.daemonUrl) {
+            settings.daemonUrl = url
+          }
+          await this.fetchDaemonStatus()
+          this.daemonConnected = true
+          await this.fetchNodes()
+          this.startPolling()
+          this.connectSSE()
+        } catch {
+          this.scheduleReconnect()
+        }
+      }, 10_000)
+    },
+
+    cancelReconnect() {
+      if (this._reconnectTimer) {
+        clearTimeout(this._reconnectTimer)
+        this._reconnectTimer = null
+      }
+    },
+
     /** Clean up on unmount */
     cleanup() {
       this.stopPolling()
       this.disconnectSSE()
+      this.cancelReconnect()
     },
 
     // ── Node operations ──
