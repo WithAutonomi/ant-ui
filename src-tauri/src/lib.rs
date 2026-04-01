@@ -3,6 +3,43 @@ mod config;
 
 use autonomi_ops::AutonomiState;
 use config::{AppConfig, FileMetaResult, UploadHistory, UploadHistoryEntry};
+use std::path::PathBuf;
+
+/// Attempt to stop a stale daemon (ignores errors).
+async fn try_stop_daemon() {
+    if let Some(ant_bin) = which_ant() {
+        let _ = tokio::process::Command::new(&ant_bin)
+            .args(["node", "daemon", "stop"])
+            .output()
+            .await;
+        // Brief pause for PID/port files to be cleaned up
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    }
+}
+
+/// Find the `ant` binary, checking PATH and common install locations.
+fn which_ant() -> Option<PathBuf> {
+    // Check PATH first
+    if let Ok(output) = std::process::Command::new("ant").arg("--help").output() {
+        if output.status.success() {
+            return Some(PathBuf::from("ant"));
+        }
+    }
+
+    // Check common install locations
+    let candidates = [
+        dirs::home_dir().map(|h| h.join(".cargo").join("bin").join(if cfg!(windows) { "ant.exe" } else { "ant" })),
+        Some(PathBuf::from(if cfg!(windows) { r"C:\Program Files\Autonomi\ant.exe" } else { "/usr/local/bin/ant" })),
+    ];
+
+    for candidate in candidates.into_iter().flatten() {
+        if candidate.exists() {
+            return Some(candidate);
+        }
+    }
+
+    None
+}
 
 #[tauri::command]
 fn load_config() -> Result<AppConfig, String> {
@@ -35,7 +72,12 @@ async fn daemon_request(
     method: String,
     body: Option<String>,
 ) -> Result<String, String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .connect_timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|e| e.to_string())?;
+
     let mut req = match method.to_uppercase().as_str() {
         "GET" => client.get(&url),
         "POST" => client.post(&url),
@@ -49,7 +91,15 @@ async fn daemon_request(
         req = req.body(b);
     }
 
-    let resp = req.send().await.map_err(|e| e.to_string())?;
+    let resp = req.send().await.map_err(|e| {
+        if e.is_timeout() {
+            "Request timed out — daemon may be unresponsive".to_string()
+        } else if e.is_connect() {
+            "Cannot connect to daemon — is it running?".to_string()
+        } else {
+            e.to_string()
+        }
+    })?;
     let status = resp.status().as_u16();
     let text = resp.text().await.map_err(|e| e.to_string())?;
 
@@ -70,14 +120,27 @@ fn discover_daemon_url() -> Option<String> {
 async fn ensure_daemon_running() -> Result<String, String> {
     // Check if already running via port file
     if let Some(url) = config::discover_daemon_url() {
-        // Verify it's actually responsive
-        if reqwest::get(format!("{url}/api/v1/status")).await.is_ok() {
+        // Verify it's actually responsive (short timeout)
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(3))
+            .build()
+            .unwrap_or_default();
+        if client
+            .get(format!("{url}/api/v1/status"))
+            .send()
+            .await
+            .is_ok()
+        {
             return Ok(url);
         }
+        // Port file exists but daemon is unresponsive — stale PID.
+        // Stop the stale daemon first so a fresh start can succeed.
+        let _ = try_stop_daemon().await;
     }
 
     // Start the daemon
-    let output = tokio::process::Command::new("ant")
+    let ant_bin = which_ant().ok_or("Cannot find 'ant' binary — is ant-cli installed?")?;
+    let output = tokio::process::Command::new(&ant_bin)
         .args(["node", "daemon", "start"])
         .output()
         .await
@@ -86,7 +149,6 @@ async fn ensure_daemon_running() -> Result<String, String> {
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
-        // "already running" is not an error
         let combined = format!("{stdout}{stderr}");
         if !combined.contains("already running") {
             return Err(format!("Daemon start failed: {combined}"));
