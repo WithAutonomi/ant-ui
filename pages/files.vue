@@ -340,7 +340,7 @@ async function showUploadConfirmForPaths(paths: string[]) {
   uploadEstimating.value = false
 }
 
-function confirmUpload() {
+function confirmUpload(options: { visibility: 'private' | 'public'; paymentMode: 'regular' | 'merkle' }) {
   showUploadConfirm.value = false
   const wagmiConfig = getWagmiConfig()
 
@@ -349,7 +349,7 @@ function confirmUpload() {
     if (settingsStore.indelibleConnected) {
       filesStore.startIndelibleUpload(id)
     } else if (autonomiConnected.value && wagmiConfig) {
-      filesStore.startRealUpload(id, wagmiConfig)
+      filesStore.startRealUpload(id, wagmiConfig, options)
     } else {
       filesStore.simulateUpload(id)
     }

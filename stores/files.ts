@@ -175,7 +175,11 @@ export const useFilesStore = defineStore('files', {
       return id
     },
 
-    async startRealUpload(id: number, wagmiConfig: any) {
+    async startRealUpload(
+      id: number,
+      wagmiConfig: any,
+      options: { visibility: 'private' | 'public'; paymentMode: 'regular' | 'merkle' } = { visibility: 'private', paymentMode: 'regular' },
+    ) {
       const toasts = useToastStore()
       const entry = this.findById(id)
       if (!entry) return
@@ -210,12 +214,16 @@ export const useFilesStore = defineStore('files', {
         const costDisplay = formatNanoTokens(quote.total_cost)
         this.updateEntry(id, { cost: costDisplay })
 
-        // Pay via wallet and collect tx hash mapping
+        // Pay via wallet and collect tx hash mapping (5 min timeout for user approval)
         let txHashes: Record<string, string> = {}
         if (quote.payment_required) {
           this.updateEntry(id, { status: 'paying' })
           try {
-            const payResult = await payForQuotes(wagmiConfig, quote.payments)
+            const payResult = await withTimeout(
+              payForQuotes(wagmiConfig, quote.payments),
+              300_000,
+              'Payment timed out — wallet approval took too long',
+            )
             txHashes = payResult.txHashMap
           } catch (e: any) {
             this.updateEntry(id, { status: 'failed', error: `Payment failed: ${e.message}` })
@@ -226,10 +234,14 @@ export const useFilesStore = defineStore('files', {
 
         this.updateEntry(id, { status: 'uploading', progress: 0 })
 
-        const result = await invoke<{ upload_id: string; data_map_json: string; chunks_stored: number }>('confirm_upload', {
-          uploadId,
-          txHashes,
-        })
+        const result = await withTimeout(
+          invoke<{ upload_id: string; data_map_json: string; chunks_stored: number }>('confirm_upload', {
+            uploadId,
+            txHashes,
+          }),
+          120_000,
+          'Upload timed out',
+        )
 
         const duration = entry.transferStartedAt
           ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
@@ -333,10 +345,14 @@ export const useFilesStore = defineStore('files', {
       try {
         this.updateEntry(id, { status: 'downloading', progress: 0 })
 
-        await invoke('download_file', {
-          dataMapJson: entry.data_map_json,
-          destPath: entry.dest_path,
-        })
+        await withTimeout(
+          invoke('download_file', {
+            dataMapJson: entry.data_map_json,
+            destPath: entry.dest_path,
+          }),
+          300_000,
+          'Download timed out',
+        )
 
         const duration = entry.transferStartedAt
           ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
@@ -451,4 +467,13 @@ export const useFilesStore = defineStore('files', {
 
 function delay(ms: number) {
   return new Promise(r => setTimeout(r, ms))
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms)
+    promise
+      .then((val) => { clearTimeout(timer); resolve(val) })
+      .catch((err) => { clearTimeout(timer); reject(err) })
+  })
 }
