@@ -70,6 +70,11 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
 
+      - name: generate macOS icon from iconset
+        if: matrix.platform == 'macos-latest'
+        run: |
+          iconutil -c icns src-tauri/icons/autonomi.iconset -o src-tauri/icons/icon.icns
+
       - run: npm install
 
       - uses: tauri-apps/tauri-action@v0
@@ -77,6 +82,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: v__VERSION__
           releaseName: "Autonomi v__VERSION__"
@@ -86,8 +97,18 @@ jobs:
           args: ${{ matrix.args }}
 
   build-windows:
-    name: build (windows, no-bundle)
+    name: build windows MSI (signed)
     runs-on: windows-latest
+    # Depends on build-linux-macos because tauri-action creates the draft release there.
+    # Without this, gh release upload would fail if the release doesn't exist yet.
+    needs: [release-meta, build-linux-macos]
+    env:
+      SM_HOST: ${{ secrets.SM_HOST }}
+      SM_API_KEY: ${{ secrets.SM_API_KEY }}
+      SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+      SM_KEYPAIR_ALIAS: ${{ secrets.SM_KEYPAIR_ALIAS }}
+      SM_LOG_LEVEL: trace
+      SM_LOG_FILE: ${{ github.workspace }}\smctl-signing.log
     steps:
       - uses: actions/checkout@v4
 
@@ -103,31 +124,6 @@ jobs:
           workspaces: "./src-tauri -> target"
 
       - run: npm install
-
-      - name: build without bundling
-        run: npx tauri build --no-bundle
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-exe-unsigned
-          path: src-tauri/target/release/Autonomi.exe
-
-  sign-windows:
-    name: sign windows binary
-    runs-on: windows-latest
-    needs: [build-windows]
-    env:
-      SM_HOST: ${{ secrets.SM_HOST }}
-      SM_API_KEY: ${{ secrets.SM_API_KEY }}
-      SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
-      SM_KEYPAIR_ALIAS: ${{ secrets.SM_KEYPAIR_ALIAS }}
-      SM_LOG_LEVEL: trace
-      SM_LOG_FILE: ${{ github.workspace }}\smctl-signing.log
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: windows-exe-unsigned
-          path: artifacts/
 
       - name: create client certificate file
         id: prepare_cert
@@ -171,32 +167,56 @@ jobs:
           smctl -v
           smctl healthcheck
 
-      - name: sign Autonomi.exe
+      - name: create signing script
         shell: pwsh
         run: |
-          $file = "artifacts\Autonomi.exe"
-          $result = & smctl sign --keypair-alias "$env:SM_KEYPAIR_ALIAS" --input "$file" 2>&1
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Signing failed: $result"
-            exit 1
-          }
-          Write-Host "Successfully signed Autonomi.exe"
+          # Create a batch script for Tauri's signCommand hook.
+          # "%~1" strips any surrounding quotes then re-quotes, safe for paths with spaces.
+          $script = @"
+          @echo off
+          smctl sign --keypair-alias "$env:SM_KEYPAIR_ALIAS" --input "%~1"
+          if %ERRORLEVEL% neq 0 exit /b 1
+          "@
+          Set-Content -Path "sign.cmd" -Value $script
 
-      - name: verify signature
+      - name: build and bundle MSI
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         shell: pwsh
         run: |
-          $sig = Get-AuthenticodeSignature "artifacts\Autonomi.exe"
+          $signCmd = (Resolve-Path "sign.cmd").Path -replace '\\', '/'
+          # Tauri replaces %1 in signCommand with the file path, then executes the
+          # result as a shell command. sign.cmd receives that path as its first arg (%1).
+          npx tauri build --bundles msi,updater --config "{`"bundle`":{`"windows`":{`"signCommand`":`"$signCmd %1`"}}}"
+          Remove-Item -Path "sign.cmd" -ErrorAction SilentlyContinue
+
+      - name: verify MSI signature
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "src-tauri\target\release\bundle\msi\*.msi" | Select-Object -First 1
+          $sig = Get-AuthenticodeSignature $msi.FullName
+          Write-Host "MSI: $($msi.Name)"
           Write-Host "Status: $($sig.Status)"
           Write-Host "Signer: $($sig.SignerCertificate.Subject)"
           if ($sig.Status -ne "Valid") {
-            Write-Error "Signature validation failed"
+            Write-Error "MSI Authenticode signature validation failed"
             exit 1
           }
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-exe-signed
-          path: artifacts/Autonomi.exe
+      - name: upload MSI to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+
+          # Upload MSI installer and updater signature
+          # In Tauri v2, the .msi is the updater artifact directly (no .msi.zip)
+          gh release upload "$tag" \
+            src-tauri/target/release/bundle/msi/*.msi \
+            src-tauri/target/release/bundle/msi/*.msi.sig \
+            --clobber
 
       - name: upload signing logs on failure
         if: failure()
@@ -206,61 +226,10 @@ jobs:
           path: ${{ github.workspace }}\smctl-signing.log
           if-no-files-found: ignore
 
-  bundle-windows:
-    name: bundle windows MSI
-    runs-on: windows-latest
-    # Depends on build-linux-macos because tauri-action creates the draft release there.
-    # Without this, gh release upload would fail if the release doesn't exist yet.
-    needs: [sign-windows, release-meta, build-linux-macos]
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-          cache: npm
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: "./src-tauri -> target"
-
-      - run: npm install
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: windows-exe-signed
-          path: src-tauri/target/release/
-
-      - name: bundle MSI and updater artifacts
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: npx tauri build --bundles msi,updater --no-compile
-
-      - name: upload MSI to release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          tag="${GITHUB_REF#refs/tags/}"
-
-          # Upload MSI installer
-          gh release upload "$tag" \
-            src-tauri/target/release/bundle/msi/*.msi \
-            --clobber
-
-          # Upload updater artifacts (.msi.zip and .msi.zip.sig)
-          gh release upload "$tag" \
-            src-tauri/target/release/bundle/msi/*.msi.zip \
-            src-tauri/target/release/bundle/msi/*.msi.zip.sig \
-            --clobber
-
   update-latest-json:
     name: merge Windows into latest.json
     runs-on: ubuntu-latest
-    needs: [bundle-windows, build-linux-macos, release-meta]
+    needs: [build-windows, build-linux-macos, release-meta]
     steps:
       - name: download latest.json from release
         env:
@@ -269,28 +238,29 @@ jobs:
           tag="v${{ needs.release-meta.outputs.version }}"
           gh release download "$tag" --pattern "latest.json" --dir . --repo "$GITHUB_REPOSITORY"
 
-      - name: get Windows updater artifact URLs and signature
+      - name: get Windows updater artifact URL and signature
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="v${{ needs.release-meta.outputs.version }}"
 
-          # Get the .msi.zip asset URL
-          msi_zip_url=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets \
-            --jq '.assets[] | select(.name | endswith(".msi.zip")) | .url')
+          # In Tauri v2, the .msi is the updater artifact directly (no .msi.zip wrapper)
+          # Use test() to match only .msi files (not .msi.sig or other .msi-containing names)
+          msi_url=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '.assets[] | select(.name | test("Autonomi.*\\.msi$")) | .url')
 
-          # Download the .msi.zip.sig and read its contents
-          gh release download "$tag" --pattern "*.msi.zip.sig" --dir . --repo "$GITHUB_REPOSITORY"
-          sig_content=$(cat *.msi.zip.sig)
+          # Download the .msi.sig and read its contents
+          gh release download "$tag" --pattern "*.msi.sig" --dir . --repo "$GITHUB_REPOSITORY"
+          sig_content=$(cat *.msi.sig)
 
-          echo "MSI_ZIP_URL=${msi_zip_url}" >> $GITHUB_ENV
-          echo "MSI_ZIP_SIG=${sig_content}" >> $GITHUB_ENV
+          echo "MSI_URL=${msi_url}" >> $GITHUB_ENV
+          echo "MSI_SIG=${sig_content}" >> $GITHUB_ENV
 
       - name: merge Windows entry into latest.json
         run: |
           # Add windows-x86_64 platform to latest.json
-          jq --arg url "$MSI_ZIP_URL" \
-             --arg sig "$MSI_ZIP_SIG" \
+          jq --arg url "$MSI_URL" \
+             --arg sig "$MSI_SIG" \
              '.platforms["windows-x86_64"] = {"signature": $sig, "url": $url}' \
              latest.json > latest-updated.json
           mv latest-updated.json latest.json

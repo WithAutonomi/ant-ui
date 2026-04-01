@@ -15,6 +15,7 @@ src-tauri/gen/schemas/
 
 # Claude Code local settings
 .claude/settings.local.json
+.claude/plans
 
 # OS
 .DS_Store
