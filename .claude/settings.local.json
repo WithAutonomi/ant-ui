@@ -63,7 +63,11 @@
       "Bash(cargo update:*)",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\(''''tag_name'''',''''NO TAG''''\\)\\); [print\\(a[''''name'''']\\) for a in d.get\\(''''assets'''',[]\\)]\")",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d[''''nodes''''][0], indent=2\\)\\)\")",
-      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f{len\\(d[''''nodes'''']\\)} nodes, {d[''''total_running'''']} running, {d[''''total_stopped'''']} stopped\\)\")"
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f{len\\(d[''''nodes'''']\\)} nodes, {d[''''total_running'''']} running, {d[''''total_stopped'''']} stopped\\)\")",
+      "Bash(cd:*)",
+      "Read(//c//**)",
+      "Bash(mv \"C:\\\\Users\\\\nbdor\\\\Documents\\\\Projects\\\\ant-gui\" \"C:\\\\Users\\\\nbdor\\\\Documents\\\\Projects\\\\ant-ui\")",
+      "Bash(anvil --version)"
     ]
   }
 }
