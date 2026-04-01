@@ -351,7 +351,8 @@ function confirmUpload(options: { visibility: 'private' | 'public'; paymentMode:
     } else if (autonomiConnected.value && wagmiConfig) {
       filesStore.startRealUpload(id, wagmiConfig, options)
     } else {
-      filesStore.simulateUpload(id)
+      filesStore.updateEntry(id, { status: 'failed', error: 'Not connected to network or wallet' })
+      toastStore.add('Upload requires network connection and wallet', 'warning')
     }
   }
   pendingUploadFiles.value = []
@@ -368,7 +369,8 @@ function handleDownload(address: string, filename: string) {
   if (autonomiConnected.value) {
     filesStore.startRealDownload(id)
   } else {
-    filesStore.simulateDownload(id)
+    filesStore.updateEntry(id, { status: 'failed', error: 'Not connected to network' })
+    toastStore.add('Download requires network connection', 'warning')
   }
 }
 

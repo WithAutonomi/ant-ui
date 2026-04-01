@@ -396,78 +396,12 @@ export const useFilesStore = defineStore('files', {
       }
     },
 
-    // ── Mock methods (dev fallback) ──
-    // TODO: REMOVE before launch
-
-    async simulateUpload(id: number) {
-      const toasts = useToastStore()
-      const entry = this.findById(id)
-      if (!entry) return
-
-      this.updateEntry(id, { status: 'quoting' })
-      await delay(800)
-
-      const cost = (entry.size_bytes / 1_048_576 * 0.05).toFixed(4)
-      this.updateEntry(id, { cost: `${cost} ANT` })
-
-      this.updateEntry(id, { status: 'paying' })
-      await delay(1200)
-
-      this.updateEntry(id, { status: 'uploading', progress: 0 })
-      for (let i = 1; i <= 10; i++) {
-        await delay(300 + Math.random() * 400)
-        this.updateEntry(id, { progress: Math.round((i / 10) * 100) })
-      }
-
-      const mockAddr = '0x' + Array.from({ length: 64 }, () =>
-        Math.floor(Math.random() * 16).toString(16)).join('')
-      const duration = entry.transferStartedAt
-        ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
-        : 0
-      this.updateEntry(id, {
-        status: 'complete',
-        progress: 100,
-        address: mockAddr,
-        duration,
-        transferStartedAt: undefined,
-      })
-
-      await this.persistHistory()
-      toasts.add(`Upload complete: ${entry.name}`, 'info')
-    },
-
-    async simulateDownload(id: number) {
-      const toasts = useToastStore()
-      const entry = this.findById(id)
-      if (!entry) return
-
-      this.updateEntry(id, { status: 'downloading', progress: 0 })
-      for (let i = 1; i <= 8; i++) {
-        await delay(400 + Math.random() * 500)
-        this.updateEntry(id, { progress: Math.round((i / 8) * 100) })
-      }
-
-      const duration = entry.transferStartedAt
-        ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
-        : 0
-      this.updateEntry(id, {
-        status: 'downloaded',
-        progress: 100,
-        duration,
-      })
-      toasts.add(`Download complete: ${entry.name}`, 'info')
-    },
-
     getDownloadDir(): string {
       const settings = useSettingsStore()
       return settings.downloadDir ?? '~/Downloads'
     },
   },
 })
-
-function delay(ms: number) {
-  return new Promise(r => setTimeout(r, ms))
-}
 
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return new Promise((resolve, reject) => {
