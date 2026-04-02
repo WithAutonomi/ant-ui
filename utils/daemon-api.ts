@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { useSettingsStore } from '~/stores/settings'
 
 // ── Types matching ant-core/src/node/types.rs ──
@@ -168,15 +169,42 @@ export const daemonApi = {
   /** POST /api/v1/nodes/stop-all */
   stopAll: () => request<StopNodeResult>('POST', '/api/v1/nodes/stop-all'),
 
-  /** Connect to SSE event stream. Returns an abort function.
-   * NOTE: SSE via EventSource is blocked by daemon CORS policy.
-   * All API calls go through Tauri's daemon_request proxy, but EventSource
-   * can't be proxied the same way. Status polling (every 5s) covers this.
-   * TODO: Implement SSE proxy via a Tauri sidecar or websocket bridge.
+  /** Connect to SSE event stream via Tauri proxy. Returns an abort function.
+   * The Rust side streams SSE from the daemon and emits events to the frontend.
+   * Polling (every 5s) remains as fallback.
    */
   events(_onEvent: (event: NodeEvent) => void): () => void {
-    // SSE disabled — daemon CORS only allows same-origin.
-    // Polling via fetchNodes() handles status updates.
+    // Legacy stub kept for API compatibility — use connectSSE/disconnectSSE instead.
     return () => {}
   },
+}
+
+// ── SSE via Tauri proxy ──
+
+/** Start the Rust-side SSE proxy and listen for forwarded events.
+ * Returns an unlisten function to remove the Tauri event listener.
+ */
+export async function connectSSE(baseUrl: string): Promise<UnlistenFn> {
+  // Start the Rust-side SSE proxy
+  await invoke('connect_daemon_sse', { url: baseUrl })
+
+  // Listen for forwarded events
+  const unlisten = await listen('daemon-sse-event', (event) => {
+    // event.payload contains the SSE data string
+    const data = event.payload as string
+    try {
+      const parsed = JSON.parse(data)
+      // Dispatch a custom event that the nodes store can listen to
+      window.dispatchEvent(new CustomEvent('daemon-node-event', { detail: parsed }))
+    } catch {
+      // Non-JSON SSE data, ignore
+    }
+  })
+
+  return unlisten
+}
+
+/** Stop the Rust-side SSE proxy. */
+export async function disconnectSSE(): Promise<void> {
+  await invoke('disconnect_daemon_sse')
 }

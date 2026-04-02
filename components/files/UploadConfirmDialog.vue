@@ -21,7 +21,7 @@
               class="flex items-center justify-between text-sm"
             >
               <span class="max-w-[280px] truncate">{{ file.name }}</span>
-              <span class="text-autonomi-muted">{{ formatBytes(file.size) }}</span>
+              <span class="text-autonomi-muted">{{ file.size ? formatBytes(file.size) : '-' }}</span>
             </div>
           </div>
 
@@ -75,22 +75,23 @@
 
           <!-- Cost breakdown -->
           <div class="rounded-md border border-autonomi-border bg-autonomi-surface/50 p-3 space-y-2">
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-autonomi-muted">Storage cost</span>
-              <span class="text-autonomi-blue">{{ storageCost }} ANT</span>
-            </div>
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-autonomi-muted">Estimated gas</span>
-              <span>{{ gasCost }} ETH</span>
-            </div>
-            <div class="border-t border-autonomi-border pt-2 flex items-center justify-between text-sm font-medium">
-              <span>Total</span>
-              <div class="text-right">
-                <span class="text-autonomi-blue">{{ storageCost }} ANT</span>
-                <span class="mx-1 text-autonomi-muted">+</span>
-                <span>{{ gasCost }} ETH</span>
+            <template v-if="quotedCost">
+              <div class="flex items-center justify-between text-sm font-medium">
+                <span>Network storage cost</span>
+                <span class="text-autonomi-blue">{{ quotedCost }}</span>
               </div>
-            </div>
+            </template>
+            <template v-else-if="quoting">
+              <div class="flex items-center gap-2 text-sm text-autonomi-muted">
+                <div class="h-3 w-3 animate-spin rounded-full border-2 border-autonomi-blue border-t-transparent" />
+                <span>Getting cost quote from network...</span>
+              </div>
+            </template>
+            <template v-else>
+              <div class="text-sm text-autonomi-muted">
+                Real cost will be quoted from the network after confirmation.
+              </div>
+            </template>
           </div>
 
           <!-- Visibility selector -->
@@ -143,8 +144,8 @@
             </div>
           </div>
 
-          <p class="text-xs text-autonomi-muted">
-            Costs are estimates and may vary based on network conditions.
+          <p v-if="quotedCost" class="text-xs text-autonomi-muted">
+            Cost quoted from the Autonomi network. Gas fees apply on top.
           </p>
 
           <div class="flex justify-end gap-2">
@@ -168,13 +169,17 @@
 </template>
 
 <script setup lang="ts">
-const MERKLE_THRESHOLD = 64
-const AVG_CHUNK_SIZE = 262_144 // 256 KB — self-encryption default chunk size
+import { formatBytes } from '~/utils/formatters'
+import { MERKLE_THRESHOLD, AVG_CHUNK_SIZE } from '~/utils/constants'
 
 const props = defineProps<{
   open: boolean
   files: { name: string; size: number; path: string }[]
   loading: boolean
+  /** Real cost from network quote (e.g. "0.0234 ANT") */
+  quotedCost?: string | null
+  /** Whether a network quote is in progress */
+  quoting?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -201,18 +206,6 @@ watch(
   },
 )
 
-// Mock costs — real implementation queries the network and updates when payment mode changes
-const storageCost = computed(() => (totalSize.value / 1_048_576 * 0.05).toFixed(4))
-const gasCost = computed(() => {
-  if (paymentMode.value === 'merkle') {
-    // Merkle: single tx regardless of chunk count
-    return (0.0005).toFixed(4)
-  }
-  // Regular: one tx per wave of 64 chunks
-  const waves = Math.ceil(estimatedChunks.value / 64)
-  return (waves * 0.0003).toFixed(4)
-})
-
 function handleConfirm() {
   emit('confirm', {
     visibility: visibility.value,
@@ -220,11 +213,4 @@ function handleConfirm() {
   })
 }
 
-function formatBytes(bytes?: number) {
-  if (!bytes) return '-'
-  if (bytes >= 1_073_741_824) return `${(bytes / 1_073_741_824).toFixed(1)} GB`
-  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`
-  return `${bytes} B`
-}
 </script>

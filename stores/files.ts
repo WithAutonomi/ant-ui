@@ -6,6 +6,16 @@ import { useSettingsStore } from './settings'
 import { payForQuotes, formatNanoTokens, type RawPayment } from '~/utils/payment'
 import { indelibleApi } from '~/utils/indelible-api'
 
+// ── Pre-obtained quote from network ──
+
+export interface UploadQuote {
+  upload_id: string
+  payments: RawPayment[]
+  total_cost: string
+  total_cost_display: string
+  payment_required: boolean
+}
+
 // ── Unified file entry ──
 
 export type FileStatus =
@@ -175,20 +185,11 @@ export const useFilesStore = defineStore('files', {
       return id
     },
 
-    async startRealUpload(
-      id: number,
-      wagmiConfig: any,
-      options: { visibility: 'private' | 'public'; paymentMode: 'regular' | 'merkle' } = { visibility: 'private', paymentMode: 'regular' },
-    ) {
-      const toasts = useToastStore()
-      const entry = this.findById(id)
-      if (!entry) return
-
-      const uploadId = `upload-${id}-${Date.now()}`
+    /** Get a real network quote for a file. Used by the upload dialog to show real costs. */
+    async getUploadQuote(path: string): Promise<UploadQuote | null> {
+      const uploadId = `quote-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
       try {
-        this.updateEntry(id, { status: 'quoting' })
-
         const quotePromise = new Promise<{
           payments: RawPayment[]
           total_cost: string
@@ -204,15 +205,71 @@ export const useFilesStore = defineStore('files', {
         })
 
         await invoke('start_upload', {
-          request: {
-            files: [entry.path],
-            upload_id: uploadId,
-          },
+          request: { files: [path], upload_id: uploadId },
         })
 
         const quote = await quotePromise
-        const costDisplay = formatNanoTokens(quote.total_cost)
-        this.updateEntry(id, { cost: costDisplay })
+        return {
+          upload_id: uploadId,
+          payments: quote.payments,
+          total_cost: quote.total_cost,
+          total_cost_display: formatNanoTokens(quote.total_cost),
+          payment_required: quote.payment_required,
+        }
+      } catch {
+        return null
+      }
+    },
+
+    async startRealUpload(
+      id: number,
+      wagmiConfig: any,
+      options: { visibility: 'private' | 'public'; paymentMode: 'regular' | 'merkle' } = { visibility: 'private', paymentMode: 'regular' },
+      preQuote?: UploadQuote,
+    ) {
+      const toasts = useToastStore()
+      const entry = this.findById(id)
+      if (!entry) return
+
+      try {
+        let uploadId: string
+        let quote: { payments: RawPayment[]; total_cost: string; payment_required: boolean }
+
+        if (preQuote) {
+          // Use pre-obtained quote (from dialog phase)
+          uploadId = preQuote.upload_id
+          quote = preQuote
+          this.updateEntry(id, { cost: preQuote.total_cost_display })
+        } else {
+          // Get fresh quote from network
+          uploadId = `upload-${id}-${Date.now()}`
+          this.updateEntry(id, { status: 'quoting' })
+
+          const quotePromise = new Promise<{
+            payments: RawPayment[]
+            total_cost: string
+            payment_required: boolean
+          }>((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Quote timeout')), 120_000)
+            listen<any>('upload-quote', (event) => {
+              if (event.payload.upload_id === uploadId) {
+                clearTimeout(timeout)
+                resolve(event.payload)
+              }
+            })
+          })
+
+          await invoke('start_upload', {
+            request: {
+              files: [entry.path],
+              upload_id: uploadId,
+            },
+          })
+
+          quote = await quotePromise
+          const costDisplay = formatNanoTokens(quote.total_cost)
+          this.updateEntry(id, { cost: costDisplay })
+        }
 
         // Pay via wallet and collect tx hash mapping (5 min timeout for user approval)
         let txHashes: Record<string, string> = {}

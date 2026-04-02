@@ -2,8 +2,10 @@ import { defineStore } from 'pinia'
 import { useToastStore } from './toasts'
 import { useSettingsStore } from './settings'
 import { invoke } from '@tauri-apps/api/core'
-import { daemonApi, type NodeEvent } from '~/utils/daemon-api'
+import { daemonApi, connectSSE, disconnectSSE, type NodeEvent } from '~/utils/daemon-api'
 import type { NodeStatusSummary, NodeStatus as ApiNodeStatus, DaemonStatus } from '~/utils/daemon-api'
+import { POLL_INTERVAL } from '~/utils/constants'
+import type { UnlistenFn } from '@tauri-apps/api/event'
 
 // Frontend node status — ant-core values + frontend-only states
 export type NodeStatus = ApiNodeStatus | 'adding'
@@ -39,8 +41,6 @@ function summaryToNodeInfo(s: NodeStatusSummary): NodeInfo {
   }
 }
 
-const POLL_INTERVAL = 5000 // 5s status polling
-
 export const useNodesStore = defineStore('nodes', {
   state: () => ({
     nodes: [] as NodeInfo[],
@@ -50,6 +50,8 @@ export const useNodesStore = defineStore('nodes', {
     daemonStatus: null as DaemonStatus | null,
     _pollTimer: null as ReturnType<typeof setInterval> | null,
     _sseDisconnect: null as (() => void) | null,
+    _sseUnlisten: null as UnlistenFn | null,
+    _sseWindowHandler: null as ((e: Event) => void) | null,
     _reconnectTimer: null as ReturnType<typeof setTimeout> | null,
   }),
 
@@ -83,7 +85,7 @@ export const useNodesStore = defineStore('nodes', {
         this.daemonConnected = true
         await this.fetchNodes()
         this.startPolling()
-        this.connectSSE()
+        await this.connectSSE()
       } catch {
         console.warn('Daemon not available')
         this.daemonConnected = false
@@ -139,15 +141,53 @@ export const useNodesStore = defineStore('nodes', {
       }
     },
 
-    /** Connect to SSE event stream for real-time updates */
-    connectSSE() {
-      this.disconnectSSE()
-      this._sseDisconnect = daemonApi.events((event: NodeEvent) => {
-        this.handleNodeEvent(event)
-      })
+    /** Connect to SSE event stream for real-time updates via Tauri proxy */
+    async connectSSE() {
+      await this.disconnectSSE()
+
+      const settings = useSettingsStore()
+      const daemonUrl = settings.daemonUrl
+
+      // Listen for window custom events dispatched by the Tauri SSE listener
+      const handler = (e: Event) => {
+        const detail = (e as CustomEvent).detail as NodeEvent
+        if (detail) {
+          this.handleNodeEvent(detail)
+        }
+      }
+      window.addEventListener('daemon-node-event', handler)
+      this._sseWindowHandler = handler
+
+      try {
+        const unlisten = await connectSSE(daemonUrl)
+        this._sseUnlisten = unlisten
+      } catch (e) {
+        console.warn('Failed to connect SSE proxy:', e)
+        // SSE is supplemental — polling continues as fallback
+      }
     },
 
-    disconnectSSE() {
+    async disconnectSSE() {
+      // Remove the window event listener
+      if (this._sseWindowHandler) {
+        window.removeEventListener('daemon-node-event', this._sseWindowHandler)
+        this._sseWindowHandler = null
+      }
+
+      // Unsubscribe from Tauri events
+      if (this._sseUnlisten) {
+        this._sseUnlisten()
+        this._sseUnlisten = null
+      }
+
+      // Stop the Rust-side SSE task
+      try {
+        await disconnectSSE()
+      } catch {
+        // Ignore errors during cleanup
+      }
+
+      // Legacy cleanup
       if (this._sseDisconnect) {
         this._sseDisconnect()
         this._sseDisconnect = null
@@ -211,7 +251,7 @@ export const useNodesStore = defineStore('nodes', {
           this.daemonConnected = true
           await this.fetchNodes()
           this.startPolling()
-          this.connectSSE()
+          await this.connectSSE()
         } catch {
           this.scheduleReconnect()
         }
@@ -226,9 +266,9 @@ export const useNodesStore = defineStore('nodes', {
     },
 
     /** Clean up on unmount */
-    cleanup() {
+    async cleanup() {
       this.stopPolling()
-      this.disconnectSSE()
+      await this.disconnectSSE()
       this.cancelReconnect()
     },
 

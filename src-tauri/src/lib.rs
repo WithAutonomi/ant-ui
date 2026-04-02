@@ -4,6 +4,27 @@ mod config;
 use autonomi_ops::AutonomiState;
 use config::{AppConfig, FileMetaResult, UploadHistory, UploadHistoryEntry};
 use std::path::PathBuf;
+use std::sync::Arc;
+use tokio::sync::{watch, RwLock};
+
+// ── SSE proxy state ──
+
+pub struct SseState {
+    /// Sender to signal the SSE background task to stop.
+    stop_tx: watch::Sender<bool>,
+    /// Handle to the spawned SSE task (if any).
+    task_handle: RwLock<Option<tokio::task::JoinHandle<()>>>,
+}
+
+impl SseState {
+    fn new() -> Self {
+        let (stop_tx, _) = watch::channel(false);
+        Self {
+            stop_tx,
+            task_handle: RwLock::new(None),
+        }
+    }
+}
 
 /// Attempt to stop a stale daemon (ignores errors).
 async fn try_stop_daemon() {
@@ -114,6 +135,141 @@ fn discover_daemon_url() -> Option<String> {
     config::discover_daemon_url()
 }
 
+/// Start streaming SSE events from the daemon, forwarding them to the frontend.
+#[tauri::command]
+async fn connect_daemon_sse(
+    url: String,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Arc<SseState>>,
+) -> Result<(), String> {
+    use futures_util::StreamExt;
+    use tauri::Emitter;
+
+    // Stop any existing SSE task first.
+    disconnect_daemon_sse_inner(&state).await;
+
+    // Reset the stop signal.
+    let _ = state.stop_tx.send(false);
+    let mut stop_rx = state.stop_tx.subscribe();
+
+    let sse_url = format!("{url}/api/v1/events");
+
+    let handle = tokio::spawn(async move {
+        loop {
+            // Check if we should stop before (re)connecting.
+            if *stop_rx.borrow() {
+                break;
+            }
+
+            let client = match reqwest::Client::builder()
+                .no_proxy() // SSE is always local daemon
+                .build()
+            {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("[SSE] Failed to build HTTP client: {e}");
+                    break;
+                }
+            };
+
+            let resp = client
+                .get(&sse_url)
+                .header("Accept", "text/event-stream")
+                .send()
+                .await;
+
+            let resp = match resp {
+                Ok(r) if r.status().is_success() => r,
+                Ok(r) => {
+                    eprintln!("[SSE] Daemon returned status {}", r.status());
+                    // Wait before retrying, but respect stop signal.
+                    tokio::select! {
+                        _ = tokio::time::sleep(std::time::Duration::from_secs(5)) => continue,
+                        _ = stop_rx.changed() => break,
+                    }
+                }
+                Err(e) => {
+                    eprintln!("[SSE] Connection failed: {e}");
+                    tokio::select! {
+                        _ = tokio::time::sleep(std::time::Duration::from_secs(5)) => continue,
+                        _ = stop_rx.changed() => break,
+                    }
+                }
+            };
+
+            let mut stream = resp.bytes_stream();
+            let mut buffer = String::new();
+
+            loop {
+                tokio::select! {
+                    chunk = stream.next() => {
+                        match chunk {
+                            Some(Ok(bytes)) => {
+                                buffer.push_str(&String::from_utf8_lossy(&bytes));
+
+                                // Process complete lines from the buffer.
+                                while let Some(pos) = buffer.find('\n') {
+                                    let line = buffer[..pos].trim_end_matches('\r').to_string();
+                                    buffer = buffer[pos + 1..].to_string();
+
+                                    if let Some(data) = line.strip_prefix("data:") {
+                                        let data = data.trim().to_string();
+                                        if !data.is_empty() {
+                                            let _ = app.emit("daemon-sse-event", &data);
+                                        }
+                                    }
+                                    // Ignore other SSE fields (event:, id:, retry:, comments)
+                                }
+                            }
+                            Some(Err(e)) => {
+                                eprintln!("[SSE] Stream error: {e}");
+                                break; // Will reconnect via outer loop
+                            }
+                            None => {
+                                eprintln!("[SSE] Stream ended");
+                                break; // Will reconnect via outer loop
+                            }
+                        }
+                    }
+                    _ = stop_rx.changed() => {
+                        return; // Stop signal received
+                    }
+                }
+            }
+
+            // Brief pause before reconnecting after stream end/error.
+            tokio::select! {
+                _ = tokio::time::sleep(std::time::Duration::from_secs(2)) => {}
+                _ = stop_rx.changed() => break,
+            }
+        }
+    });
+
+    *state.task_handle.write().await = Some(handle);
+    Ok(())
+}
+
+/// Internal helper to stop the SSE task.
+async fn disconnect_daemon_sse_inner(state: &SseState) {
+    // Signal the task to stop.
+    let _ = state.stop_tx.send(true);
+
+    // Wait for the task to finish (with a timeout).
+    let handle = state.task_handle.write().await.take();
+    if let Some(h) = handle {
+        let _ = tokio::time::timeout(std::time::Duration::from_secs(3), h).await;
+    }
+}
+
+/// Stop the SSE background task.
+#[tauri::command]
+async fn disconnect_daemon_sse(
+    state: tauri::State<'_, Arc<SseState>>,
+) -> Result<(), String> {
+    disconnect_daemon_sse_inner(&state).await;
+    Ok(())
+}
+
 /// Start the ant daemon if it's not already running.
 /// Returns the daemon URL on success.
 #[tauri::command]
@@ -169,7 +325,14 @@ fn get_file_sizes(paths: Vec<String>) -> Result<Vec<FileMetaResult>, String> {
 
 #[tauri::command]
 fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
-    std::fs::read(&path).map_err(|e| format!("Failed to read {path}: {e}"))
+    let canonical = std::fs::canonicalize(&path)
+        .map_err(|e| format!("Invalid path {path}: {e}"))?;
+
+    if !canonical.is_file() {
+        return Err(format!("Not a regular file: {path}"));
+    }
+
+    std::fs::read(&canonical).map_err(|e| format!("Failed to read {path}: {e}"))
 }
 
 #[tauri::command]
@@ -191,6 +354,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AutonomiState::new())
+        .manage(Arc::new(SseState::new()))
         .invoke_handler(tauri::generate_handler![
             load_config,
             save_config,
@@ -203,6 +367,8 @@ pub fn run() {
             save_upload_history,
             discover_daemon_url,
             ensure_daemon_running,
+            connect_daemon_sse,
+            disconnect_daemon_sse,
             autonomi_ops::init_autonomi_client,
             autonomi_ops::start_upload,
             autonomi_ops::confirm_upload,

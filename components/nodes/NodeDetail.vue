@@ -20,7 +20,7 @@
         </div>
         <div>
           <span class="text-autonomi-muted">Uptime</span>
-          <p>{{ formatUptime(node.uptime_secs) }}</p>
+          <p>{{ node.uptime_secs ? formatUptime(node.uptime_secs) : '-' }}</p>
         </div>
         <div>
           <span class="text-autonomi-muted">Peers</span>
@@ -28,7 +28,7 @@
         </div>
         <div>
           <span class="text-autonomi-muted">Storage</span>
-          <p>{{ formatBytes(node.storage_bytes) }}</p>
+          <p>{{ node.storage_bytes ? formatBytes(node.storage_bytes) : '-' }}</p>
         </div>
         <div>
           <span class="text-autonomi-muted">Earnings</span>
@@ -77,6 +77,7 @@
 
 <script setup lang="ts">
 import type { NodeInfo } from '~/stores/nodes'
+import { formatBytes, formatUptime } from '~/utils/formatters'
 
 defineProps<{
   node: NodeInfo
@@ -89,21 +90,4 @@ defineEmits<{
   remove: [id: number]
 }>()
 
-function formatUptime(seconds?: number) {
-  if (!seconds) return '-'
-  const d = Math.floor(seconds / 86400)
-  const h = Math.floor((seconds % 86400) / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  if (d > 0) return `${d}d ${h}h`
-  if (h > 0) return `${h}h ${m}m`
-  return `${m}m`
-}
-
-function formatBytes(bytes?: number) {
-  if (!bytes) return '-'
-  if (bytes >= 1_073_741_824) return `${(bytes / 1_073_741_824).toFixed(1)} GB`
-  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`
-  return `${bytes} B`
-}
 </script>

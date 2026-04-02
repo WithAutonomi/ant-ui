@@ -1,0 +1,4 @@
+export const POLL_INTERVAL = 5000
+export const PENDING_UPLOAD_TTL_MS = 300_000
+export const MERKLE_THRESHOLD = 64
+export const AVG_CHUNK_SIZE = 262_144

@@ -325,6 +325,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { openUrl as tauriOpenUrl } from '@tauri-apps/plugin-opener'
 import { useSettingsStore } from '~/stores/settings'
+import { isValidEthAddress } from '~/utils/validators'
 import { useToastStore } from '~/stores/toasts'
 import { useErrorLogStore } from '~/stores/errorlog'
 
@@ -418,7 +419,7 @@ function startEditEarnings() {
 
 async function saveEarnings() {
   const val = earningsInput.value.trim()
-  if (val && !/^0x[0-9a-fA-F]{40}$/.test(val)) {
+  if (val && !isValidEthAddress(val)) {
     toasts.add('Invalid EVM address format', 'warning')
     return
   }

@@ -103,7 +103,7 @@
               @click="onRowClick(file)"
             >
               <td class="px-4 py-2.5">{{ file.name }}</td>
-              <td class="px-4 py-2.5 text-autonomi-muted">{{ formatBytes(file.size_bytes) }}</td>
+              <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
               <td class="px-4 py-2.5">
                 <div class="flex items-center gap-2">
                   <StatusBadge :status="statusLabel(file)" />
@@ -125,7 +125,7 @@
                   class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue"
                   @click.stop="copyAddress(file.address)"
                 >
-                  {{ truncateAddress(file.address) }}
+                  {{ truncateAddress(file.address, 8, 6) }}
                 </span>
                 <span v-else class="text-autonomi-muted">-</span>
               </td>
@@ -147,8 +147,10 @@
       :open="showUploadConfirm"
       :files="pendingUploadFiles"
       :loading="uploadEstimating"
+      :quoted-cost="quotedCostDisplay"
+      :quoting="isQuoting"
       @confirm="confirmUpload"
-      @cancel="showUploadConfirm = false"
+      @cancel="cancelUpload"
     />
 
     <FilesCostEstimateDialog
@@ -165,7 +167,8 @@ import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { open as openFileDialog } from '@tauri-apps/plugin-dialog'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
-import { useFilesStore, type FileEntry } from '~/stores/files'
+import { useFilesStore, type FileEntry, type UploadQuote } from '~/stores/files'
+import { formatBytes, truncateAddress } from '~/utils/formatters'
 import { useSettingsStore } from '~/stores/settings'
 import { useToastStore } from '~/stores/toasts'
 
@@ -298,6 +301,9 @@ async function setupDragDrop() {
 const showUploadConfirm = ref(false)
 const uploadEstimating = ref(false)
 const pendingUploadFiles = ref<{ name: string; size: number; path: string }[]>([])
+const isQuoting = ref(false)
+const quotedCostDisplay = ref<string | null>(null)
+const pendingQuotes = ref<Map<string, UploadQuote>>(new Map())
 
 async function getFileMetas(paths: string[]): Promise<FileMeta[]> {
   try {
@@ -329,6 +335,8 @@ async function uploadFiles() {
 async function showUploadConfirmForPaths(paths: string[]) {
   uploadEstimating.value = true
   pendingUploadFiles.value = []
+  quotedCostDisplay.value = null
+  pendingQuotes.value = new Map()
   showUploadConfirm.value = true
 
   const metas = await getFileMetas(paths)
@@ -338,6 +346,41 @@ async function showUploadConfirmForPaths(paths: string[]) {
     path: m.path,
   }))
   uploadEstimating.value = false
+
+  // Start real quoting in background (only when connected to network)
+  if (autonomiConnected.value && !settingsStore.indelibleConnected) {
+    startQuoting(metas)
+  }
+}
+
+async function startQuoting(metas: FileMeta[]) {
+  isQuoting.value = true
+  try {
+    // Quote each file (sequentially to avoid overwhelming the network)
+    const quotes = new Map<string, UploadQuote>()
+    for (const meta of metas) {
+      const quote = await filesStore.getUploadQuote(meta.path)
+      if (quote) {
+        quotes.set(meta.path, quote)
+      }
+    }
+    pendingQuotes.value = quotes
+
+    // Sum up total costs for display
+    if (quotes.size > 0) {
+      const totalNanos = Array.from(quotes.values()).reduce(
+        (sum, q) => sum + BigInt(q.total_cost), 0n,
+      )
+      // Format using the same logic as formatNanoTokens
+      const whole = totalNanos / 1_000_000_000_000_000_000n
+      const frac = (totalNanos % 1_000_000_000_000_000_000n) / 1_000_000_000_000_000n
+      quotedCostDisplay.value = frac > 0n ? `${whole}.${frac.toString().padStart(3, '0')} ANT` : `${whole} ANT`
+    }
+  } catch {
+    // Quoting failed — user can still proceed (will re-quote during upload)
+  } finally {
+    isQuoting.value = false
+  }
 }
 
 function confirmUpload(options: { visibility: 'private' | 'public'; paymentMode: 'regular' | 'merkle' }) {
@@ -346,16 +389,28 @@ function confirmUpload(options: { visibility: 'private' | 'public'; paymentMode:
 
   for (const file of pendingUploadFiles.value) {
     const id = filesStore.addUpload(file.name, file.path, file.size)
+    const preQuote = pendingQuotes.value.get(file.path)
+
     if (settingsStore.indelibleConnected) {
       filesStore.startIndelibleUpload(id)
     } else if (autonomiConnected.value && wagmiConfig) {
-      filesStore.startRealUpload(id, wagmiConfig, options)
+      filesStore.startRealUpload(id, wagmiConfig, options, preQuote ?? undefined)
     } else {
       filesStore.updateEntry(id, { status: 'failed', error: 'Not connected to network or wallet' })
       toastStore.add('Upload requires network connection and wallet', 'warning')
     }
   }
   pendingUploadFiles.value = []
+  pendingQuotes.value = new Map()
+  quotedCostDisplay.value = null
+}
+
+function cancelUpload() {
+  showUploadConfirm.value = false
+  pendingUploadFiles.value = []
+  pendingQuotes.value = new Map()
+  quotedCostDisplay.value = null
+  isQuoting.value = false
 }
 
 // ── Download flow ──
@@ -418,19 +473,6 @@ async function openFolder(path: string) {
 function copyAddress(addr: string) {
   navigator.clipboard.writeText(addr)
   toastStore.add('Address copied to clipboard', 'info')
-}
-
-function truncateAddress(addr: string) {
-  if (addr.length > 16) return `${addr.slice(0, 8)}…${addr.slice(-6)}`
-  return addr
-}
-
-function formatBytes(bytes?: number) {
-  if (!bytes) return '-'
-  if (bytes >= 1_073_741_824) return `${(bytes / 1_073_741_824).toFixed(1)} GB`
-  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`
-  return `${bytes} B`
 }
 
 function formatDate(iso: string): string {

@@ -132,6 +132,8 @@
 
 <script setup lang="ts">
 import { useWalletStore } from '~/stores/wallet'
+import { truncateAddress } from '~/utils/formatters'
+import { isValidEthAddress } from '~/utils/validators'
 import { useSettingsStore } from '~/stores/settings'
 import { useToastStore } from '~/stores/toasts'
 import { useWallet } from '~/composables/useWallet'
@@ -162,7 +164,7 @@ function startEditEarnings() {
 
 function saveEarnings() {
   const addr = earningsInput.value.trim()
-  if (!addr.startsWith('0x') || addr.length !== 42) {
+  if (!isValidEthAddress(addr)) {
     toastStore.add('Invalid address: must be 0x + 40 hex characters', 'error')
     return
   }
@@ -190,8 +192,4 @@ async function disconnect() {
   toastStore.add('Wallet disconnected', 'info')
 }
 
-function truncateAddress(addr: string) {
-  if (addr.length > 14) return `${addr.slice(0, 6)}…${addr.slice(-4)}`
-  return addr
-}
 </script>

@@ -10,8 +10,11 @@ use tokio::sync::RwLock;
 
 pub struct AutonomiState {
     pub client: RwLock<Option<Client>>,
-    pub pending_uploads: RwLock<HashMap<String, PreparedUpload>>,
+    pub pending_uploads: RwLock<HashMap<String, (PreparedUpload, std::time::Instant)>>,
 }
+
+/// Pending uploads older than this are garbage-collected.
+const PENDING_UPLOAD_TTL: std::time::Duration = std::time::Duration::from_secs(30 * 60);
 
 impl AutonomiState {
     pub fn new() -> Self {
@@ -19,6 +22,15 @@ impl AutonomiState {
             client: RwLock::new(None),
             pending_uploads: RwLock::new(HashMap::new()),
         }
+    }
+
+    /// Remove pending uploads that have expired.
+    pub async fn gc_pending_uploads(&self) {
+        let cutoff = std::time::Instant::now() - PENDING_UPLOAD_TTL;
+        self.pending_uploads
+            .write()
+            .await
+            .retain(|_, (_, created_at)| *created_at > cutoff);
     }
 }
 
@@ -101,6 +113,10 @@ pub async fn start_upload(
         .as_ref()
         .ok_or("Autonomi client not initialized")?;
 
+    // Garbage-collect expired pending uploads before adding new ones
+    state.gc_pending_uploads().await;
+
+    // Single file per upload — frontend sends one file at a time
     let path = PathBuf::from(
         request.files.first().ok_or("No files provided")?,
     );
@@ -111,15 +127,15 @@ pub async fn start_upload(
         .await
         .map_err(|e| format!("Failed to prepare upload: {e}"))?;
 
-    // Extract payment tuples for the frontend
+    // Extract payment tuples for the frontend as hex strings
     let payments: Vec<RawPayment> = prepared
         .payment_intent
         .payments
         .iter()
         .map(|(quote_hash, rewards_addr, amount)| {
             [
-                format!("{quote_hash:?}"),
-                format!("{rewards_addr:?}"),
+                format!("0x{}", hex::encode(quote_hash)),
+                format!("{rewards_addr}"),
                 amount.to_string(),
             ]
         })
@@ -138,12 +154,12 @@ pub async fn start_upload(
     app.emit("upload-quote", &quote_event)
         .map_err(|e| format!("Failed to emit quote event: {e}"))?;
 
-    // Store prepared upload for finalization after payment
+    // Store prepared upload with timestamp for TTL cleanup
     state
         .pending_uploads
         .write()
         .await
-        .insert(request.upload_id, prepared);
+        .insert(request.upload_id, (prepared, std::time::Instant::now()));
 
     Ok(())
 }
@@ -162,7 +178,7 @@ pub async fn confirm_upload(
         .as_ref()
         .ok_or("Autonomi client not initialized")?;
 
-    let prepared = state
+    let (prepared, _created_at) = state
         .pending_uploads
         .write()
         .await
@@ -184,6 +200,14 @@ pub async fn confirm_upload(
             Some((QuoteHash::from(quote_bytes), TxHash::from(tx_bytes)))
         })
         .collect();
+
+    if tx_hash_map.len() != tx_hashes.len() {
+        let failed = tx_hashes.len() - tx_hash_map.len();
+        return Err(format!(
+            "Failed to parse {failed} of {} transaction hashes",
+            tx_hashes.len()
+        ));
+    }
 
     // Phase 2: Finalize upload with tx hashes and store chunks
     let result = client
@@ -234,6 +258,14 @@ pub async fn download_file(
         tokio::fs::create_dir_all(parent)
             .await
             .map_err(|e| format!("Failed to create directory: {e}"))?;
+
+        // Validate the resolved path is under an accessible directory
+        let canonical_parent = tokio::fs::canonicalize(parent)
+            .await
+            .map_err(|e| format!("Invalid destination directory: {e}"))?;
+        if !canonical_parent.is_dir() {
+            return Err("Destination parent is not a directory".to_string());
+        }
     }
 
     let bytes_written = client

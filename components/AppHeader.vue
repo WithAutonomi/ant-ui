@@ -45,6 +45,7 @@
 </template>
 
 <script setup lang="ts">
+import { truncateAddress } from '~/utils/formatters'
 import { useNodesStore } from '~/stores/nodes'
 import { useFilesStore } from '~/stores/files'
 import { useWalletStore } from '~/stores/wallet'
@@ -73,8 +74,4 @@ const pageTitle = computed(() => {
   return titles[route.path] ?? 'Autonomi'
 })
 
-function truncateAddress(addr: string) {
-  if (addr.length > 14) return `${addr.slice(0, 6)}…${addr.slice(-4)}`
-  return addr
-}
 </script>
