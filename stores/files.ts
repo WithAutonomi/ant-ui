@@ -3,17 +3,23 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { useToastStore } from './toasts'
 import { useSettingsStore } from './settings'
-import { payForQuotes, formatNanoTokens, type RawPayment } from '~/utils/payment'
+import { payForQuotes, payForMerkleTree, formatNanoTokens, type RawPayment, type SerializedPoolCommitment } from '~/utils/payment'
 import { indelibleApi } from '~/utils/indelible-api'
 
 // ── Pre-obtained quote from network ──
 
 export interface UploadQuote {
   upload_id: string
+  payment_mode: 'wave-batch' | 'merkle'
+  // Wave-batch fields
   payments: RawPayment[]
   total_cost: string
   total_cost_display: string
   payment_required: boolean
+  // Merkle fields
+  merkle_depth?: number
+  merkle_pool_commitments?: SerializedPoolCommitment[]
+  merkle_timestamp?: number
 }
 
 // ── Unified file entry ──
@@ -190,11 +196,7 @@ export const useFilesStore = defineStore('files', {
       const uploadId = `quote-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
       try {
-        const quotePromise = new Promise<{
-          payments: RawPayment[]
-          total_cost: string
-          payment_required: boolean
-        }>((resolve, reject) => {
+        const quotePromise = new Promise<any>((resolve, reject) => {
           const timeout = setTimeout(() => reject(new Error('Quote timeout')), 120_000)
           listen<any>('upload-quote', (event) => {
             if (event.payload.upload_id === uploadId) {
@@ -211,10 +213,14 @@ export const useFilesStore = defineStore('files', {
         const quote = await quotePromise
         return {
           upload_id: uploadId,
-          payments: quote.payments,
+          payment_mode: quote.payment_mode,
+          payments: quote.payments ?? [],
           total_cost: quote.total_cost,
-          total_cost_display: formatNanoTokens(quote.total_cost),
+          total_cost_display: quote.payment_mode === 'merkle' ? 'Determined on-chain' : formatNanoTokens(quote.total_cost),
           payment_required: quote.payment_required,
+          merkle_depth: quote.merkle_depth,
+          merkle_pool_commitments: quote.merkle_pool_commitments,
+          merkle_timestamp: quote.merkle_timestamp,
         }
       } catch {
         return null
@@ -233,7 +239,7 @@ export const useFilesStore = defineStore('files', {
 
       try {
         let uploadId: string
-        let quote: { payments: RawPayment[]; total_cost: string; payment_required: boolean }
+        let quote: UploadQuote
 
         if (preQuote) {
           // Use pre-obtained quote (from dialog phase)
@@ -245,11 +251,7 @@ export const useFilesStore = defineStore('files', {
           uploadId = `upload-${id}-${Date.now()}`
           this.updateEntry(id, { status: 'quoting' })
 
-          const quotePromise = new Promise<{
-            payments: RawPayment[]
-            total_cost: string
-            payment_required: boolean
-          }>((resolve, reject) => {
+          const quotePromise = new Promise<any>((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Quote timeout')), 120_000)
             listen<any>('upload-quote', (event) => {
               if (event.payload.upload_id === uploadId) {
@@ -266,50 +268,103 @@ export const useFilesStore = defineStore('files', {
             },
           })
 
-          quote = await quotePromise
-          const costDisplay = formatNanoTokens(quote.total_cost)
-          this.updateEntry(id, { cost: costDisplay })
+          const raw = await quotePromise
+          quote = {
+            upload_id: uploadId,
+            payment_mode: raw.payment_mode,
+            payments: raw.payments ?? [],
+            total_cost: raw.total_cost,
+            total_cost_display: raw.payment_mode === 'merkle' ? 'Determined on-chain' : formatNanoTokens(raw.total_cost),
+            payment_required: raw.payment_required,
+            merkle_depth: raw.merkle_depth,
+            merkle_pool_commitments: raw.merkle_pool_commitments,
+            merkle_timestamp: raw.merkle_timestamp,
+          }
+          this.updateEntry(id, { cost: quote.total_cost_display })
         }
 
-        // Pay via wallet and collect tx hash mapping (5 min timeout for user approval)
-        let txHashes: Record<string, string> = {}
-        if (quote.payment_required) {
-          this.updateEntry(id, { status: 'paying' })
+        this.updateEntry(id, { status: 'paying' })
+
+        if (quote.payment_mode === 'merkle') {
+          // Merkle path: single tx for all chunks
           try {
             const payResult = await withTimeout(
-              payForQuotes(wagmiConfig, quote.payments),
+              payForMerkleTree(
+                wagmiConfig,
+                quote.merkle_depth!,
+                quote.merkle_pool_commitments!,
+                BigInt(quote.merkle_timestamp!),
+              ),
               300_000,
               'Payment timed out — wallet approval took too long',
             )
-            txHashes = payResult.txHashMap
+
+            this.updateEntry(id, { status: 'uploading', progress: 0, cost: formatNanoTokens(payResult.totalPaid.toString()) })
+
+            const result = await withTimeout(
+              invoke<{ upload_id: string; data_map_json: string; chunks_stored: number }>('confirm_upload_merkle', {
+                uploadId,
+                winnerPoolHash: payResult.winnerPoolHash,
+              }),
+              120_000,
+              'Upload timed out',
+            )
+
+            const duration = entry.transferStartedAt
+              ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
+              : 0
+            this.updateEntry(id, {
+              status: 'complete',
+              progress: 100,
+              data_map_json: result.data_map_json,
+              duration,
+              transferStartedAt: undefined,
+            })
           } catch (e: any) {
             this.updateEntry(id, { status: 'failed', error: `Payment failed: ${e.message}` })
             toasts.add(`Payment failed: ${e.message}`, 'error')
             return
           }
+        } else {
+          // Wave-batch path: pay per batch then finalize
+          let txHashes: Record<string, string> = {}
+          if (quote.payment_required) {
+            try {
+              const payResult = await withTimeout(
+                payForQuotes(wagmiConfig, quote.payments),
+                300_000,
+                'Payment timed out — wallet approval took too long',
+              )
+              txHashes = payResult.txHashMap
+            } catch (e: any) {
+              this.updateEntry(id, { status: 'failed', error: `Payment failed: ${e.message}` })
+              toasts.add(`Payment failed: ${e.message}`, 'error')
+              return
+            }
+          }
+
+          this.updateEntry(id, { status: 'uploading', progress: 0 })
+
+          const result = await withTimeout(
+            invoke<{ upload_id: string; data_map_json: string; chunks_stored: number }>('confirm_upload', {
+              uploadId,
+              txHashes,
+            }),
+            120_000,
+            'Upload timed out',
+          )
+
+          const duration = entry.transferStartedAt
+            ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
+            : 0
+          this.updateEntry(id, {
+            status: 'complete',
+            progress: 100,
+            data_map_json: result.data_map_json,
+            duration,
+            transferStartedAt: undefined,
+          })
         }
-
-        this.updateEntry(id, { status: 'uploading', progress: 0 })
-
-        const result = await withTimeout(
-          invoke<{ upload_id: string; data_map_json: string; chunks_stored: number }>('confirm_upload', {
-            uploadId,
-            txHashes,
-          }),
-          120_000,
-          'Upload timed out',
-        )
-
-        const duration = entry.transferStartedAt
-          ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
-          : 0
-        this.updateEntry(id, {
-          status: 'complete',
-          progress: 100,
-          data_map_json: result.data_map_json,
-          duration,
-          transferStartedAt: undefined,
-        })
 
         await this.persistHistory()
         toasts.add(`Upload complete: ${entry.name}`, 'info')

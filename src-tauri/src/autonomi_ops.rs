@@ -1,4 +1,4 @@
-use ant_core::data::{Client, ClientConfig, DataMap, EvmNetwork, PreparedUpload};
+use ant_core::data::{Client, ClientConfig, DataMap, EvmNetwork, ExternalPaymentInfo, PreparedUpload};
 use evmlib::common::{QuoteHash, TxHash};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -39,12 +39,33 @@ impl AutonomiState {
 /// Payment tuple sent to the frontend: [quoteHash, rewardsAddress, amount]
 pub type RawPayment = [String; 3];
 
+/// Serializable candidate node for merkle pool commitments.
+#[derive(Serialize, Clone)]
+pub struct SerializedCandidateNode {
+    pub rewards_address: String,
+    pub amount: String,
+}
+
+/// Serializable pool commitment for merkle payments.
+#[derive(Serialize, Clone)]
+pub struct SerializedPoolCommitment {
+    pub pool_hash: String,
+    pub candidates: Vec<SerializedCandidateNode>,
+}
+
 #[derive(Serialize, Clone)]
 pub struct UploadQuoteEvent {
     pub upload_id: String,
+    /// "wave-batch" or "merkle"
+    pub payment_mode: String,
+    // ── Wave-batch fields (empty for merkle) ──
     pub payments: Vec<RawPayment>,
     pub total_cost: String,
     pub payment_required: bool,
+    // ── Merkle fields (None for wave-batch) ──
+    pub merkle_depth: Option<u8>,
+    pub merkle_pool_commitments: Option<Vec<SerializedPoolCommitment>>,
+    pub merkle_timestamp: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -66,7 +87,6 @@ pub struct StartUploadRequest {
 /// Initialize the data client. Connects to the Autonomi network via bootstrap peers.
 ///
 /// `bootstrap_peers`: list of "host:port" strings. If empty, uses defaults.
-/// `evm_network`: "arbitrum-one" or "arbitrum-sepolia" (for price queries).
 #[tauri::command]
 pub async fn init_autonomi_client(
     state: tauri::State<'_, AutonomiState>,
@@ -101,7 +121,9 @@ pub async fn init_autonomi_client(
 }
 
 /// Start an upload: encrypts file, collects quotes, emits quote event
-/// with payment tuples for the frontend to pay via wallet.
+/// with payment info for the frontend to pay via wallet.
+///
+/// The backend auto-selects wave-batch (<64 chunks) or merkle (>=64 chunks).
 #[tauri::command]
 pub async fn start_upload(
     app: AppHandle,
@@ -127,28 +149,69 @@ pub async fn start_upload(
         .await
         .map_err(|e| format!("Failed to prepare upload: {e}"))?;
 
-    // Extract payment tuples for the frontend as hex strings
-    let payments: Vec<RawPayment> = prepared
-        .payment_intent
-        .payments
-        .iter()
-        .map(|(quote_hash, rewards_addr, amount)| {
-            [
-                format!("0x{}", hex::encode(quote_hash)),
-                format!("{rewards_addr}"),
-                amount.to_string(),
-            ]
-        })
-        .collect();
+    let quote_event = match &prepared.payment_info {
+        ExternalPaymentInfo::WaveBatch {
+            prepared_chunks: _,
+            payment_intent,
+        } => {
+            let payments: Vec<RawPayment> = payment_intent
+                .payments
+                .iter()
+                .map(|(quote_hash, rewards_addr, amount)| {
+                    [
+                        format!("0x{}", hex::encode(quote_hash)),
+                        format!("{rewards_addr}"),
+                        amount.to_string(),
+                    ]
+                })
+                .collect();
 
-    let total_cost = prepared.payment_intent.total_amount.to_string();
-    let payment_required = !payments.is_empty();
+            let total_cost = payment_intent.total_amount.to_string();
+            let payment_required = !payments.is_empty();
 
-    let quote_event = UploadQuoteEvent {
-        upload_id: request.upload_id.clone(),
-        payments,
-        total_cost,
-        payment_required,
+            UploadQuoteEvent {
+                upload_id: request.upload_id.clone(),
+                payment_mode: "wave-batch".into(),
+                payments,
+                total_cost,
+                payment_required,
+                merkle_depth: None,
+                merkle_pool_commitments: None,
+                merkle_timestamp: None,
+            }
+        }
+        ExternalPaymentInfo::Merkle {
+            prepared_batch,
+            chunk_contents: _,
+            chunk_addresses: _,
+        } => {
+            let pool_commitments: Vec<SerializedPoolCommitment> = prepared_batch
+                .pool_commitments
+                .iter()
+                .map(|pc| SerializedPoolCommitment {
+                    pool_hash: format!("0x{}", hex::encode(pc.pool_hash)),
+                    candidates: pc
+                        .candidates
+                        .iter()
+                        .map(|c| SerializedCandidateNode {
+                            rewards_address: format!("{}", c.rewards_address),
+                            amount: c.price.to_string(),
+                        })
+                        .collect(),
+                })
+                .collect();
+
+            UploadQuoteEvent {
+                upload_id: request.upload_id.clone(),
+                payment_mode: "merkle".into(),
+                payments: vec![],
+                total_cost: "0".into(),
+                payment_required: true,
+                merkle_depth: Some(prepared_batch.depth),
+                merkle_pool_commitments: Some(pool_commitments),
+                merkle_timestamp: Some(prepared_batch.merkle_payment_timestamp),
+            }
+        }
     };
 
     app.emit("upload-quote", &quote_event)
@@ -164,7 +227,7 @@ pub async fn start_upload(
     Ok(())
 }
 
-/// Confirm upload after frontend has paid on-chain.
+/// Confirm wave-batch upload after frontend has paid on-chain.
 /// Accepts tx hashes from the external signer and uploads chunks.
 #[tauri::command]
 pub async fn confirm_upload(
@@ -216,6 +279,57 @@ pub async fn confirm_upload(
         .map_err(|e| format!("Upload failed: {e}"))?;
 
     // Serialize the DataMap for persistence (needed for later download)
+    let data_map_json = serde_json::to_string(&result.data_map)
+        .map_err(|e| format!("Failed to serialize DataMap: {e}"))?;
+
+    app.emit(
+        "upload-progress",
+        serde_json::json!({
+            "upload_id": upload_id,
+            "status": "complete",
+            "chunks_stored": result.chunks_stored,
+        }),
+    )
+    .ok();
+
+    Ok(UploadResult {
+        upload_id,
+        data_map_json,
+        chunks_stored: result.chunks_stored,
+    })
+}
+
+/// Confirm merkle upload after frontend has paid on-chain.
+/// Accepts the winner pool hash from the MerklePaymentMade event.
+#[tauri::command]
+pub async fn confirm_upload_merkle(
+    app: AppHandle,
+    state: tauri::State<'_, AutonomiState>,
+    upload_id: String,
+    winner_pool_hash: String,
+) -> Result<UploadResult, String> {
+    let client_lock = state.client.read().await;
+    let client = client_lock
+        .as_ref()
+        .ok_or("Autonomi client not initialized")?;
+
+    let (prepared, _created_at) = state
+        .pending_uploads
+        .write()
+        .await
+        .remove(&upload_id)
+        .ok_or("No pending upload found for this ID")?;
+
+    let hash_bytes: [u8; 32] = hex::decode(winner_pool_hash.trim_start_matches("0x"))
+        .map_err(|e| format!("Invalid winner pool hash: {e}"))?
+        .try_into()
+        .map_err(|_| "Winner pool hash must be exactly 32 bytes".to_string())?;
+
+    let result = client
+        .finalize_upload_merkle(prepared, hash_bytes)
+        .await
+        .map_err(|e| format!("Merkle upload failed: {e}"))?;
+
     let data_map_json = serde_json::to_string(&result.data_map)
         .map_err(|e| format!("Failed to serialize DataMap: {e}"))?;
 
