@@ -41,7 +41,7 @@
       </div>
       <div>
         <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Storage</p>
-        <p class="text-sm font-mono text-autonomi-text">{{ node.storage_bytes ? formatBytes(node.storage_bytes) : '-' }}</p>
+        <p class="text-sm font-mono text-autonomi-text">{{ node.storage_bytes != null ? formatBytes(node.storage_bytes) : '-' }}</p>
       </div>
     </div>
   </div>

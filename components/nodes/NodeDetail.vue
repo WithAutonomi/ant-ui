@@ -28,7 +28,7 @@
         </div>
         <div>
           <span class="text-autonomi-muted">Storage</span>
-          <p>{{ node.storage_bytes ? formatBytes(node.storage_bytes) : '-' }}</p>
+          <p>{{ node.storage_bytes != null ? formatBytes(node.storage_bytes) : '-' }}</p>
         </div>
         <div>
           <span class="text-autonomi-muted">Earnings</span>

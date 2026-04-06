@@ -335,6 +335,44 @@ fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
     std::fs::read(&canonical).map_err(|e| format!("Failed to read {path}: {e}"))
 }
 
+/// Recursively calculate the total size of a directory in bytes.
+#[tauri::command]
+async fn get_dir_size(path: String) -> Result<u64, String> {
+    let canonical = tokio::fs::canonicalize(&path)
+        .await
+        .map_err(|e| format!("Invalid path {path}: {e}"))?;
+
+    if !canonical.is_dir() {
+        return Err(format!("Not a directory: {path}"));
+    }
+
+    // Run the recursive walk on a blocking thread to avoid blocking the async runtime
+    tokio::task::spawn_blocking(move || {
+        let mut total: u64 = 0;
+        let mut stack = vec![canonical];
+        while let Some(dir) = stack.pop() {
+            let entries = match std::fs::read_dir(&dir) {
+                Ok(e) => e,
+                Err(_) => continue, // skip dirs we can't read
+            };
+            for entry in entries.flatten() {
+                let meta = match entry.metadata() {
+                    Ok(m) => m,
+                    Err(_) => continue,
+                };
+                if meta.is_dir() {
+                    stack.push(entry.path());
+                } else {
+                    total += meta.len();
+                }
+            }
+        }
+        Ok(total)
+    })
+    .await
+    .map_err(|e| format!("Directory scan failed: {e}"))?
+}
+
 #[tauri::command]
 fn load_upload_history() -> Result<Vec<UploadHistoryEntry>, String> {
     let history = UploadHistory::load().map_err(|e| e.to_string())?;
@@ -362,6 +400,7 @@ pub fn run() {
             daemon_status,
             daemon_request,
             get_file_sizes,
+            get_dir_size,
             read_file_bytes,
             load_upload_history,
             save_upload_history,

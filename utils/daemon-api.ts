@@ -151,6 +151,9 @@ export const daemonApi = {
   /** GET /api/v1/nodes/status */
   nodesStatus: () => request<NodeStatusResult>('GET', '/api/v1/nodes/status'),
 
+  /** GET /api/v1/nodes/:id — full config + runtime state */
+  nodeDetail: (id: number) => request<NodeInfo>('GET', `/api/v1/nodes/${id}`),
+
   /** POST /api/v1/nodes */
   addNodes: (opts: AddNodeOpts) => request<AddNodeResult>('POST', '/api/v1/nodes', opts),
 

@@ -25,57 +25,16 @@
             </div>
           </div>
 
-          <!-- Payment mode indicator -->
-          <div>
-            <label class="mb-2 block text-xs font-medium uppercase tracking-wider text-autonomi-muted">Payment Method</label>
-            <div class="flex gap-3">
-              <!-- Regular -->
-              <div
-                class="flex-1 rounded-lg border p-3 text-left transition-all"
-                :class="effectivePaymentMode === 'regular'
-                  ? 'border-autonomi-blue bg-autonomi-blue/10'
-                  : 'border-autonomi-border opacity-40'"
-              >
-                <div class="flex items-center gap-2">
-                  <div
-                    class="flex h-4 w-4 items-center justify-center rounded-full border-2"
-                    :class="effectivePaymentMode === 'regular' ? 'border-autonomi-blue' : 'border-autonomi-muted'"
-                  >
-                    <div v-if="effectivePaymentMode === 'regular'" class="h-2 w-2 rounded-full bg-autonomi-blue" />
-                  </div>
-                  <span class="text-sm font-medium">Regular</span>
-                </div>
-                <p class="mt-1.5 pl-6 text-xs text-autonomi-muted">
-                  Pays per batch of chunks. Simple and reliable for any file size.
-                </p>
-                <p v-if="effectivePaymentMode !== 'regular'" class="mt-1 pl-6 text-xs text-yellow-500/80">
-                  Upload exceeds {{ MERKLE_THRESHOLD }} chunks — merkle is more efficient.
-                </p>
-              </div>
-
-              <!-- Merkle -->
-              <div
-                class="flex-1 rounded-lg border p-3 text-left transition-all"
-                :class="effectivePaymentMode === 'merkle'
-                  ? 'border-autonomi-blue bg-autonomi-blue/10'
-                  : 'border-autonomi-border opacity-40'"
-              >
-                <div class="flex items-center gap-2">
-                  <div
-                    class="flex h-4 w-4 items-center justify-center rounded-full border-2"
-                    :class="effectivePaymentMode === 'merkle' ? 'border-autonomi-blue' : 'border-autonomi-muted'"
-                  >
-                    <div v-if="effectivePaymentMode === 'merkle'" class="h-2 w-2 rounded-full bg-autonomi-blue" />
-                  </div>
-                  <span class="text-sm font-medium">Merkle Tree</span>
-                </div>
-                <p class="mt-1.5 pl-6 text-xs text-autonomi-muted">
-                  Single transaction for all chunks. Lower gas for large uploads.
-                </p>
-                <p v-if="effectivePaymentMode !== 'merkle'" class="mt-1 pl-6 text-xs text-yellow-500/80">
-                  Under {{ MERKLE_THRESHOLD }} chunks — regular payment is used.
-                </p>
-              </div>
+          <!-- Payment mode -->
+          <div class="flex items-baseline justify-between">
+            <span class="text-sm text-autonomi-muted">Payment</span>
+            <div class="text-right">
+              <span class="text-sm font-medium">{{ effectivePaymentMode === 'merkle' ? 'Merkle tree' : 'Regular' }}</span>
+              <p class="text-xs text-autonomi-muted">
+                {{ effectivePaymentMode === 'merkle'
+                  ? `Single transaction for ${estimatedChunks} chunks — lower gas.`
+                  : `Per-batch payment for ${estimatedChunks} chunk${estimatedChunks !== 1 ? 's' : ''}.` }}
+              </p>
             </div>
           </div>
 

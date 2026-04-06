@@ -4,7 +4,7 @@ import { useSettingsStore } from './settings'
 import { invoke } from '@tauri-apps/api/core'
 import { daemonApi, connectSSE, disconnectSSE, type NodeEvent } from '~/utils/daemon-api'
 import type { NodeStatusSummary, NodeStatus as ApiNodeStatus, DaemonStatus } from '~/utils/daemon-api'
-import { POLL_INTERVAL } from '~/utils/constants'
+import { POLL_INTERVAL, DETAIL_POLL_INTERVAL } from '~/utils/constants'
 import type { UnlistenFn } from '@tauri-apps/api/event'
 
 // Frontend node status — ant-core values + frontend-only states
@@ -49,6 +49,7 @@ export const useNodesStore = defineStore('nodes', {
     daemonConnected: false,
     daemonStatus: null as DaemonStatus | null,
     _pollTimer: null as ReturnType<typeof setInterval> | null,
+    _detailPollTimer: null as ReturnType<typeof setInterval> | null,
     _sseDisconnect: null as (() => void) | null,
     _sseUnlisten: null as UnlistenFn | null,
     _sseWindowHandler: null as ((e: Event) => void) | null,
@@ -85,6 +86,7 @@ export const useNodesStore = defineStore('nodes', {
         this.daemonConnected = true
         await this.fetchNodes()
         this.startPolling()
+        this.enrichNodeDetails() // fire-and-forget — don't block init
         await this.connectSSE()
       } catch {
         console.warn('Daemon not available')
@@ -128,16 +130,48 @@ export const useNodesStore = defineStore('nodes', {
       }
     },
 
+    /** Enrich nodes with detail (data_dir, config) and calculate storage usage. */
+    async enrichNodeDetails() {
+      for (const node of this.nodes) {
+        if (node.id < 0) continue // skip placeholders
+        try {
+          const detail = await daemonApi.nodeDetail(node.id)
+          node.data_dir = detail.data_dir
+          node.rewards_address = detail.rewards_address
+          node.binary_path = detail.binary_path
+          node.log_dir = detail.log_dir
+          node.node_port = detail.node_port
+          node.metrics_port = detail.metrics_port
+
+          // Calculate storage from data_dir
+          if (detail.data_dir) {
+            try {
+              node.storage_bytes = await invoke<number>('get_dir_size', { path: detail.data_dir })
+            } catch {
+              // Dir might not exist yet for newly added nodes
+            }
+          }
+        } catch {
+          // Node may have been removed between status and detail fetch
+        }
+      }
+    },
+
     /** Start polling for status updates */
     startPolling() {
       this.stopPolling()
       this._pollTimer = setInterval(() => this.fetchNodes(), POLL_INTERVAL)
+      this._detailPollTimer = setInterval(() => this.enrichNodeDetails(), DETAIL_POLL_INTERVAL)
     },
 
     stopPolling() {
       if (this._pollTimer) {
         clearInterval(this._pollTimer)
         this._pollTimer = null
+      }
+      if (this._detailPollTimer) {
+        clearInterval(this._detailPollTimer)
+        this._detailPollTimer = null
       }
     },
 
@@ -251,6 +285,7 @@ export const useNodesStore = defineStore('nodes', {
           this.daemonConnected = true
           await this.fetchNodes()
           this.startPolling()
+          this.enrichNodeDetails()
           await this.connectSSE()
         } catch {
           this.scheduleReconnect()
