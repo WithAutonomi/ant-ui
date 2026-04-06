@@ -372,6 +372,7 @@ pub fn run() {
             autonomi_ops::init_autonomi_client,
             autonomi_ops::start_upload,
             autonomi_ops::confirm_upload,
+            autonomi_ops::confirm_upload_merkle,
             autonomi_ops::download_file,
             autonomi_ops::is_autonomi_connected,
         ])

@@ -149,6 +149,8 @@
       :loading="uploadEstimating"
       :quoted-cost="quotedCostDisplay"
       :quoting="isQuoting"
+      :quoted-payment-mode="quotedPaymentMode"
+      :network-connected="autonomiConnected"
       @confirm="confirmUpload"
       @cancel="cancelUpload"
     />
@@ -303,6 +305,7 @@ const uploadEstimating = ref(false)
 const pendingUploadFiles = ref<{ name: string; size: number; path: string }[]>([])
 const isQuoting = ref(false)
 const quotedCostDisplay = ref<string | null>(null)
+const quotedPaymentMode = ref<'wave-batch' | 'merkle' | null>(null)
 const pendingQuotes = ref<Map<string, UploadQuote>>(new Map())
 
 async function getFileMetas(paths: string[]): Promise<FileMeta[]> {
@@ -366,15 +369,23 @@ async function startQuoting(metas: FileMeta[]) {
     }
     pendingQuotes.value = quotes
 
-    // Sum up total costs for display
     if (quotes.size > 0) {
-      const totalNanos = Array.from(quotes.values()).reduce(
-        (sum, q) => sum + BigInt(q.total_cost), 0n,
-      )
-      // Format using the same logic as formatNanoTokens
-      const whole = totalNanos / 1_000_000_000_000_000_000n
-      const frac = (totalNanos % 1_000_000_000_000_000_000n) / 1_000_000_000_000_000n
-      quotedCostDisplay.value = frac > 0n ? `${whole}.${frac.toString().padStart(3, '0')} ANT` : `${whole} ANT`
+      const quoteValues = Array.from(quotes.values())
+      // Track the payment mode (all files in a batch use the same mode)
+      quotedPaymentMode.value = quoteValues[0].payment_mode
+
+      if (quotedPaymentMode.value === 'merkle') {
+        // Merkle cost is determined on-chain — show placeholder
+        quotedCostDisplay.value = 'Determined on-chain'
+      } else {
+        // Sum up total costs for display
+        const totalNanos = quoteValues.reduce(
+          (sum, q) => sum + BigInt(q.total_cost), 0n,
+        )
+        const whole = totalNanos / 1_000_000_000_000_000_000n
+        const frac = (totalNanos % 1_000_000_000_000_000_000n) / 1_000_000_000_000_000n
+        quotedCostDisplay.value = frac > 0n ? `${whole}.${frac.toString().padStart(3, '0')} ANT` : `${whole} ANT`
+      }
     }
   } catch {
     // Quoting failed — user can still proceed (will re-quote during upload)

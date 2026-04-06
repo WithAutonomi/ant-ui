@@ -18,6 +18,34 @@
   },
   {
     "type": "function",
+    "name": "payForMerkleTree",
+    "inputs": [
+      { "name": "depth", "type": "uint8" },
+      {
+        "name": "poolCommitments",
+        "type": "tuple[]",
+        "components": [
+          { "name": "poolHash", "type": "bytes32" },
+          {
+            "name": "candidates",
+            "type": "tuple[16]",
+            "components": [
+              { "name": "rewardsAddress", "type": "address" },
+              { "name": "amount", "type": "uint256" }
+            ]
+          }
+        ]
+      },
+      { "name": "merklePaymentTimestamp", "type": "uint64" }
+    ],
+    "outputs": [
+      { "name": "winnerPoolHash", "type": "bytes32" },
+      { "name": "totalAmount", "type": "uint256" }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "batchLimit",
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint256" }],
@@ -40,6 +68,16 @@
       { "name": "rewardsAddress", "type": "address", "indexed": true },
       { "name": "amount", "type": "uint256", "indexed": true },
       { "name": "quoteHash", "type": "bytes32", "indexed": true }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "MerklePaymentMade",
+    "inputs": [
+      { "name": "winnerPoolHash", "type": "bytes32", "indexed": true },
+      { "name": "depth", "type": "uint8", "indexed": false },
+      { "name": "totalAmount", "type": "uint256", "indexed": false },
+      { "name": "merklePaymentTimestamp", "type": "uint64", "indexed": false }
     ]
   }
 ]

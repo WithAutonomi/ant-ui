@@ -3,24 +3,34 @@ import { arbitrum } from '@reown/appkit/networks'
 import { ANT_TOKEN_ADDRESS, PAYMENT_VAULT_ADDRESS } from '~/utils/wallet-config'
 import paymentVaultAbi from '~/assets/abi/IPaymentVault.json'
 import paymentTokenAbi from '~/assets/abi/PaymentToken.json'
+import { decodeEventLog } from 'viem'
 
 const MAX_PAYMENTS_PER_BATCH = 256
 
 export type RawPayment = [string, string, string] // [quoteHash, rewardsAddress, amount]
 
 export interface PaymentResult {
-  /** Map of quoteHash → txHash for each payment */
+  /** Map of quoteHash -> txHash for each payment */
   txHashMap: Record<string, string>
   totalPaid: bigint
 }
 
+export interface MerklePaymentResult {
+  /** Winner pool hash (bytes32 hex) from the MerklePaymentMade event */
+  winnerPoolHash: string
+  /** Total amount paid */
+  totalPaid: bigint
+}
+
+/** Serialized pool commitment from Rust backend */
+export interface SerializedPoolCommitment {
+  pool_hash: string
+  candidates: { rewards_address: string; amount: string }[]
+}
+
 /**
- * Pay for store quotes via the PaymentVault contract.
+ * Pay for store quotes via the PaymentVault contract (wave-batch path).
  * Handles ERC20 approval and batching (max 256 per tx).
- *
- * @param wagmiConfig - The wagmi config from the adapter
- * @param payments - Array of [quoteHash, rewardsAddress, amount] from the Rust backend
- * @returns Transaction hashes for all payment batches
  */
 export async function payForQuotes(
   wagmiConfig: any,
@@ -70,6 +80,68 @@ export async function payForQuotes(
   }
 
   return { txHashMap, totalPaid: totalAmount }
+}
+
+/**
+ * Pay for merkle tree via the PaymentVault contract (merkle path).
+ * Single transaction for all chunks — lower gas for large uploads.
+ */
+export async function payForMerkleTree(
+  wagmiConfig: any,
+  depth: number,
+  poolCommitments: SerializedPoolCommitment[],
+  merkleTimestamp: bigint,
+): Promise<MerklePaymentResult> {
+  // Convert serialized commitments to contract-compatible format
+  const commitments = poolCommitments.map(pc => ({
+    poolHash: pc.pool_hash as `0x${string}`,
+    candidates: pc.candidates.map(c => ({
+      rewardsAddress: c.rewards_address as `0x${string}`,
+      amount: BigInt(c.amount),
+    })),
+  }))
+
+  // Sum all candidate amounts across all pools to estimate total cost for allowance.
+  // The contract picks the winning pool — actual cost will be <= this sum.
+  // Use the max pool total as a conservative estimate.
+  const maxPoolCost = commitments.reduce((max, pc) => {
+    const poolTotal = pc.candidates.reduce((sum, c) => sum + c.amount, 0n)
+    return poolTotal > max ? poolTotal : max
+  }, 0n)
+
+  await ensureAllowance(wagmiConfig, maxPoolCost)
+
+  const hash = await writeContract(wagmiConfig, {
+    abi: paymentVaultAbi,
+    address: PAYMENT_VAULT_ADDRESS,
+    functionName: 'payForMerkleTree',
+    args: [depth, commitments, merkleTimestamp],
+    chainId: arbitrum.id,
+  })
+
+  const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: arbitrum.id })
+
+  // Extract winnerPoolHash from MerklePaymentMade event
+  for (const log of receipt.logs) {
+    try {
+      const decoded = decodeEventLog({
+        abi: paymentVaultAbi,
+        data: log.data,
+        topics: log.topics,
+      })
+      if (decoded.eventName === 'MerklePaymentMade') {
+        const args = decoded.args as unknown as { winnerPoolHash: string; totalAmount: bigint }
+        return {
+          winnerPoolHash: args.winnerPoolHash,
+          totalPaid: args.totalAmount,
+        }
+      }
+    } catch {
+      // Not our event, skip
+    }
+  }
+
+  throw new Error('MerklePaymentMade event not found in transaction receipt')
 }
 
 /**

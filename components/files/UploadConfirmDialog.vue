@@ -25,52 +25,58 @@
             </div>
           </div>
 
-          <!-- Payment mode selector -->
+          <!-- Payment mode indicator -->
           <div>
             <label class="mb-2 block text-xs font-medium uppercase tracking-wider text-autonomi-muted">Payment Method</label>
             <div class="flex gap-3">
               <!-- Regular -->
-              <button
+              <div
                 class="flex-1 rounded-lg border p-3 text-left transition-all"
-                :class="paymentMode === 'regular'
+                :class="effectivePaymentMode === 'regular'
                   ? 'border-autonomi-blue bg-autonomi-blue/10'
-                  : 'border-autonomi-border hover:border-autonomi-blue/30'"
-                @click="paymentMode = 'regular'"
+                  : 'border-autonomi-border opacity-40'"
               >
                 <div class="flex items-center gap-2">
                   <div
                     class="flex h-4 w-4 items-center justify-center rounded-full border-2"
-                    :class="paymentMode === 'regular' ? 'border-autonomi-blue' : 'border-autonomi-muted'"
+                    :class="effectivePaymentMode === 'regular' ? 'border-autonomi-blue' : 'border-autonomi-muted'"
                   >
-                    <div v-if="paymentMode === 'regular'" class="h-2 w-2 rounded-full bg-autonomi-blue" />
+                    <div v-if="effectivePaymentMode === 'regular'" class="h-2 w-2 rounded-full bg-autonomi-blue" />
                   </div>
                   <span class="text-sm font-medium">Regular</span>
                 </div>
                 <p class="mt-1.5 pl-6 text-xs text-autonomi-muted">
                   Pays per batch of chunks. Simple and reliable for any file size.
                 </p>
-              </button>
+                <p v-if="effectivePaymentMode !== 'regular'" class="mt-1 pl-6 text-xs text-yellow-500/80">
+                  Upload exceeds {{ MERKLE_THRESHOLD }} chunks — merkle is more efficient.
+                </p>
+              </div>
 
-              <!-- Merkle (disabled) -->
-              <button
-                disabled
-                class="flex-1 cursor-not-allowed rounded-lg border border-autonomi-border p-3 text-left opacity-40"
+              <!-- Merkle -->
+              <div
+                class="flex-1 rounded-lg border p-3 text-left transition-all"
+                :class="effectivePaymentMode === 'merkle'
+                  ? 'border-autonomi-blue bg-autonomi-blue/10'
+                  : 'border-autonomi-border opacity-40'"
               >
                 <div class="flex items-center gap-2">
-                  <div class="flex h-4 w-4 items-center justify-center rounded-full border-2 border-autonomi-muted">
-                    <div v-if="paymentMode === 'merkle'" class="h-2 w-2 rounded-full bg-autonomi-blue" />
+                  <div
+                    class="flex h-4 w-4 items-center justify-center rounded-full border-2"
+                    :class="effectivePaymentMode === 'merkle' ? 'border-autonomi-blue' : 'border-autonomi-muted'"
+                  >
+                    <div v-if="effectivePaymentMode === 'merkle'" class="h-2 w-2 rounded-full bg-autonomi-blue" />
                   </div>
                   <span class="text-sm font-medium">Merkle Tree</span>
-                  <span class="rounded bg-autonomi-surface px-1.5 py-0.5 text-[10px] text-autonomi-muted">Coming soon</span>
                 </div>
                 <p class="mt-1.5 pl-6 text-xs text-autonomi-muted">
                   Single transaction for all chunks. Lower gas for large uploads.
                 </p>
-              </button>
+                <p v-if="effectivePaymentMode !== 'merkle'" class="mt-1 pl-6 text-xs text-yellow-500/80">
+                  Under {{ MERKLE_THRESHOLD }} chunks — regular payment is used.
+                </p>
+              </div>
             </div>
-            <p v-if="recommendsMerkle" class="mt-1.5 text-xs text-autonomi-muted">
-              Merkle payments would be more efficient for this upload ({{ estimatedChunks }} chunks).
-            </p>
           </div>
 
           <!-- Cost breakdown -->
@@ -87,9 +93,18 @@
                 <span>Getting cost quote from network...</span>
               </div>
             </template>
+            <template v-else-if="!networkConnected">
+              <div v-if="!networkTimedOut" class="flex items-center gap-2 text-sm text-autonomi-muted">
+                <div class="h-3 w-3 animate-spin rounded-full border-2 border-yellow-500 border-t-transparent" />
+                <span>Discovering network...</span>
+              </div>
+              <div v-else class="text-sm text-yellow-500/80">
+                Could not connect to the Autonomi network. You can still upload — the cost will be quoted when the network becomes available.
+              </div>
+            </template>
             <template v-else>
               <div class="text-sm text-autonomi-muted">
-                Real cost will be quoted from the network after confirmation.
+                Cost will be quoted from the network when the upload starts.
               </div>
             </template>
           </div>
@@ -144,7 +159,7 @@
             </div>
           </div>
 
-          <p v-if="quotedCost" class="text-xs text-autonomi-muted">
+          <p v-if="quotedCost && effectivePaymentMode === 'regular'" class="text-xs text-autonomi-muted">
             Cost quoted from the Autonomi network. Gas fees apply on top.
           </p>
 
@@ -172,14 +187,20 @@
 import { formatBytes } from '~/utils/formatters'
 import { MERKLE_THRESHOLD, AVG_CHUNK_SIZE } from '~/utils/constants'
 
+const NETWORK_TIMEOUT_MS = 15_000
+
 const props = defineProps<{
   open: boolean
   files: { name: string; size: number; path: string }[]
   loading: boolean
-  /** Real cost from network quote (e.g. "0.0234 ANT") */
+  /** Real cost from network quote (e.g. "0.0234 ANT" or "Determined on-chain") */
   quotedCost?: string | null
   /** Whether a network quote is in progress */
   quoting?: boolean
+  /** Payment mode selected by the backend (null if no quote yet) */
+  quotedPaymentMode?: 'wave-batch' | 'merkle' | null
+  /** Whether the Autonomi network client is connected */
+  networkConnected?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -188,20 +209,47 @@ const emit = defineEmits<{
 }>()
 
 const visibility = ref<'private' | 'public'>('private')
-const paymentMode = ref<'regular' | 'merkle'>('regular')
+const networkTimedOut = ref(false)
+let networkTimer: ReturnType<typeof setTimeout> | null = null
 
 const totalSize = computed(() => props.files.reduce((sum, f) => sum + f.size, 0))
 const estimatedChunks = computed(() => Math.max(1, Math.ceil(totalSize.value / AVG_CHUNK_SIZE)))
-const recommendsMerkle = computed(() => estimatedChunks.value >= MERKLE_THRESHOLD)
 
-// Auto-select payment mode based on file size (but merkle is disabled for now)
+/** Payment mode — determined by backend quote, or estimated from file size */
+const effectivePaymentMode = computed(() => {
+  if (props.quotedPaymentMode === 'merkle') return 'merkle'
+  if (props.quotedPaymentMode === 'wave-batch') return 'regular'
+  return estimatedChunks.value >= MERKLE_THRESHOLD ? 'merkle' : 'regular'
+})
+
 watch(
   () => props.open,
   (val) => {
     if (val) {
       visibility.value = 'private'
-      // Would default to merkle for large uploads once enabled
-      paymentMode.value = 'regular'
+      networkTimedOut.value = false
+      // Start network discovery timeout when dialog opens and not connected
+      if (!props.networkConnected) {
+        networkTimer = setTimeout(() => {
+          networkTimedOut.value = true
+        }, NETWORK_TIMEOUT_MS)
+      }
+    } else {
+      if (networkTimer) {
+        clearTimeout(networkTimer)
+        networkTimer = null
+      }
+    }
+  },
+)
+
+// Clear timeout if network connects while dialog is open
+watch(
+  () => props.networkConnected,
+  (connected) => {
+    if (connected && networkTimer) {
+      clearTimeout(networkTimer)
+      networkTimer = null
     }
   },
 )
@@ -209,7 +257,7 @@ watch(
 function handleConfirm() {
   emit('confirm', {
     visibility: visibility.value,
-    paymentMode: paymentMode.value,
+    paymentMode: effectivePaymentMode.value,
   })
 }
 
