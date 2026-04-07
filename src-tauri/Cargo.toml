@@ -24,14 +24,6 @@ dirs = "5"
 toml = "0.8"
 tauri-plugin-updater = "2"
 ant-core = { git = "https://github.com/WithAutonomi/ant-client", version = "0.1" }
-ant-node = { git = "https://github.com/WithAutonomi/ant-node", rev = "6dfc7178a940fc842ab3c6542265d9750a08b060" }
 evmlib = "0.4"
 hex = "0.4"
 sha2 = "0.10"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
-[[example]]
-name = "start-devnet"
-
-[[example]]
-name = "start-devnet-sepolia"

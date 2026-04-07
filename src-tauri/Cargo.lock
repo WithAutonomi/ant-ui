@@ -871,10 +871,9 @@ dependencies = [
 
 [[package]]
 name = "ant-gui"
-version = "0.1.0"
+version = "0.2.0-rc.1"
 dependencies = [
  "ant-core",
- "ant-node",
  "dirs 5.0.1",
  "evmlib 0.4.9",
  "futures-util",
@@ -891,7 +890,6 @@ dependencies = [
  "tauri-plugin-updater",
  "tokio",
  "toml 0.8.2",
- "tracing-subscriber",
 ]
 
 [[package]]
