@@ -889,6 +889,7 @@ dependencies = [
  "tauri-plugin-process",
  "tauri-plugin-updater",
  "tokio",
+ "tokio-util",
  "toml 0.8.2",
 ]
 

@@ -6,6 +6,7 @@ use config::{AppConfig, FileMetaResult, UploadHistory, UploadHistoryEntry};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::{watch, RwLock};
+use tokio_util::sync::CancellationToken;
 
 // ── SSE proxy state ──
 
@@ -26,40 +27,11 @@ impl SseState {
     }
 }
 
-/// Attempt to stop a stale daemon (ignores errors).
-async fn try_stop_daemon() {
-    if let Some(ant_bin) = which_ant() {
-        let _ = tokio::process::Command::new(&ant_bin)
-            .args(["node", "daemon", "stop"])
-            .output()
-            .await;
-        // Brief pause for PID/port files to be cleaned up
-        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-    }
-}
+/// Cancellation token for the embedded daemon — kept alive for the app's lifetime.
+static DAEMON_SHUTDOWN: std::sync::OnceLock<CancellationToken> = std::sync::OnceLock::new();
 
-/// Find the `ant` binary, checking PATH and common install locations.
-fn which_ant() -> Option<PathBuf> {
-    // Check PATH first
-    if let Ok(output) = std::process::Command::new("ant").arg("--help").output() {
-        if output.status.success() {
-            return Some(PathBuf::from("ant"));
-        }
-    }
-
-    // Check common install locations
-    let candidates = [
-        dirs::home_dir().map(|h| h.join(".cargo").join("bin").join(if cfg!(windows) { "ant.exe" } else { "ant" })),
-        Some(PathBuf::from(if cfg!(windows) { r"C:\Program Files\Autonomi\ant.exe" } else { "/usr/local/bin/ant" })),
-    ];
-
-    for candidate in candidates.into_iter().flatten() {
-        if candidate.exists() {
-            return Some(candidate);
-        }
-    }
-
-    None
+fn daemon_shutdown_token() -> &'static CancellationToken {
+    DAEMON_SHUTDOWN.get_or_init(CancellationToken::new)
 }
 
 #[tauri::command]
@@ -321,13 +293,12 @@ async fn disconnect_daemon_sse(
     Ok(())
 }
 
-/// Start the ant daemon if it's not already running.
+/// Start the embedded daemon if it's not already running.
 /// Returns the daemon URL on success.
 #[tauri::command]
 async fn ensure_daemon_running() -> Result<String, String> {
-    // Check if already running via port file
+    // Check if already running (either embedded or external)
     if let Some(url) = config::discover_daemon_url() {
-        // Verify it's actually responsive (short timeout)
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(3))
             .build()
@@ -340,33 +311,35 @@ async fn ensure_daemon_running() -> Result<String, String> {
         {
             return Ok(url);
         }
-        // Port file exists but daemon is unresponsive — stale PID.
-        // Stop the stale daemon first so a fresh start can succeed.
-        let _ = try_stop_daemon().await;
+        // Port file exists but daemon is unresponsive — clean up stale files
+        let _ = std::fs::remove_file(
+            ant_core::config::data_dir()
+                .unwrap_or_default()
+                .join("daemon.port"),
+        );
+        let _ = std::fs::remove_file(
+            ant_core::config::data_dir()
+                .unwrap_or_default()
+                .join("daemon.pid"),
+        );
     }
 
-    // Start the daemon
-    let ant_bin = which_ant().ok_or("Cannot find 'ant' binary — is ant-cli installed?")?;
-    let output = tokio::process::Command::new(&ant_bin)
-        .args(["node", "daemon", "start"])
-        .output()
+    // Start the daemon in-process
+    use ant_core::node::daemon::server;
+    use ant_core::node::registry::NodeRegistry;
+    use ant_core::node::types::DaemonConfig;
+
+    let config = DaemonConfig::default();
+    let registry = NodeRegistry::load(&config.registry_path)
+        .map_err(|e| format!("Failed to load node registry: {e}"))?;
+
+    let shutdown = daemon_shutdown_token().clone();
+    let bound_addr = server::start(config, registry, shutdown)
         .await
         .map_err(|e| format!("Failed to start daemon: {e}"))?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let combined = format!("{stdout}{stderr}");
-        if !combined.contains("already running") {
-            return Err(format!("Daemon start failed: {combined}"));
-        }
-    }
-
-    // Wait briefly for the port file to be written
-    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-
-    config::discover_daemon_url()
-        .ok_or_else(|| "Daemon started but port file not found".to_string())
+    let url = format!("http://127.0.0.1:{}", bound_addr.port());
+    Ok(url)
 }
 
 /// Get the data directory path for a node by ID.
