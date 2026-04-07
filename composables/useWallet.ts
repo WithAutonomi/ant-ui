@@ -11,12 +11,12 @@ export function useWallet() {
 
   async function syncFromAppKit() {
     if (!$appkitReady) return
-    if (settingsStore.devnetWalletKey) return
+    if (settingsStore._devnetWalletKeySet) return
 
     const { useAppKitAccount } = await import('@reown/appkit/vue')
 
     // Re-check after async import — key may have been set during the await
-    if (settingsStore.devnetWalletKey) return
+    if (settingsStore._devnetWalletKeySet) return
 
     const account = useAppKitAccount()
     const address = computed(() => (account.value as any)?.address as string | undefined)
@@ -25,7 +25,7 @@ export function useWallet() {
     watch(
       [isConnected, address],
       ([connected, addr]) => {
-        if (settingsStore.devnetWalletKey) return
+        if (settingsStore._devnetWalletKeySet) return
         walletStore.connected = !!connected
         walletStore.paymentAddress = addr ?? null
         if (connected && addr) {

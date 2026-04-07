@@ -156,6 +156,15 @@ pub async fn start_upload(
         request.files.first().ok_or("No files provided")?,
     );
 
+    // Validate the path is a real file (prevents path traversal / symlink attacks)
+    let canonical = tokio::fs::canonicalize(&path)
+        .await
+        .map_err(|e| format!("Invalid file path: {e}"))?;
+    if !canonical.is_file() {
+        return Err("Path is not a regular file".into());
+    }
+    let path = canonical;
+
     // Phase 1: Encrypt file and prepare chunks (gets quotes from network)
     let prepared = client
         .file_prepare_upload(&path)

@@ -142,6 +142,7 @@
               <input
                 v-model="indelibleApiKeyInput"
                 type="password"
+                autocomplete="off"
                 placeholder="Your API token"
                 class="w-full rounded-md border border-autonomi-border bg-autonomi-dark px-3 py-1.5 font-mono text-xs text-autonomi-text placeholder-autonomi-muted focus:border-autonomi-blue focus:outline-none"
               />
@@ -221,6 +222,7 @@
               <input
                 v-model="directWalletKeyInput"
                 type="password"
+                autocomplete="off"
                 placeholder="0x... or raw hex"
                 class="w-full rounded-md border border-autonomi-border bg-autonomi-dark px-3 py-1.5 font-mono text-xs text-autonomi-text placeholder-autonomi-muted focus:border-autonomi-blue focus:outline-none"
                 @keyup.enter="connectDirectWallet"
@@ -335,6 +337,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { openUrl as tauriOpenUrl } from '@tauri-apps/plugin-opener'
+import { setDevnetWalletKey } from '~/stores/settings'
 import { useSettingsStore } from '~/stores/settings'
 import { isValidEthAddress } from '~/utils/validators'
 import { useToastStore } from '~/stores/toasts'
@@ -382,7 +385,8 @@ async function connectDirectWallet() {
 
     // Configure the network based on selection
     const isSepolia = directWalletNetwork.value === 'arbitrum-sepolia'
-    settingsStore.devnetWalletKey = key
+    setDevnetWalletKey(key)
+    settingsStore._devnetWalletKeySet = true
     settingsStore.devnetActive = true
     settingsStore.devnetIsSepolia = isSepolia
     if (isSepolia) {
@@ -418,7 +422,8 @@ function disconnectDirectWallet() {
   walletStore.ethBalance = null
   walletStore.antBalance = null
   directWalletActive.value = false
-  settingsStore.devnetWalletKey = null
+  setDevnetWalletKey(null)
+  settingsStore._devnetWalletKeySet = false
   toasts.add('Wallet disconnected', 'info')
 }
 

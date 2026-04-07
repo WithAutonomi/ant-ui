@@ -3,7 +3,7 @@ import { defineChain } from 'viem'
 import { privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts'
 import { arbitrumSepolia } from 'viem/chains'
 import { useWalletStore } from '~/stores/wallet'
-import { useSettingsStore } from '~/stores/settings'
+import { useSettingsStore, getDevnetWalletKey } from '~/stores/settings'
 import { getTokenAddress, getActiveChainId } from '~/utils/wallet-config'
 import { ANVIL_CHAIN_ID } from '~/utils/constants'
 import { formatEther, formatUnits, erc20Abi } from 'viem'
@@ -30,9 +30,10 @@ export function initDevnetWallet() {
   const settings = useSettingsStore()
   const walletStore = useWalletStore()
 
-  if (!settings.devnetWalletKey) return null
+  const key = getDevnetWalletKey()
+  if (!key) return null
 
-  devnetAccount = privateKeyToAccount(settings.devnetWalletKey as `0x${string}`)
+  devnetAccount = privateKeyToAccount(key as `0x${string}`)
 
   // Determine which chain to use
   if (settings.devnetIsSepolia || (!settings.devnetRpcUrl && !settings.devnetActive)) {

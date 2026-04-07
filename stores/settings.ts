@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
 
+// Private key stored outside reactive state — not visible in Vue DevTools.
+let _walletKey: string | null = null
+export function setDevnetWalletKey(key: string | null) { _walletKey = key }
+export function getDevnetWalletKey(): string | null { return _walletKey }
+
 interface AppConfig {
   storage_dir: string | null
   download_dir: string | null
@@ -31,7 +36,9 @@ export const useSettingsStore = defineStore('settings', {
     devnetTokenAddress: null as string | null,
     devnetVaultAddress: null as string | null,
     devnetBootstrapPeers: null as string[] | null,
-    devnetWalletKey: null as string | null,
+    // Private key stored in composable module scope only — not in reactive state.
+    // Use setDevnetWalletKey() / getDevnetWalletKey() instead.
+    _devnetWalletKeySet: false,
   }),
 
   actions: {
@@ -141,7 +148,10 @@ export const useSettingsStore = defineStore('settings', {
           this.devnetTokenAddress = result.payment_token_address
           this.devnetVaultAddress = result.payment_vault_address
           this.devnetBootstrapPeers = result.bootstrap_peers
-          this.devnetWalletKey = result.wallet_private_key
+          if (result.wallet_private_key) {
+            setDevnetWalletKey(result.wallet_private_key)
+            this._devnetWalletKeySet = true
+          }
           console.info(`${this.devnetIsSepolia ? 'Sepolia' : 'Devnet'} mode active:`, result.rpc_url)
         }
       } catch (e) {
