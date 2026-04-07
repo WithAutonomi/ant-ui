@@ -5,7 +5,6 @@ use autonomi_ops::AutonomiState;
 use config::{AppConfig, FileMetaResult, UploadHistory, UploadHistoryEntry};
 use std::path::PathBuf;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager};
 use tokio::sync::{watch, RwLock};
 
 // ── SSE proxy state ──
@@ -28,9 +27,12 @@ impl SseState {
 }
 
 /// Find the daemon binary. Checks (in order):
-/// 1. Sidecar path (bundled with the app)
-/// 2. PATH and common install locations (dev fallback)
-fn find_daemon_binary<R: tauri::Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
+/// 1. Adjacent to the current executable (bundled sidecar — works for both
+///    macOS `.app/Contents/MacOS/`, Windows install dir, Linux AppImage,
+///    AND Tauri dev mode which copies sidecars next to the dev exe).
+/// 2. CARGO_MANIFEST_DIR/binaries/ (dev workflow with target-triple suffix)
+/// 3. PATH and common install locations (dev fallback)
+fn find_daemon_binary() -> Option<PathBuf> {
     let bin_name = if cfg!(windows) { "ant.exe" } else { "ant" };
     let target_triple = std::env::var("TAURI_ENV_TARGET_TRIPLE")
         .unwrap_or_else(|_| env!("TAURI_ENV_TARGET_TRIPLE").to_string());
@@ -40,11 +42,30 @@ fn find_daemon_binary<R: tauri::Runtime>(app: &AppHandle<R>) -> Option<PathBuf> 
         format!("ant-{target_triple}")
     };
 
-    // 1. Bundled sidecar (production)
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        let sidecar = resource_dir.join("binaries").join(&sidecar_name);
-        if sidecar.exists() {
-            return Some(sidecar);
+    // 1. Adjacent to the current executable. Tauri places `externalBin`
+    //    sidecars here in every bundle format AND in dev mode (with the
+    //    target-triple suffix stripped). This is how `tauri-plugin-shell`
+    //    resolves sidecars internally.
+    if let Ok(exe) = std::env::current_exe() {
+        // Walk up from `target/.../deps/foo` if running under cargo test.
+        let exe_dir = exe.parent().map(|d| {
+            if d.ends_with("deps") {
+                d.parent().unwrap_or(d)
+            } else {
+                d
+            }
+        });
+        if let Some(dir) = exe_dir {
+            // Bundled name (no triple)
+            let adjacent = dir.join(bin_name);
+            if adjacent.exists() {
+                return Some(adjacent);
+            }
+            // Dev mode may keep the triple suffix on the copied sidecar
+            let adjacent_triple = dir.join(&sidecar_name);
+            if adjacent_triple.exists() {
+                return Some(adjacent_triple);
+            }
         }
     }
 
@@ -66,16 +87,11 @@ fn find_daemon_binary<R: tauri::Runtime>(app: &AppHandle<R>) -> Option<PathBuf> 
     }
 
     // 4. Common install locations
-    let candidates = [
-        dirs::home_dir().map(|h| h.join(".cargo").join("bin").join(bin_name)),
-    ];
-    for candidate in candidates.into_iter().flatten() {
-        if candidate.exists() {
-            return Some(candidate);
-        }
-    }
-
-    None
+    let candidates = [dirs::home_dir().map(|h| h.join(".cargo").join("bin").join(bin_name))];
+    candidates
+        .into_iter()
+        .flatten()
+        .find(|candidate| candidate.exists())
 }
 
 #[tauri::command]
@@ -104,22 +120,31 @@ fn load_devnet_manifest() -> Result<Option<serde_json::Value>, String> {
 
     let data = std::fs::read_to_string(&manifest_path)
         .map_err(|e| format!("Failed to read devnet manifest: {e}"))?;
-    let manifest: serde_json::Value = serde_json::from_str(&data)
-        .map_err(|e| format!("Failed to parse devnet manifest: {e}"))?;
+    let manifest: serde_json::Value =
+        serde_json::from_str(&data).map_err(|e| format!("Failed to parse devnet manifest: {e}"))?;
 
     // Extract and convert bootstrap multiaddrs to socket addresses
     let bootstrap = manifest["bootstrap"]
         .as_array()
         .map(|addrs| {
-            addrs.iter().filter_map(|addr| {
-                // MultiAddr JSON is a string like "/ip4/127.0.0.1/udp/20000/quic-v1"
-                // Extract the IP and port
-                let s = addr.as_str()?;
-                let parts: Vec<&str> = s.split('/').collect();
-                let ip = parts.iter().position(|&p| p == "ip4").and_then(|i| parts.get(i + 1))?;
-                let port = parts.iter().position(|&p| p == "udp").and_then(|i| parts.get(i + 1))?;
-                Some(format!("{ip}:{port}"))
-            }).collect::<Vec<_>>()
+            addrs
+                .iter()
+                .filter_map(|addr| {
+                    // MultiAddr JSON is a string like "/ip4/127.0.0.1/udp/20000/quic-v1"
+                    // Extract the IP and port
+                    let s = addr.as_str()?;
+                    let parts: Vec<&str> = s.split('/').collect();
+                    let ip = parts
+                        .iter()
+                        .position(|&p| p == "ip4")
+                        .and_then(|i| parts.get(i + 1))?;
+                    let port = parts
+                        .iter()
+                        .position(|&p| p == "udp")
+                        .and_then(|i| parts.get(i + 1))?;
+                    Some(format!("{ip}:{port}"))
+                })
+                .collect::<Vec<_>>()
         })
         .unwrap_or_default();
 
@@ -330,9 +355,7 @@ async fn disconnect_daemon_sse_inner(state: &SseState) {
 
 /// Stop the SSE background task.
 #[tauri::command]
-async fn disconnect_daemon_sse(
-    state: tauri::State<'_, Arc<SseState>>,
-) -> Result<(), String> {
+async fn disconnect_daemon_sse(state: tauri::State<'_, Arc<SseState>>) -> Result<(), String> {
     disconnect_daemon_sse_inner(&state).await;
     Ok(())
 }
@@ -341,7 +364,7 @@ async fn disconnect_daemon_sse(
 /// Uses a bundled sidecar binary (production) or PATH fallback (dev).
 /// Spawns detached so the daemon survives app close.
 #[tauri::command]
-async fn ensure_daemon_running(app: AppHandle) -> Result<String, String> {
+async fn ensure_daemon_running() -> Result<String, String> {
     // Check if already running via port file
     if let Some(url) = config::discover_daemon_url() {
         let client = reqwest::Client::builder()
@@ -364,13 +387,18 @@ async fn ensure_daemon_running(app: AppHandle) -> Result<String, String> {
     }
 
     // Find the daemon binary (sidecar or PATH)
-    let bin_path = find_daemon_binary(&app).ok_or_else(|| {
+    let bin_path = find_daemon_binary().ok_or_else(|| {
         let target = env!("TAURI_ENV_TARGET_TRIPLE");
         let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let ext = if cfg!(windows) { ".exe" } else { "" };
+        let exe_dir = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|d| d.display().to_string()))
+            .unwrap_or_else(|| "<unknown>".into());
         format!(
             "Cannot find daemon binary. Checked: \
-             resource_dir, {manifest_dir}/binaries/ant-{target}{}, PATH, ~/.cargo/bin",
-            if cfg!(windows) { ".exe" } else { "" }
+             {exe_dir}/ant{ext}, \
+             {manifest_dir}/binaries/ant-{target}{ext}, PATH, ~/.cargo/bin"
         )
     })?;
 
@@ -424,8 +452,8 @@ fn get_node_data_dir(node_id: u32) -> Result<String, String> {
     if registry_path.exists() {
         let data = std::fs::read_to_string(&registry_path)
             .map_err(|e| format!("Failed to read registry: {e}"))?;
-        let registry: serde_json::Value = serde_json::from_str(&data)
-            .map_err(|e| format!("Failed to parse registry: {e}"))?;
+        let registry: serde_json::Value =
+            serde_json::from_str(&data).map_err(|e| format!("Failed to parse registry: {e}"))?;
 
         // Search for the node by ID in the registry
         if let Some(nodes) = registry["nodes"].as_array() {
@@ -464,8 +492,8 @@ fn get_file_sizes(paths: Vec<String>) -> Result<Vec<FileMetaResult>, String> {
 
 #[tauri::command]
 fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
-    let canonical = std::fs::canonicalize(&path)
-        .map_err(|e| format!("Invalid path {path}: {e}"))?;
+    let canonical =
+        std::fs::canonicalize(&path).map_err(|e| format!("Invalid path {path}: {e}"))?;
 
     if !canonical.is_file() {
         return Err(format!("Not a regular file: {path}"));

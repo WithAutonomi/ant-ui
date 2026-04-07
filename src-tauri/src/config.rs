@@ -54,10 +54,16 @@ fn default_daemon_url() -> String {
 /// ~/Library/Application Support/ant/daemon.port (macOS).
 pub fn discover_daemon_url() -> Option<String> {
     let data_dir = if cfg!(target_os = "macos") {
-        dirs::home_dir()?.join("Library").join("Application Support").join("ant")
+        dirs::home_dir()?
+            .join("Library")
+            .join("Application Support")
+            .join("ant")
     } else if cfg!(target_os = "windows") {
         // matches ant-core: %APPDATA%\ant
-        std::env::var("APPDATA").ok().map(PathBuf::from)?.join("ant")
+        std::env::var("APPDATA")
+            .ok()
+            .map(PathBuf::from)?
+            .join("ant")
     } else {
         dirs::data_dir()?.join("ant")
     };
