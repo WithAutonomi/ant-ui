@@ -31,7 +31,6 @@
         <span><span class="text-autonomi-success">●</span> {{ nodesStore.running }} running</span>
         <span v-if="nodesStore.stopped > 0"><span class="text-autonomi-muted">○</span> {{ nodesStore.stopped }} stopped</span>
         <span v-if="nodesStore.errored > 0"><span class="text-autonomi-error">●</span> {{ nodesStore.errored }} errored</span>
-        <span>{{ nodesStore.totalPeers }} peers</span>
       </div>
 
       <input
