@@ -31,29 +31,43 @@ impl SseState {
 /// 1. Sidecar path (bundled with the app)
 /// 2. PATH and common install locations (dev fallback)
 fn find_daemon_binary<R: tauri::Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
-    // 1. Sidecar — bundled binary in app resources
+    let bin_name = if cfg!(windows) { "ant.exe" } else { "ant" };
+    let target_triple = std::env::var("TAURI_ENV_TARGET_TRIPLE")
+        .unwrap_or_else(|_| env!("TAURI_ENV_TARGET_TRIPLE").to_string());
+    let sidecar_name = if cfg!(windows) {
+        format!("ant-{target_triple}.exe")
+    } else {
+        format!("ant-{target_triple}")
+    };
+
+    // 1. Bundled sidecar (production)
     if let Ok(resource_dir) = app.path().resource_dir() {
-        let name = if cfg!(windows) { "ant.exe" } else { "ant" };
-        let sidecar = resource_dir.join("binaries").join(name);
+        let sidecar = resource_dir.join("binaries").join(&sidecar_name);
         if sidecar.exists() {
             return Some(sidecar);
         }
     }
 
-    // 2. PATH fallback (for development)
-    if let Ok(output) = std::process::Command::new("ant").arg("--help").output() {
-        if output.status.success() {
-            return Some(PathBuf::from("ant"));
+    // 2. Dev sidecar — CARGO_MANIFEST_DIR/binaries/ (compile-time path)
+    {
+        let dev_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("binaries")
+            .join(&sidecar_name);
+        if dev_path.exists() {
+            return Some(dev_path);
         }
     }
 
-    // 3. Common install locations
+    // 3. PATH fallback (development with ant-cli installed)
+    if let Ok(output) = std::process::Command::new("ant").arg("--help").output() {
+        if output.status.success() {
+            return Some(PathBuf::from(bin_name));
+        }
+    }
+
+    // 4. Common install locations
     let candidates = [
-        dirs::home_dir().map(|h| {
-            h.join(".cargo")
-                .join("bin")
-                .join(if cfg!(windows) { "ant.exe" } else { "ant" })
-        }),
+        dirs::home_dir().map(|h| h.join(".cargo").join("bin").join(bin_name)),
     ];
     for candidate in candidates.into_iter().flatten() {
         if candidate.exists() {
@@ -350,8 +364,15 @@ async fn ensure_daemon_running(app: AppHandle) -> Result<String, String> {
     }
 
     // Find the daemon binary (sidecar or PATH)
-    let bin_path =
-        find_daemon_binary(&app).ok_or("Cannot find daemon binary — app may be corrupted")?;
+    let bin_path = find_daemon_binary(&app).ok_or_else(|| {
+        let target = env!("TAURI_ENV_TARGET_TRIPLE");
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        format!(
+            "Cannot find daemon binary. Checked: \
+             resource_dir, {manifest_dir}/binaries/ant-{target}{}, PATH, ~/.cargo/bin",
+            if cfg!(windows) { ".exe" } else { "" }
+        )
+    })?;
 
     // Spawn detached — daemon survives app close, nodes keep running
     let mut cmd = std::process::Command::new(&bin_path);
@@ -363,8 +384,8 @@ async fn ensure_daemon_running(app: AppHandle) -> Result<String, String> {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
-        // DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
-        cmd.creation_flags(0x00000008 | 0x00000010);
+        // CREATE_NEW_PROCESS_GROUP — detaches from parent console
+        cmd.creation_flags(0x00000200);
     }
     #[cfg(unix)]
     {
