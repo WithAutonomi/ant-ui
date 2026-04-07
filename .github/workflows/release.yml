@@ -77,6 +77,26 @@ jobs:
 
       - run: npm install
 
+      - name: build ant daemon sidecar
+        run: |
+          git clone --depth 1 https://github.com/WithAutonomi/ant-client.git /tmp/ant-client
+          cd /tmp/ant-client
+          cargo build --release -p ant-cli
+          mkdir -p ${{ github.workspace }}/src-tauri/binaries
+          TARGET=$(rustc -vV | grep host | awk '{print $2}')
+          if [ -n "${{ matrix.args }}" ]; then
+            # Cross-compilation: extract target from --target flag
+            CROSS_TARGET=$(echo "${{ matrix.args }}" | grep -oP '(?<=--target )\S+')
+            if [ -n "$CROSS_TARGET" ]; then
+              cargo build --release -p ant-cli --target "$CROSS_TARGET"
+              cp "target/$CROSS_TARGET/release/ant" "${{ github.workspace }}/src-tauri/binaries/ant-${CROSS_TARGET}"
+            else
+              cp target/release/ant "${{ github.workspace }}/src-tauri/binaries/ant-${TARGET}"
+            fi
+          else
+            cp target/release/ant "${{ github.workspace }}/src-tauri/binaries/ant-${TARGET}"
+          fi
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -126,6 +146,16 @@ jobs:
           workspaces: "./src-tauri -> target"
 
       - run: npm install
+
+      - name: build ant daemon sidecar
+        shell: pwsh
+        run: |
+          git clone --depth 1 https://github.com/WithAutonomi/ant-client.git $env:RUNNER_TEMP\ant-client
+          Push-Location $env:RUNNER_TEMP\ant-client
+          cargo build --release -p ant-cli
+          Pop-Location
+          New-Item -ItemType Directory -Force -Path src-tauri\binaries
+          Copy-Item $env:RUNNER_TEMP\ant-client\target\release\ant.exe src-tauri\binaries\ant-x86_64-pc-windows-msvc.exe
 
       - name: create client certificate file
         id: prepare_cert

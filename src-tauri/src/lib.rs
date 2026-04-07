@@ -5,6 +5,7 @@ use autonomi_ops::AutonomiState;
 use config::{AppConfig, FileMetaResult, UploadHistory, UploadHistoryEntry};
 use std::path::PathBuf;
 use std::sync::Arc;
+use tauri::{AppHandle, Manager};
 use tokio::sync::{watch, RwLock};
 
 // ── SSE proxy state ──
@@ -26,33 +27,48 @@ impl SseState {
     }
 }
 
-/// Attempt to stop a stale daemon (ignores errors).
-async fn try_stop_daemon() {
-    if let Some(ant_bin) = which_ant() {
-        let _ = tokio::process::Command::new(&ant_bin)
-            .args(["node", "daemon", "stop"])
-            .output()
-            .await;
-        // Brief pause for PID/port files to be cleaned up
-        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-    }
-}
+/// Find the daemon binary. Checks (in order):
+/// 1. Sidecar path (bundled with the app)
+/// 2. PATH and common install locations (dev fallback)
+fn find_daemon_binary<R: tauri::Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
+    let bin_name = if cfg!(windows) { "ant.exe" } else { "ant" };
+    let target_triple = std::env::var("TAURI_ENV_TARGET_TRIPLE")
+        .unwrap_or_else(|_| env!("TAURI_ENV_TARGET_TRIPLE").to_string());
+    let sidecar_name = if cfg!(windows) {
+        format!("ant-{target_triple}.exe")
+    } else {
+        format!("ant-{target_triple}")
+    };
 
-/// Find the `ant` binary, checking PATH and common install locations.
-fn which_ant() -> Option<PathBuf> {
-    // Check PATH first
-    if let Ok(output) = std::process::Command::new("ant").arg("--help").output() {
-        if output.status.success() {
-            return Some(PathBuf::from("ant"));
+    // 1. Bundled sidecar (production)
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let sidecar = resource_dir.join("binaries").join(&sidecar_name);
+        if sidecar.exists() {
+            return Some(sidecar);
         }
     }
 
-    // Check common install locations
-    let candidates = [
-        dirs::home_dir().map(|h| h.join(".cargo").join("bin").join(if cfg!(windows) { "ant.exe" } else { "ant" })),
-        Some(PathBuf::from(if cfg!(windows) { r"C:\Program Files\Autonomi\ant.exe" } else { "/usr/local/bin/ant" })),
-    ];
+    // 2. Dev sidecar — CARGO_MANIFEST_DIR/binaries/ (compile-time path)
+    {
+        let dev_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("binaries")
+            .join(&sidecar_name);
+        if dev_path.exists() {
+            return Some(dev_path);
+        }
+    }
 
+    // 3. PATH fallback (development with ant-cli installed)
+    if let Ok(output) = std::process::Command::new("ant").arg("--help").output() {
+        if output.status.success() {
+            return Some(PathBuf::from(bin_name));
+        }
+    }
+
+    // 4. Common install locations
+    let candidates = [
+        dirs::home_dir().map(|h| h.join(".cargo").join("bin").join(bin_name)),
+    ];
     for candidate in candidates.into_iter().flatten() {
         if candidate.exists() {
             return Some(candidate);
@@ -321,13 +337,13 @@ async fn disconnect_daemon_sse(
     Ok(())
 }
 
-/// Start the ant daemon if it's not already running.
-/// Returns the daemon URL on success.
+/// Start the daemon if it's not already running.
+/// Uses a bundled sidecar binary (production) or PATH fallback (dev).
+/// Spawns detached so the daemon survives app close.
 #[tauri::command]
-async fn ensure_daemon_running() -> Result<String, String> {
+async fn ensure_daemon_running(app: AppHandle) -> Result<String, String> {
     // Check if already running via port file
     if let Some(url) = config::discover_daemon_url() {
-        // Verify it's actually responsive (short timeout)
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(3))
             .build()
@@ -340,33 +356,59 @@ async fn ensure_daemon_running() -> Result<String, String> {
         {
             return Ok(url);
         }
-        // Port file exists but daemon is unresponsive — stale PID.
-        // Stop the stale daemon first so a fresh start can succeed.
-        let _ = try_stop_daemon().await;
-    }
-
-    // Start the daemon
-    let ant_bin = which_ant().ok_or("Cannot find 'ant' binary — is ant-cli installed?")?;
-    let output = tokio::process::Command::new(&ant_bin)
-        .args(["node", "daemon", "start"])
-        .output()
-        .await
-        .map_err(|e| format!("Failed to start daemon: {e}"))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let combined = format!("{stdout}{stderr}");
-        if !combined.contains("already running") {
-            return Err(format!("Daemon start failed: {combined}"));
+        // Port file exists but daemon is unresponsive — clean up stale files
+        if let Ok(data) = ant_core::config::data_dir() {
+            let _ = std::fs::remove_file(data.join("daemon.port"));
+            let _ = std::fs::remove_file(data.join("daemon.pid"));
         }
     }
 
-    // Wait briefly for the port file to be written
-    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    // Find the daemon binary (sidecar or PATH)
+    let bin_path = find_daemon_binary(&app).ok_or_else(|| {
+        let target = env!("TAURI_ENV_TARGET_TRIPLE");
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        format!(
+            "Cannot find daemon binary. Checked: \
+             resource_dir, {manifest_dir}/binaries/ant-{target}{}, PATH, ~/.cargo/bin",
+            if cfg!(windows) { ".exe" } else { "" }
+        )
+    })?;
 
-    config::discover_daemon_url()
-        .ok_or_else(|| "Daemon started but port file not found".to_string())
+    // Spawn detached — daemon survives app close, nodes keep running
+    let mut cmd = std::process::Command::new(&bin_path);
+    cmd.args(["node", "daemon", "start"]);
+    cmd.stdin(std::process::Stdio::null());
+    cmd.stdout(std::process::Stdio::null());
+    cmd.stderr(std::process::Stdio::null());
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        // CREATE_NEW_PROCESS_GROUP — detaches from parent console
+        cmd.creation_flags(0x00000200);
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        unsafe {
+            cmd.pre_exec(|| {
+                libc::setsid();
+                Ok(())
+            });
+        }
+    }
+
+    cmd.spawn()
+        .map_err(|e| format!("Failed to start daemon: {e}"))?;
+
+    // Wait for port file (up to 5 seconds)
+    for _ in 0..20 {
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+        if let Some(url) = config::discover_daemon_url() {
+            return Ok(url);
+        }
+    }
+    Err("Daemon started but port file not found".into())
 }
 
 /// Get the data directory path for a node by ID.
