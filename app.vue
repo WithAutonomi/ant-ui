@@ -50,7 +50,7 @@ onMounted(async () => {
     }
   } else {
     invoke('init_autonomi_client').catch((e) => {
-      console.warn('Autonomi client init failed (file ops will use mock):', e)
+      console.warn('Autonomi client init failed:', e)
     })
   }
 })

@@ -533,11 +533,5 @@ function clearLog() {
   toasts.add('Log cleared', 'info')
 }
 
-async function openUrl(url: string) {
-  try {
-    await tauriOpenUrl(url)
-  } catch {
-    window.open(url, '_blank')
-  }
-}
+
 </script>
