@@ -40,7 +40,7 @@ fn find_daemon_binary<R: tauri::Runtime>(app: &AppHandle<R>) -> Option<PathBuf> 
         format!("ant-{target_triple}")
     };
 
-    // 1. Bundled sidecar (production)
+    // 1. Bundled sidecar — Contents/Resources/binaries/ (Tauri sidecar convention)
     if let Ok(resource_dir) = app.path().resource_dir() {
         let sidecar = resource_dir.join("binaries").join(&sidecar_name);
         if sidecar.exists() {
@@ -48,7 +48,20 @@ fn find_daemon_binary<R: tauri::Runtime>(app: &AppHandle<R>) -> Option<PathBuf> 
         }
     }
 
-    // 2. Dev sidecar — CARGO_MANIFEST_DIR/binaries/ (compile-time path)
+    // 2. Same directory as main exe — where Tauri v2 actually places externalBin
+    //    (e.g. Contents/MacOS/ant on macOS, Program Files/Autonomi/ant.exe on Windows)
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(exe_dir) = exe.parent() {
+            for name in [&sidecar_name, &bin_name.to_string()] {
+                let candidate = exe_dir.join(name);
+                if candidate.exists() && candidate != exe {
+                    return Some(candidate);
+                }
+            }
+        }
+    }
+
+    // 3. Dev sidecar — CARGO_MANIFEST_DIR/binaries/
     {
         let dev_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("binaries")
@@ -58,14 +71,14 @@ fn find_daemon_binary<R: tauri::Runtime>(app: &AppHandle<R>) -> Option<PathBuf> 
         }
     }
 
-    // 3. PATH fallback (development with ant-cli installed)
+    // 4. PATH fallback (development with ant-cli installed)
     if let Ok(output) = std::process::Command::new("ant").arg("--help").output() {
         if output.status.success() {
             return Some(PathBuf::from(bin_name));
         }
     }
 
-    // 4. Common install locations
+    // 5. Common install locations
     let candidates = [
         dirs::home_dir().map(|h| h.join(".cargo").join("bin").join(bin_name)),
     ];
