@@ -90,15 +90,16 @@ src-tauri/
 
 ## Testing Against a Local or Sepolia Network
 
-The GUI can target a local devnet (Anvil EVM) or Arbitrum Sepolia for E2E testing. Both modes auto-detect from a manifest file written by the devnet launcher.
+The GUI can target a local devnet or Arbitrum Sepolia for E2E testing. Both modes auto-detect from a manifest file written by the devnet launcher in [ant-client](https://github.com/WithAutonomi/ant-client).
 
 ### Option A: Local Devnet (Anvil)
 
-Starts 25 P2P nodes with an embedded Anvil blockchain. No external accounts needed — uses a funded test wallet automatically.
+Starts 25 P2P nodes with an embedded Anvil blockchain. No external accounts needed.
 
 ```powershell
-# Terminal 1: Start devnet (wait for "=== Devnet is running! ===")
-cd src-tauri; cargo run --release --example start-devnet
+# Terminal 1: Start devnet from ant-client (wait for "=== Devnet is running! ===")
+cd path/to/ant-client
+cargo run --release --example start-local-devnet
 
 # Terminal 2: Start GUI in devnet mode
 $env:VITE_DEVNET="1"; npm run tauri:dev
@@ -106,32 +107,28 @@ $env:VITE_DEVNET="1"; npm run tauri:dev
 
 The GUI detects the manifest, bypasses WalletConnect, and uses the devnet wallet directly. Sidebar shows "DEVNET".
 
-### Option B: Arbitrum Sepolia (WalletConnect)
+### Option B: Arbitrum Sepolia
 
-Starts 25 P2P nodes that verify payments against the existing Sepolia contracts. Uses WalletConnect with a real wallet — tests the full production payment flow on a testnet.
+Starts 25 P2P nodes that verify payments against existing Sepolia contracts. You can connect via WalletConnect or import a private key directly in Settings > Advanced.
 
 **Prerequisites:**
 - A wallet with Arbitrum Sepolia ETH (faucet: https://faucet.quicknode.com/arbitrum/sepolia)
 - Test ANT tokens on the Sepolia token contract (`0x4bc1aCE0E66170375462cB4E6Af42Ad4D5EC689C`)
 
 ```powershell
-# Terminal 1: Start devnet (wait for "=== Sepolia Devnet is running! ===")
-cd src-tauri; cargo run --release --example start-devnet-sepolia
+# Terminal 1: Start devnet from ant-client
+cd path/to/ant-client
+cargo run --release --example start-devnet-sepolia
 
-# Terminal 2: Start GUI (no env var needed — Sepolia detected from manifest)
+# Terminal 2: Start GUI (Sepolia detected from manifest)
 npm run tauri:dev
 ```
 
-Connect your wallet to **Arbitrum Sepolia (chain 421614)** when the WalletConnect dialog appears. Sidebar shows "SEPOLIA TESTNET".
+In the app: Settings > Advanced > Import Private Key > select "Arbitrum Sepolia" > paste key. Sidebar shows "SEPOLIA TESTNET".
 
-### What the devnet scripts do
+### How it works
 
-| Script | Nodes | EVM | Wallet | Contracts |
-|--------|-------|-----|--------|-----------|
-| `start-devnet` | 25 local | Anvil (localhost) | Auto (private key) | Deployed fresh |
-| `start-devnet-sepolia` | 25 local | Arbitrum Sepolia | WalletConnect | Existing on-chain |
-
-Both scripts write a `devnet-manifest.json` to the app config directory. The GUI reads this on startup to configure bootstrap peers, EVM network, and contract addresses. The manifest is cleaned up on Ctrl+C.
+The devnet launcher writes a `devnet-manifest.json` to the app config directory (`~/.config/autonomi/ant-gui/`). The GUI reads this on startup to configure bootstrap peers, EVM network, and contract addresses. The manifest is cleaned up when the devnet stops.
 
 ### Payment modes
 

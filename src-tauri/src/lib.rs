@@ -130,13 +130,20 @@ async fn daemon_status(url: String) -> Result<bool, String> {
 }
 
 /// Proxy HTTP requests to the daemon, bypassing browser CORS restrictions.
-/// The daemon only allows same-origin requests, so all API calls must go through Tauri.
+/// Only allows requests to localhost to prevent SSRF.
 #[tauri::command]
 async fn daemon_request(
     url: String,
     method: String,
     body: Option<String>,
 ) -> Result<String, String> {
+    // Validate URL is localhost only — prevent SSRF
+    let parsed = reqwest::Url::parse(&url).map_err(|e| format!("Invalid URL: {e}"))?;
+    match parsed.host_str() {
+        Some("127.0.0.1") | Some("localhost") => {}
+        _ => return Err("Only localhost daemon requests allowed".into()),
+    }
+
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(30))
         .connect_timeout(std::time::Duration::from_secs(5))

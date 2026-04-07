@@ -106,9 +106,13 @@ export const indelibleApi = {
     request<{ file_size: number; estimated_cost: string; note: string }>(
       'POST', '/api/v2/uploads/quote', { file_size: fileSize }),
 
-  /** Get download URL for a completed upload */
-  downloadUrl: (uuid: string) => {
+  /** Download a file by UUID using Authorization header (not query string). */
+  download: async (uuid: string) => {
     const { baseUrl, apiKey } = getConfig()
-    return `${baseUrl}/api/v2/uploads/${uuid}/download?token=${encodeURIComponent(apiKey)}`
+    const res = await fetch(`${baseUrl}/api/v2/uploads/${uuid}/download`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    })
+    if (!res.ok) throw new Error(`Download failed: HTTP ${res.status}`)
+    return res.blob()
   },
 }
