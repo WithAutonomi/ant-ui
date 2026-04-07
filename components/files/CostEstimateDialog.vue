@@ -24,6 +24,7 @@
               <span class="ml-2 text-autonomi-blue">
                 {{ file.cost ? file.cost : `~${estimateCost(file.size)} ANT` }}
               </span>
+              <span v-if="file.gas_cost" class="ml-1 text-autonomi-muted">+ {{ file.gas_cost }} gas</span>
             </div>
           </div>
 
@@ -39,6 +40,7 @@
 
           <p class="text-xs text-autonomi-muted">
             {{ hasRealCosts ? 'Costs queried from the Autonomi network.' : 'Estimates are approximate and may vary based on network conditions.' }}
+            Gas fees (ETH) apply on top of storage costs.
           </p>
         </div>
 
@@ -64,7 +66,7 @@ import { formatBytes } from '~/utils/formatters'
 
 const props = defineProps<{
   open: boolean
-  files: { name: string; size: number; cost?: string }[]
+  files: { name: string; size: number; cost?: string; gas_cost?: string }[]
   loading: boolean
 }>()
 

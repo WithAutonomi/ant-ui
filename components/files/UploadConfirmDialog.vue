@@ -45,6 +45,10 @@
                 <span>Network storage cost</span>
                 <span class="text-autonomi-blue">{{ quotedCost }}</span>
               </div>
+              <div class="flex items-center justify-between text-xs text-autonomi-muted">
+                <span>Estimated gas</span>
+                <span>{{ quotedGas ?? 'Estimating...' }}</span>
+              </div>
             </template>
             <template v-else-if="quoting">
               <div class="flex items-center gap-2 text-sm text-autonomi-muted">
@@ -154,6 +158,8 @@ const props = defineProps<{
   loading: boolean
   /** Real cost from network quote (e.g. "0.0234 ANT" or "Determined on-chain") */
   quotedCost?: string | null
+  /** Estimated gas cost (e.g. "0.000142 ETH") */
+  quotedGas?: string | null
   /** Whether a network quote is in progress */
   quoting?: boolean
   /** Payment mode selected by the backend (null if no quote yet) */

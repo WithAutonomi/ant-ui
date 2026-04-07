@@ -1,11 +1,17 @@
-import { readContract, writeContract, waitForTransactionReceipt } from '@wagmi/core'
-import { arbitrum } from '@reown/appkit/networks'
-import { ANT_TOKEN_ADDRESS, PAYMENT_VAULT_ADDRESS } from '~/utils/wallet-config'
+import { readContract, writeContract, waitForTransactionReceipt, getGasPrice, getAccount } from '@wagmi/core'
+import { getTokenAddress, getVaultAddress, getActiveChainId } from '~/utils/wallet-config'
 import paymentVaultAbi from '~/assets/abi/IPaymentVault.json'
 import paymentTokenAbi from '~/assets/abi/PaymentToken.json'
-import { decodeEventLog } from 'viem'
+import { decodeEventLog, formatEther, encodeFunctionData } from 'viem'
 
 const MAX_PAYMENTS_PER_BATCH = 256
+
+// Typical gas units per operation (conservative estimates)
+const GAS_APPROVE = 50_000n
+const GAS_PER_QUOTE_PAYMENT = 38_000n
+const GAS_QUOTE_BASE = 25_000n
+const GAS_MERKLE_BASE = 180_000n
+const GAS_MERKLE_PER_POOL = 25_000n
 
 export type RawPayment = [string, string, string] // [quoteHash, rewardsAddress, amount]
 
@@ -13,6 +19,8 @@ export interface PaymentResult {
   /** Map of quoteHash -> txHash for each payment */
   txHashMap: Record<string, string>
   totalPaid: bigint
+  /** Total gas cost in wei (ETH) across all transactions (payments + approval) */
+  gasSpent: bigint
 }
 
 export interface MerklePaymentResult {
@@ -20,12 +28,41 @@ export interface MerklePaymentResult {
   winnerPoolHash: string
   /** Total amount paid */
   totalPaid: bigint
+  /** Total gas cost in wei (ETH) across all transactions (payment + approval) */
+  gasSpent: bigint
 }
 
 /** Serialized pool commitment from Rust backend */
 export interface SerializedPoolCommitment {
   pool_hash: string
   candidates: { rewards_address: string; amount: string }[]
+}
+
+/** Extract gas cost in wei from a transaction receipt. */
+function receiptGasCost(receipt: any): bigint {
+  const gasUsed = BigInt(receipt.gasUsed ?? 0)
+  const gasPrice = BigInt(receipt.effectiveGasPrice ?? 0)
+  return gasUsed * gasPrice
+}
+
+/**
+ * Get the account for signing transactions.
+ */
+function getSignerAccount(wagmiConfig: any): `0x${string}` {
+  const devnetAccount = getDevnetAccount?.()
+  if (devnetAccount) return devnetAccount.address
+
+  const account = getAccount(wagmiConfig)
+  if (!account.address) throw new Error('Wallet not connected')
+  return account.address
+}
+
+/**
+ * Build the account option for writeContract.
+ */
+function accountOpt(): { account: any } | {} {
+  const devnetAccount = getDevnetAccount?.()
+  return devnetAccount ? { account: devnetAccount } : {}
 }
 
 /**
@@ -37,25 +74,20 @@ export async function payForQuotes(
   payments: RawPayment[],
 ): Promise<PaymentResult> {
   if (payments.length === 0) {
-    return { txHashMap: {}, totalPaid: 0n }
+    return { txHashMap: {}, totalPaid: 0n, gasSpent: 0n }
   }
 
-  // Calculate total cost
   const totalAmount = payments.reduce(
     (sum, [, , amount]) => sum + BigInt(amount),
     0n,
   )
 
-  // Check and set ERC20 allowance
-  await ensureAllowance(wagmiConfig, totalAmount)
+  let gasSpent = await ensureAllowance(wagmiConfig, totalAmount)
 
-  // Batch payments (max 256 per tx) and map each quoteHash to its tx hash
   const txHashMap: Record<string, string> = {}
   for (let i = 0; i < payments.length; i += MAX_PAYMENTS_PER_BATCH) {
     const batch = payments.slice(i, i + MAX_PAYMENTS_PER_BATCH)
 
-    // Reorder from [quoteHash, rewardsAddress, amount] to
-    // [rewardsAddress, amount, quoteHash] to match Solidity DataPayment struct
     const input = batch.map(([quoteHash, rewardsAddress, amount]) => [
       rewardsAddress,
       amount,
@@ -64,22 +96,22 @@ export async function payForQuotes(
 
     const hash = await writeContract(wagmiConfig, {
       abi: paymentVaultAbi,
-      address: PAYMENT_VAULT_ADDRESS,
+      address: getVaultAddress(),
       functionName: 'payForQuotes',
       args: [input],
-      chainId: arbitrum.id,
+      chainId: getActiveChainId(),
+      ...accountOpt(),
     })
 
-    // Wait for confirmation
-    await waitForTransactionReceipt(wagmiConfig, { hash, chainId: arbitrum.id })
+    const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: getActiveChainId() })
+    gasSpent += receiptGasCost(receipt)
 
-    // Map every quoteHash in this batch to the batch's tx hash
     for (const [quoteHash] of batch) {
       txHashMap[quoteHash] = hash
     }
   }
 
-  return { txHashMap, totalPaid: totalAmount }
+  return { txHashMap, totalPaid: totalAmount, gasSpent }
 }
 
 /**
@@ -92,7 +124,6 @@ export async function payForMerkleTree(
   poolCommitments: SerializedPoolCommitment[],
   merkleTimestamp: bigint,
 ): Promise<MerklePaymentResult> {
-  // Convert serialized commitments to contract-compatible format
   const commitments = poolCommitments.map(pc => ({
     poolHash: pc.pool_hash as `0x${string}`,
     candidates: pc.candidates.map(c => ({
@@ -101,25 +132,24 @@ export async function payForMerkleTree(
     })),
   }))
 
-  // Sum all candidate amounts across all pools to estimate total cost for allowance.
-  // The contract picks the winning pool — actual cost will be <= this sum.
-  // Use the max pool total as a conservative estimate.
   const maxPoolCost = commitments.reduce((max, pc) => {
     const poolTotal = pc.candidates.reduce((sum, c) => sum + c.amount, 0n)
     return poolTotal > max ? poolTotal : max
   }, 0n)
 
-  await ensureAllowance(wagmiConfig, maxPoolCost)
+  let gasSpent = await ensureAllowance(wagmiConfig, maxPoolCost)
 
   const hash = await writeContract(wagmiConfig, {
     abi: paymentVaultAbi,
-    address: PAYMENT_VAULT_ADDRESS,
+    address: getVaultAddress(),
     functionName: 'payForMerkleTree',
     args: [depth, commitments, merkleTimestamp],
-    chainId: arbitrum.id,
+    chainId: getActiveChainId(),
+    ...accountOpt(),
   })
 
-  const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: arbitrum.id })
+  const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: getActiveChainId() })
+  gasSpent += receiptGasCost(receipt)
 
   // Extract winnerPoolHash from MerklePaymentMade event
   for (const log of receipt.logs) {
@@ -134,6 +164,7 @@ export async function payForMerkleTree(
         return {
           winnerPoolHash: args.winnerPoolHash,
           totalPaid: args.totalAmount,
+          gasSpent,
         }
       }
     } catch {
@@ -146,34 +177,69 @@ export async function payForMerkleTree(
 
 /**
  * Ensure the PaymentVault has sufficient ERC20 allowance.
- * If current allowance is less than needed, sends an approve tx.
+ * Returns gas spent on approval (0 if no approval needed).
  */
-async function ensureAllowance(wagmiConfig: any, needed: bigint) {
-  // Get connected account address
-  const { getAccount } = await import('@wagmi/core')
-  const account = getAccount(wagmiConfig)
-  if (!account.address) throw new Error('Wallet not connected')
+async function ensureAllowance(wagmiConfig: any, needed: bigint): Promise<bigint> {
+  const ownerAddress = getSignerAccount(wagmiConfig)
 
   const currentAllowance = (await readContract(wagmiConfig, {
     abi: paymentTokenAbi,
-    address: ANT_TOKEN_ADDRESS,
+    address: getTokenAddress(),
     functionName: 'allowance',
-    args: [account.address, PAYMENT_VAULT_ADDRESS],
-    chainId: arbitrum.id,
+    args: [ownerAddress, getVaultAddress()],
+    chainId: getActiveChainId(),
   })) as bigint
 
-  if (currentAllowance >= needed) return
+  if (currentAllowance >= needed) return 0n
 
-  // Approve the exact amount needed
   const hash = await writeContract(wagmiConfig, {
     abi: paymentTokenAbi,
-    address: ANT_TOKEN_ADDRESS,
+    address: getTokenAddress(),
     functionName: 'approve',
-    args: [PAYMENT_VAULT_ADDRESS, needed],
-    chainId: arbitrum.id,
+    args: [getVaultAddress(), needed],
+    chainId: getActiveChainId(),
+    ...accountOpt(),
   })
 
-  await waitForTransactionReceipt(wagmiConfig, { hash, chainId: arbitrum.id })
+  const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: getActiveChainId() })
+  return receiptGasCost(receipt)
+}
+
+/**
+ * Estimate gas cost for an upload payment before executing it.
+ * Uses current chain gas price and conservative gas unit estimates.
+ *
+ * @returns Estimated gas cost formatted as ETH string, or null if estimation fails.
+ */
+export async function estimatePaymentGasCost(
+  wagmiConfig: any,
+  paymentMode: 'wave-batch' | 'merkle',
+  paymentCount: number,
+  poolCount?: number,
+): Promise<string | null> {
+  try {
+    const gasPrice = await Promise.race([
+      getGasPrice(wagmiConfig, { chainId: getActiveChainId() }),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Gas price timeout')), 10_000)),
+    ])
+
+    let totalGas: bigint
+    if (paymentMode === 'merkle') {
+      // Merkle: one approve + one payForMerkleTree call
+      totalGas = GAS_APPROVE + GAS_MERKLE_BASE + GAS_MERKLE_PER_POOL * BigInt(poolCount ?? 4)
+    } else {
+      // Wave-batch: one approve + N batches of payForQuotes
+      const batches = Math.ceil(paymentCount / MAX_PAYMENTS_PER_BATCH)
+      const paymentsGas = GAS_PER_QUOTE_PAYMENT * BigInt(paymentCount)
+      const batchOverhead = GAS_QUOTE_BASE * BigInt(batches)
+      totalGas = GAS_APPROVE + paymentsGas + batchOverhead
+    }
+
+    const costWei = totalGas * gasPrice
+    return formatGasCost(costWei.toString())
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -190,5 +256,16 @@ export function formatNanoTokens(nanoStr: string): string {
     return `${whole} ANT`
   } catch {
     return `${nanoStr} atto`
+  }
+}
+
+/**
+ * Format gas cost in wei to a human-readable ETH string.
+ */
+export function formatGasCost(weiStr: string): string {
+  try {
+    return `${parseFloat(formatEther(BigInt(weiStr))).toFixed(6)} ETH`
+  } catch {
+    return `${weiStr} wei`
   }
 }

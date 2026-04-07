@@ -8,6 +8,14 @@
 
     <!-- Main navigation -->
     <nav class="flex-1 px-2 py-2">
+      <!-- Network mode indicator -->
+      <div
+        v-if="settingsStore.devnetActive"
+        class="mb-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 text-center text-xs font-medium text-amber-400"
+      >
+        {{ networkLabel }}
+      </div>
+
       <!-- Update banner -->
       <button
         v-if="updaterStore.available"
@@ -60,6 +68,11 @@ const route = useRoute()
 const nodesStore = useNodesStore()
 const filesStore = useFilesStore()
 const updaterStore = useUpdaterStore()
+const settingsStore = useSettingsStore()
+
+const networkLabel = computed(() => {
+  return settingsStore.devnetIsSepolia ? 'SEPOLIA TESTNET' : 'DEVNET'
+})
 
 const mainNav = computed(() => [
   { path: '/', label: 'Nodes', icon: '⬡' },

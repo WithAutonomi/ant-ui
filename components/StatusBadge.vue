@@ -20,6 +20,8 @@ const statusMap: Record<string, { dot: string; label: string; color: string }> =
   Pending: { dot: '○', label: 'Pending', color: 'text-autonomi-muted' },
   Quoting: { dot: '◐', label: 'Quoting', color: 'text-autonomi-warning' },
   Paying: { dot: '◐', label: 'Paying', color: 'text-autonomi-warning' },
+  Uploading: { dot: '●', label: 'Uploading', color: 'text-autonomi-blue' },
+  Downloading: { dot: '●', label: 'Downloading', color: 'text-autonomi-blue' },
   Complete: { dot: '●', label: 'Done', color: 'text-autonomi-success' },
   Done: { dot: '●', label: 'Done', color: 'text-autonomi-success' },
   Downloaded: { dot: '↓', label: 'Downloaded — click to open', color: 'text-autonomi-blue' },

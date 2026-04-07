@@ -1,3 +1,4 @@
+export const ANVIL_CHAIN_ID = 31337
 export const POLL_INTERVAL = 5000
 export const DETAIL_POLL_INTERVAL = 30_000
 export const PENDING_UPLOAD_TTL_MS = 300_000

@@ -105,20 +105,12 @@
               <td class="px-4 py-2.5">{{ file.name }}</td>
               <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
               <td class="px-4 py-2.5">
-                <div class="flex items-center gap-2">
-                  <StatusBadge :status="statusLabel(file)" />
-                  <div
-                    v-if="hasProgressBar(file)"
-                    class="h-1.5 w-16 overflow-hidden rounded-full bg-autonomi-border"
-                  >
-                    <div
-                      class="h-full rounded-full bg-autonomi-blue transition-all"
-                      :style="{ width: `${file.progress ?? 0}%` }"
-                    />
-                  </div>
-                </div>
+                <StatusBadge :status="statusLabel(file)" />
               </td>
-              <td class="px-4 py-2.5 text-autonomi-muted">{{ file.cost ?? '-' }}</td>
+              <td class="px-4 py-2.5 text-autonomi-muted">
+                <span>{{ file.cost ?? '-' }}</span>
+                <span v-if="file.gas_cost" class="block text-[10px] text-autonomi-muted/60">+ {{ file.gas_cost }} gas</span>
+              </td>
               <td class="px-4 py-2.5">
                 <span
                   v-if="file.address"
@@ -148,6 +140,7 @@
       :files="pendingUploadFiles"
       :loading="uploadEstimating"
       :quoted-cost="quotedCostDisplay"
+      :quoted-gas="quotedGasEstimate"
       :quoting="isQuoting"
       :quoted-payment-mode="quotedPaymentMode"
       :network-connected="autonomiConnected"
@@ -196,6 +189,10 @@ async function checkAutonomiClient() {
 }
 
 function getWagmiConfig() {
+  // Direct wallet (private key) takes priority if initialized
+  const directConfig = getDevnetWagmiConfig()
+  if (directConfig) return directConfig
+  // Otherwise use AppKit/WalletConnect
   const { $wagmiAdapter } = useNuxtApp()
   return $wagmiAdapter?.wagmiConfig ?? null
 }
@@ -248,8 +245,8 @@ const sortedFiles = computed(() => {
 // ── Row display helpers ──
 
 function statusLabel(file: FileEntry): string {
-  if (file.status === 'uploading' && file.progress != null) return `${file.progress}%`
-  if (file.status === 'downloading' && file.progress != null) return `${file.progress}%`
+  if (file.status === 'uploading') return 'Uploading'
+  if (file.status === 'downloading') return 'Downloading'
   if (file.status === 'downloaded') return 'Downloaded'
   if (file.status === 'failed') return file.error ? `Failed: ${file.error}` : 'Failed'
   if (file.status === 'complete') return 'Complete'
@@ -258,11 +255,6 @@ function statusLabel(file: FileEntry): string {
   return file.status
 }
 
-function hasProgressBar(file: FileEntry): boolean {
-  return (file.status === 'uploading' || file.status === 'downloading')
-    && file.progress != null
-    && file.progress < 100
-}
 
 function rowClass(file: FileEntry): string {
   if (file.status === 'downloaded') return 'hover:bg-autonomi-surface/50 cursor-pointer bg-autonomi-blue/5'
@@ -305,6 +297,7 @@ const uploadEstimating = ref(false)
 const pendingUploadFiles = ref<{ name: string; size: number; path: string }[]>([])
 const isQuoting = ref(false)
 const quotedCostDisplay = ref<string | null>(null)
+const quotedGasEstimate = ref<string | null>(null)
 const quotedPaymentMode = ref<'wave-batch' | 'merkle' | null>(null)
 const pendingQuotes = ref<Map<string, UploadQuote>>(new Map())
 
@@ -339,6 +332,8 @@ async function showUploadConfirmForPaths(paths: string[]) {
   uploadEstimating.value = true
   pendingUploadFiles.value = []
   quotedCostDisplay.value = null
+  quotedGasEstimate.value = null
+  quotedPaymentMode.value = null
   pendingQuotes.value = new Map()
   showUploadConfirm.value = true
 
@@ -351,7 +346,7 @@ async function showUploadConfirmForPaths(paths: string[]) {
   uploadEstimating.value = false
 
   // Start real quoting in background (only when connected to network)
-  if (autonomiConnected.value && !settingsStore.indelibleConnected) {
+  if ((autonomiConnected.value || settingsStore.devnetActive) && !settingsStore.indelibleConnected) {
     startQuoting(metas)
   }
 }
@@ -371,20 +366,31 @@ async function startQuoting(metas: FileMeta[]) {
 
     if (quotes.size > 0) {
       const quoteValues = Array.from(quotes.values())
-      // Track the payment mode (all files in a batch use the same mode)
       quotedPaymentMode.value = quoteValues[0].payment_mode
 
       if (quotedPaymentMode.value === 'merkle') {
-        // Merkle cost is determined on-chain — show placeholder
         quotedCostDisplay.value = 'Determined on-chain'
       } else {
-        // Sum up total costs for display
         const totalNanos = quoteValues.reduce(
           (sum, q) => sum + BigInt(q.total_cost), 0n,
         )
         const whole = totalNanos / 1_000_000_000_000_000_000n
         const frac = (totalNanos % 1_000_000_000_000_000_000n) / 1_000_000_000_000_000n
         quotedCostDisplay.value = frac > 0n ? `${whole}.${frac.toString().padStart(3, '0')} ANT` : `${whole} ANT`
+      }
+
+      // Estimate gas cost
+      const wagmiConfig = getWagmiConfig()
+      if (wagmiConfig) {
+        const totalPayments = quoteValues.reduce((sum, q) => sum + q.payments.length, 0)
+        const poolCount = quoteValues[0].merkle_pool_commitments?.length
+        const est = await estimatePaymentGasCost(
+          wagmiConfig,
+          quotedPaymentMode.value,
+          totalPayments,
+          poolCount,
+        )
+        quotedGasEstimate.value = est
       }
     }
   } catch {
@@ -402,9 +408,9 @@ function confirmUpload(options: { visibility: 'private' | 'public'; paymentMode:
     const id = filesStore.addUpload(file.name, file.path, file.size)
     const preQuote = pendingQuotes.value.get(file.path)
 
-    if (settingsStore.indelibleConnected) {
+    if (settingsStore.indelibleConnected && !settingsStore.devnetActive) {
       filesStore.startIndelibleUpload(id)
-    } else if (autonomiConnected.value && wagmiConfig) {
+    } else if ((autonomiConnected.value || settingsStore.devnetActive) && wagmiConfig) {
       filesStore.startRealUpload(id, wagmiConfig, options, preQuote ?? undefined)
     } else {
       filesStore.updateEntry(id, { status: 'failed', error: 'Not connected to network or wallet' })

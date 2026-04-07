@@ -59,6 +59,11 @@ const settingsStore = useSettingsStore()
 const { $appkit, $appkitReady } = useNuxtApp()
 
 function openModal() {
+  // Direct wallet — navigate to wallet page instead of AppKit modal
+  if (walletStore.connected && !$appkitReady) {
+    navigateTo('/wallet')
+    return
+  }
   if ($appkitReady && $appkit) {
     $appkit.open()
   }
