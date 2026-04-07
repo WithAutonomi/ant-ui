@@ -19,6 +19,11 @@ src-tauri/icons/ios/
 .claude/settings.local.json
 .claude/plans
 
+# Environment / secrets
+.env
+.env.*
+
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
