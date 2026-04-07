@@ -5,8 +5,8 @@ use autonomi_ops::AutonomiState;
 use config::{AppConfig, FileMetaResult, UploadHistory, UploadHistoryEntry};
 use std::path::PathBuf;
 use std::sync::Arc;
+use tauri::{AppHandle, Manager};
 use tokio::sync::{watch, RwLock};
-use tokio_util::sync::CancellationToken;
 
 // ── SSE proxy state ──
 
@@ -27,11 +27,41 @@ impl SseState {
     }
 }
 
-/// Cancellation token for the embedded daemon — kept alive for the app's lifetime.
-static DAEMON_SHUTDOWN: std::sync::OnceLock<CancellationToken> = std::sync::OnceLock::new();
+/// Find the daemon binary. Checks (in order):
+/// 1. Sidecar path (bundled with the app)
+/// 2. PATH and common install locations (dev fallback)
+fn find_daemon_binary<R: tauri::Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
+    // 1. Sidecar — bundled binary in app resources
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let name = if cfg!(windows) { "ant.exe" } else { "ant" };
+        let sidecar = resource_dir.join("binaries").join(name);
+        if sidecar.exists() {
+            return Some(sidecar);
+        }
+    }
 
-fn daemon_shutdown_token() -> &'static CancellationToken {
-    DAEMON_SHUTDOWN.get_or_init(CancellationToken::new)
+    // 2. PATH fallback (for development)
+    if let Ok(output) = std::process::Command::new("ant").arg("--help").output() {
+        if output.status.success() {
+            return Some(PathBuf::from("ant"));
+        }
+    }
+
+    // 3. Common install locations
+    let candidates = [
+        dirs::home_dir().map(|h| {
+            h.join(".cargo")
+                .join("bin")
+                .join(if cfg!(windows) { "ant.exe" } else { "ant" })
+        }),
+    ];
+    for candidate in candidates.into_iter().flatten() {
+        if candidate.exists() {
+            return Some(candidate);
+        }
+    }
+
+    None
 }
 
 #[tauri::command]
@@ -293,11 +323,12 @@ async fn disconnect_daemon_sse(
     Ok(())
 }
 
-/// Start the embedded daemon if it's not already running.
-/// Returns the daemon URL on success.
+/// Start the daemon if it's not already running.
+/// Uses a bundled sidecar binary (production) or PATH fallback (dev).
+/// Spawns detached so the daemon survives app close.
 #[tauri::command]
-async fn ensure_daemon_running() -> Result<String, String> {
-    // Check if already running (either embedded or external)
+async fn ensure_daemon_running(app: AppHandle) -> Result<String, String> {
+    // Check if already running via port file
     if let Some(url) = config::discover_daemon_url() {
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(3))
@@ -312,34 +343,51 @@ async fn ensure_daemon_running() -> Result<String, String> {
             return Ok(url);
         }
         // Port file exists but daemon is unresponsive — clean up stale files
-        let _ = std::fs::remove_file(
-            ant_core::config::data_dir()
-                .unwrap_or_default()
-                .join("daemon.port"),
-        );
-        let _ = std::fs::remove_file(
-            ant_core::config::data_dir()
-                .unwrap_or_default()
-                .join("daemon.pid"),
-        );
+        if let Ok(data) = ant_core::config::data_dir() {
+            let _ = std::fs::remove_file(data.join("daemon.port"));
+            let _ = std::fs::remove_file(data.join("daemon.pid"));
+        }
     }
 
-    // Start the daemon in-process
-    use ant_core::node::daemon::server;
-    use ant_core::node::registry::NodeRegistry;
-    use ant_core::node::types::DaemonConfig;
+    // Find the daemon binary (sidecar or PATH)
+    let bin_path =
+        find_daemon_binary(&app).ok_or("Cannot find daemon binary — app may be corrupted")?;
 
-    let config = DaemonConfig::default();
-    let registry = NodeRegistry::load(&config.registry_path)
-        .map_err(|e| format!("Failed to load node registry: {e}"))?;
+    // Spawn detached — daemon survives app close, nodes keep running
+    let mut cmd = std::process::Command::new(&bin_path);
+    cmd.args(["node", "daemon", "start"]);
+    cmd.stdin(std::process::Stdio::null());
+    cmd.stdout(std::process::Stdio::null());
+    cmd.stderr(std::process::Stdio::null());
 
-    let shutdown = daemon_shutdown_token().clone();
-    let bound_addr = server::start(config, registry, shutdown)
-        .await
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        // DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+        cmd.creation_flags(0x00000008 | 0x00000010);
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        unsafe {
+            cmd.pre_exec(|| {
+                libc::setsid();
+                Ok(())
+            });
+        }
+    }
+
+    cmd.spawn()
         .map_err(|e| format!("Failed to start daemon: {e}"))?;
 
-    let url = format!("http://127.0.0.1:{}", bound_addr.port());
-    Ok(url)
+    // Wait for port file (up to 5 seconds)
+    for _ in 0..20 {
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+        if let Some(url) = config::discover_daemon_url() {
+            return Ok(url);
+        }
+    }
+    Err("Daemon started but port file not found".into())
 }
 
 /// Get the data directory path for a node by ID.

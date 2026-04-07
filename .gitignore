@@ -8,6 +8,7 @@ dist/
 # Tauri
 src-tauri/target/
 src-tauri/gen/schemas/
+src-tauri/binaries/
 src-tauri/icons/android/
 src-tauri/icons/ios/
 
