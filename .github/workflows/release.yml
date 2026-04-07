@@ -81,19 +81,16 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/WithAutonomi/ant-client.git /tmp/ant-client
           cd /tmp/ant-client
-          cargo build --release -p ant-cli
           mkdir -p ${{ github.workspace }}/src-tauri/binaries
-          TARGET=$(rustc -vV | grep host | awk '{print $2}')
-          if [ -n "${{ matrix.args }}" ]; then
-            # Cross-compilation: extract target from --target flag
-            CROSS_TARGET=$(echo "${{ matrix.args }}" | grep -oP '(?<=--target )\S+')
-            if [ -n "$CROSS_TARGET" ]; then
-              cargo build --release -p ant-cli --target "$CROSS_TARGET"
-              cp "target/$CROSS_TARGET/release/ant" "${{ github.workspace }}/src-tauri/binaries/ant-${CROSS_TARGET}"
-            else
-              cp target/release/ant "${{ github.workspace }}/src-tauri/binaries/ant-${TARGET}"
-            fi
+
+          # Determine target: extract from matrix.args or use host
+          CROSS_TARGET=$(echo "${{ matrix.args }}" | sed -n 's/.*--target \([^ ]*\).*/\1/p')
+          if [ -n "$CROSS_TARGET" ]; then
+            cargo build --release -p ant-cli --target "$CROSS_TARGET"
+            cp "target/$CROSS_TARGET/release/ant" "${{ github.workspace }}/src-tauri/binaries/ant-${CROSS_TARGET}"
           else
+            cargo build --release -p ant-cli
+            TARGET=$(rustc -vV | grep host | awk '{print $2}')
             cp target/release/ant "${{ github.workspace }}/src-tauri/binaries/ant-${TARGET}"
           fi
 
