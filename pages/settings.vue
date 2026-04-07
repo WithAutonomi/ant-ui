@@ -91,45 +91,6 @@
         {{ showAdvanced ? '▾ Hide Advanced' : '▸ Show Advanced' }}
       </button>
       <div v-if="showAdvanced" class="mt-2 space-y-4">
-        <div class="rounded-lg border border-autonomi-border p-4">
-          <div class="flex items-center justify-between">
-            <div class="min-w-0 flex-1">
-              <h3 class="text-sm font-medium">Daemon URL</h3>
-              <p class="text-xs text-autonomi-muted">Address of the node management daemon</p>
-            </div>
-            <button
-              v-if="!editingDaemon"
-              class="ml-3 shrink-0 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-text"
-              @click="startEditDaemon"
-            >
-              Edit
-            </button>
-          </div>
-          <div v-if="editingDaemon" class="mt-2 flex gap-2">
-            <input
-              ref="daemonInputRef"
-              v-model="daemonInput"
-              type="text"
-              aria-label="Daemon URL"
-              placeholder="http://127.0.0.1:12500"
-              class="flex-1 rounded-md border border-autonomi-border bg-autonomi-dark px-3 py-1.5 font-mono text-xs text-autonomi-text placeholder-autonomi-muted focus:border-autonomi-blue focus:outline-none"
-              @keyup.enter="saveDaemon"
-            />
-            <button
-              class="rounded-md bg-autonomi-blue px-2.5 py-1.5 text-xs font-medium text-white hover:opacity-90"
-              @click="saveDaemon"
-            >
-              Save
-            </button>
-            <button
-              class="rounded-md border border-autonomi-border px-2.5 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
-              @click="editingDaemon = false"
-            >
-              Cancel
-            </button>
-          </div>
-          <p v-else class="mt-0.5 font-mono text-xs text-autonomi-muted">{{ settingsStore.daemonUrl }}</p>
-        </div>
 
         <!-- Indelible Enterprise Connection (only show setup when not connected) -->
         <div v-if="!settingsStore.indelibleConnected" class="rounded-lg border border-autonomi-border p-4">
