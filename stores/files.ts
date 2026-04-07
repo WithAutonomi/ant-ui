@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { useToastStore } from './toasts'
 import { useSettingsStore } from './settings'
-import { payForQuotes, payForMerkleTree, formatNanoTokens, type RawPayment, type SerializedPoolCommitment } from '~/utils/payment'
+import { payForQuotes, payForMerkleTree, formatNanoTokens, formatGasCost, estimatePaymentGasCost, type RawPayment, type SerializedPoolCommitment } from '~/utils/payment'
 import { indelibleApi } from '~/utils/indelible-api'
 
 // ── Pre-obtained quote from network ──
@@ -20,6 +20,8 @@ export interface UploadQuote {
   merkle_depth?: number
   merkle_pool_commitments?: SerializedPoolCommitment[]
   merkle_timestamp?: number
+  // Gas estimate
+  estimated_gas?: string | null
 }
 
 // ── Unified file entry ──
@@ -46,8 +48,10 @@ export interface FileEntry {
   address?: string
   /** Serialized DataMap JSON — needed for download from network */
   data_map_json?: string
-  /** Upload cost */
+  /** Upload cost (ANT) */
   cost?: string
+  /** Gas cost (ETH) */
+  gas_cost?: string
   /** Current status */
   status: FileStatus
   /** Transfer progress 0-100 */
@@ -154,7 +158,8 @@ export const useFilesStore = defineStore('files', {
     },
 
     findByAddress(address: string): FileEntry | undefined {
-      return this.files.find(f => f.address === address)
+      const norm = address.toLowerCase().replace(/^0x/, '')
+      return this.files.find(f => f.address?.toLowerCase().replace(/^0x/, '') === norm)
     },
 
     updateEntry(id: number, updates: Partial<FileEntry>) {
@@ -299,10 +304,15 @@ export const useFilesStore = defineStore('files', {
               'Payment timed out — wallet approval took too long',
             )
 
-            this.updateEntry(id, { status: 'uploading', progress: 0, cost: formatNanoTokens(payResult.totalPaid.toString()) })
+            this.updateEntry(id, {
+              status: 'uploading',
+              progress: 0,
+              cost: formatNanoTokens(payResult.totalPaid.toString()),
+              gas_cost: formatGasCost(payResult.gasSpent.toString()),
+            })
 
             const result = await withTimeout(
-              invoke<{ upload_id: string; data_map_json: string; chunks_stored: number }>('confirm_upload_merkle', {
+              invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number }>('confirm_upload_merkle', {
                 uploadId,
                 winnerPoolHash: payResult.winnerPoolHash,
               }),
@@ -316,6 +326,7 @@ export const useFilesStore = defineStore('files', {
             this.updateEntry(id, {
               status: 'complete',
               progress: 100,
+              address: result.address,
               data_map_json: result.data_map_json,
               duration,
               transferStartedAt: undefined,
@@ -336,6 +347,7 @@ export const useFilesStore = defineStore('files', {
                 'Payment timed out — wallet approval took too long',
               )
               txHashes = payResult.txHashMap
+              this.updateEntry(id, { gas_cost: formatGasCost(payResult.gasSpent.toString()) })
             } catch (e: any) {
               this.updateEntry(id, { status: 'failed', error: `Payment failed: ${e.message}` })
               toasts.add(`Payment failed: ${e.message}`, 'error')
@@ -346,7 +358,7 @@ export const useFilesStore = defineStore('files', {
           this.updateEntry(id, { status: 'uploading', progress: 0 })
 
           const result = await withTimeout(
-            invoke<{ upload_id: string; data_map_json: string; chunks_stored: number }>('confirm_upload', {
+            invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number }>('confirm_upload', {
               uploadId,
               txHashes,
             }),
@@ -360,6 +372,7 @@ export const useFilesStore = defineStore('files', {
           this.updateEntry(id, {
             status: 'complete',
             progress: 100,
+            address: result.address,
             data_map_json: result.data_map_json,
             duration,
             transferStartedAt: undefined,
@@ -453,6 +466,12 @@ export const useFilesStore = defineStore('files', {
       const toasts = useToastStore()
       const entry = this.findById(id)
       if (!entry) return
+
+      if (!entry.data_map_json) {
+        this.updateEntry(id, { status: 'failed', error: 'No data map available — file must be uploaded first' })
+        toasts.add('Cannot download: no data map for this address', 'error')
+        return
+      }
 
       try {
         this.updateEntry(id, { status: 'downloading', progress: 0 })

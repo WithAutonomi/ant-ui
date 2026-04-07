@@ -23,16 +23,8 @@
           <p>{{ node.uptime_secs ? formatUptime(node.uptime_secs) : '-' }}</p>
         </div>
         <div>
-          <span class="text-autonomi-muted">Peers</span>
-          <p>{{ node.peer_count ?? '-' }}</p>
-        </div>
-        <div>
           <span class="text-autonomi-muted">Storage</span>
           <p>{{ node.storage_bytes != null ? formatBytes(node.storage_bytes) : '-' }}</p>
-        </div>
-        <div>
-          <span class="text-autonomi-muted">Earnings</span>
-          <p>{{ node.earnings ?? '-' }}</p>
         </div>
         <div class="col-span-2">
           <span class="text-autonomi-muted">Data Directory</span>

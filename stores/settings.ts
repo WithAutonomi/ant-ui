@@ -24,6 +24,14 @@ export const useSettingsStore = defineStore('settings', {
     indelibleOrgName: null as string | null,
     indelibleUserEmail: null as string | null,
     loaded: false,
+    // Devnet/testnet mode (auto-detected from manifest file)
+    devnetActive: false,
+    devnetIsSepolia: false,
+    devnetRpcUrl: null as string | null,
+    devnetTokenAddress: null as string | null,
+    devnetVaultAddress: null as string | null,
+    devnetBootstrapPeers: null as string[] | null,
+    devnetWalletKey: null as string | null,
   }),
 
   actions: {
@@ -120,6 +128,26 @@ export const useSettingsStore = defineStore('settings', {
       this.indelibleOrgName = null
       this.indelibleUserEmail = null
       await this.saveConfig()
+    },
+
+    /** Load devnet manifest if present. Sets devnetActive if found. */
+    async loadDevnetManifest() {
+      try {
+        const result = await invoke<any>('load_devnet_manifest')
+        if (result) {
+          this.devnetActive = true
+          this.devnetIsSepolia = (result.rpc_url ?? '').includes('sepolia')
+          this.devnetRpcUrl = result.rpc_url
+          this.devnetTokenAddress = result.payment_token_address
+          this.devnetVaultAddress = result.payment_vault_address
+          this.devnetBootstrapPeers = result.bootstrap_peers
+          this.devnetWalletKey = result.wallet_private_key
+          console.info(`${this.devnetIsSepolia ? 'Sepolia' : 'Devnet'} mode active:`, result.rpc_url)
+        }
+      } catch (e) {
+        // No manifest or invalid — stay in production mode
+        this.devnetActive = false
+      }
     },
 
     /** Re-validate stored credentials on app load */

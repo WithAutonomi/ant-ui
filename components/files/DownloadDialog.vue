@@ -14,7 +14,7 @@
             ref="inputEl"
             v-model="address"
             type="text"
-            placeholder="0x..."
+            placeholder="File address (hex)"
             class="w-full rounded-md border border-autonomi-border bg-autonomi-surface px-3 py-2 font-mono text-sm text-autonomi-text focus:border-autonomi-blue focus:outline-none"
             @keyup.enter="confirm"
             @keyup.escape="$emit('close')"
@@ -63,7 +63,11 @@ const inputEl = ref<HTMLInputElement | null>(null)
 const address = ref('')
 const filename = ref('')
 
-const valid = computed(() => address.value.startsWith('0x') && address.value.length > 10 && filename.value.trim().length > 0)
+const valid = computed(() => {
+  const addr = address.value.trim()
+  const isHex = /^(0x)?[0-9a-fA-F]{8,}$/.test(addr)
+  return isHex && filename.value.trim().length > 0
+})
 
 watch(() => props.open, (val) => {
   if (val) {

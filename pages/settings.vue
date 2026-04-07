@@ -60,47 +60,6 @@
       </button>
     </div>
 
-    <!-- Earnings Address -->
-    <div class="rounded-lg border border-autonomi-border p-4">
-      <div class="flex items-center justify-between">
-        <div class="min-w-0 flex-1">
-          <h3 class="text-sm font-medium">Earnings Address</h3>
-          <p class="text-xs text-autonomi-muted">EVM address where node rewards are sent</p>
-        </div>
-        <button
-          v-if="!editingEarnings"
-          class="ml-3 shrink-0 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-text"
-          @click="startEditEarnings"
-        >
-          Edit
-        </button>
-      </div>
-      <div v-if="editingEarnings" class="mt-2 flex gap-2">
-        <input
-          ref="earningsInputRef"
-          v-model="earningsInput"
-          type="text"
-          placeholder="0x..."
-          class="flex-1 rounded-md border border-autonomi-border bg-autonomi-dark px-3 py-1.5 font-mono text-xs text-autonomi-text placeholder-autonomi-muted focus:border-autonomi-blue focus:outline-none"
-        />
-        <button
-          class="rounded-md bg-autonomi-blue px-2.5 py-1.5 text-xs font-medium text-white hover:opacity-90"
-          @click="saveEarnings"
-        >
-          Save
-        </button>
-        <button
-          class="rounded-md border border-autonomi-border px-2.5 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
-          @click="editingEarnings = false"
-        >
-          Cancel
-        </button>
-      </div>
-      <p v-else class="mt-0.5 truncate font-mono text-xs text-autonomi-muted">
-        {{ settingsStore.earningsAddress ?? 'Not set' }}
-      </p>
-    </div>
-
     <!-- Bell on Critical -->
     <div class="flex items-center justify-between rounded-lg border border-autonomi-border p-4">
       <div>
@@ -120,17 +79,6 @@
           :class="settingsStore.bellOnCritical ? 'translate-x-5' : ''"
         />
       </button>
-    </div>
-
-    <!-- About -->
-    <div class="rounded-lg border border-autonomi-border p-4">
-      <h3 class="text-sm font-medium">About</h3>
-      <p class="mt-1 text-xs text-autonomi-muted">Autonomi v{{ appVersion }}</p>
-      <div class="mt-2 flex gap-3 text-xs">
-        <a href="#" class="text-autonomi-blue hover:underline" role="link" tabindex="0" @click.prevent="openUrl('https://autonomi.com')" @keydown.enter.prevent="openUrl('https://autonomi.com')">autonomi.com</a>
-        <a href="#" class="text-autonomi-blue hover:underline" role="link" tabindex="0" @click.prevent="openUrl('https://discord.gg/autonomi')" @keydown.enter.prevent="openUrl('https://discord.gg/autonomi')">Discord</a>
-        <a href="#" class="text-autonomi-blue hover:underline" role="link" tabindex="0" @click.prevent="openUrl('https://forum.autonomi.com')" @keydown.enter.prevent="openUrl('https://forum.autonomi.com')">Forum</a>
-      </div>
     </div>
 
     <!-- Advanced -->
@@ -268,6 +216,85 @@
           </div>
         </div>
 
+        <!-- Direct Wallet (private key) -->
+        <div class="rounded-lg border border-autonomi-border p-4">
+          <div class="flex items-center justify-between">
+            <div class="min-w-0 flex-1">
+              <h3 class="text-sm font-medium">Direct Wallet</h3>
+              <p class="text-xs text-autonomi-muted">Connect with a private key (bypasses WalletConnect)</p>
+            </div>
+            <span
+              v-if="walletStore.connected && directWalletActive"
+              class="ml-3 shrink-0 rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-400"
+            >
+              Connected
+            </span>
+          </div>
+
+          <div v-if="walletStore.connected && directWalletActive" class="mt-3 space-y-2">
+            <div class="rounded-md bg-autonomi-dark px-3 py-2">
+              <p class="text-xs text-autonomi-muted">Address</p>
+              <p class="truncate font-mono text-xs text-autonomi-text">{{ walletStore.paymentAddress }}</p>
+            </div>
+            <button
+              class="rounded-md border border-autonomi-border px-2.5 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
+              @click="disconnectDirectWallet"
+            >
+              Disconnect
+            </button>
+          </div>
+
+          <div v-else-if="editingDirectWallet" class="mt-3 space-y-3">
+            <div>
+              <label class="mb-1 block text-xs text-autonomi-muted">Network</label>
+              <select
+                v-model="directWalletNetwork"
+                class="w-full rounded-md border border-autonomi-border bg-autonomi-dark px-3 py-1.5 text-xs text-autonomi-text focus:border-autonomi-blue focus:outline-none"
+              >
+                <option value="arbitrum-sepolia">Arbitrum Sepolia (testnet)</option>
+                <option value="arbitrum">Arbitrum One (mainnet)</option>
+              </select>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs text-autonomi-muted">Private Key</label>
+              <input
+                v-model="directWalletKeyInput"
+                type="password"
+                placeholder="0x... or raw hex"
+                class="w-full rounded-md border border-autonomi-border bg-autonomi-dark px-3 py-1.5 font-mono text-xs text-autonomi-text placeholder-autonomi-muted focus:border-autonomi-blue focus:outline-none"
+                @keyup.enter="connectDirectWallet"
+              />
+            </div>
+            <div v-if="directWalletError" class="rounded-md bg-red-500/10 px-3 py-2 text-xs text-red-400">
+              {{ directWalletError }}
+            </div>
+            <div class="flex gap-2">
+              <button
+                :disabled="!directWalletKeyInput"
+                class="rounded-md bg-autonomi-blue px-2.5 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
+                @click="connectDirectWallet"
+              >
+                Connect
+              </button>
+              <button
+                class="rounded-md border border-autonomi-border px-2.5 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
+                @click="editingDirectWallet = false"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <div v-else class="mt-3">
+            <button
+              class="rounded-md border border-autonomi-border px-2.5 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
+              @click="editingDirectWallet = true; directWalletError = ''"
+            >
+              Import Private Key
+            </button>
+          </div>
+        </div>
+
         <!-- Diagnostics -->
         <div class="rounded-lg border border-autonomi-border p-4">
           <div class="flex items-center justify-between">
@@ -317,6 +344,29 @@
         </div>
       </div>
     </div>
+
+    <!-- About -->
+    <div class="rounded-lg border border-autonomi-border p-4">
+      <h3 class="text-sm font-medium">About</h3>
+      <div class="mt-3 space-y-1.5 text-xs">
+        <div class="flex justify-between">
+          <span class="text-autonomi-muted">App version</span>
+          <span class="font-mono">{{ appVersion }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-autonomi-muted">Node version</span>
+          <span class="font-mono">{{ nodeVersion }}</span>
+        </div>
+      </div>
+      <div class="mt-3 flex gap-3">
+        <button class="text-xs text-autonomi-blue hover:underline" @click="tauriOpenUrl('https://autonomi.com')">
+          autonomi.com
+        </button>
+        <button class="text-xs text-autonomi-blue hover:underline" @click="tauriOpenUrl('https://github.com/WithAutonomi')">
+          GitHub
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -330,11 +380,17 @@ import { useToastStore } from '~/stores/toasts'
 import { useErrorLogStore } from '~/stores/errorlog'
 
 const settingsStore = useSettingsStore()
+const walletStore = useWalletStore()
+const nodesStore = useNodesStore()
 const toasts = useToastStore()
 const errorLogStore = useErrorLogStore()
 const showAdvanced = ref(false)
 const showLog = ref(false)
 const appVersion = ref('0.1.0')
+const nodeVersion = computed(() => {
+  const versions = nodesStore.nodes.map(n => n.version).filter(Boolean)
+  return versions.length > 0 ? versions[0] : '-'
+})
 
 // Earnings address editing
 const editingEarnings = ref(false)
@@ -345,6 +401,65 @@ const earningsInputRef = ref<HTMLInputElement | null>(null)
 const editingDaemon = ref(false)
 const daemonInput = ref('')
 const daemonInputRef = ref<HTMLInputElement | null>(null)
+
+// Direct wallet (private key)
+const editingDirectWallet = ref(false)
+const directWalletKeyInput = ref('')
+const directWalletNetwork = ref('arbitrum-sepolia')
+const directWalletError = ref('')
+const directWalletActive = ref(false)
+
+async function connectDirectWallet() {
+  directWalletError.value = ''
+  try {
+    let key = directWalletKeyInput.value.trim()
+    if (!key.startsWith('0x')) key = `0x${key}`
+    if (!/^0x[0-9a-fA-F]{64}$/.test(key)) {
+      directWalletError.value = 'Invalid private key — must be 64 hex characters'
+      return
+    }
+
+    // Configure the network based on selection
+    const isSepolia = directWalletNetwork.value === 'arbitrum-sepolia'
+    settingsStore.devnetWalletKey = key
+    settingsStore.devnetActive = true
+    settingsStore.devnetIsSepolia = isSepolia
+    if (isSepolia) {
+      settingsStore.devnetRpcUrl = 'https://sepolia-rollup.arbitrum.io/rpc'
+      settingsStore.devnetTokenAddress = '0x4bc1aCE0E66170375462cB4E6Af42Ad4D5EC689C'
+      settingsStore.devnetVaultAddress = '0xd742E8CFEf27A9a884F3EFfA239Ee2F39c276522'
+    } else {
+      settingsStore.devnetRpcUrl = null
+      settingsStore.devnetTokenAddress = null
+      settingsStore.devnetVaultAddress = null
+    }
+
+    const { initDevnetWallet } = await import('~/composables/useDevnetWallet')
+    const config = initDevnetWallet()
+    if (!config) {
+      directWalletError.value = 'Failed to initialize wallet'
+      return
+    }
+
+    directWalletActive.value = true
+    editingDirectWallet.value = false
+    directWalletKeyInput.value = ''
+    toasts.add(`Wallet connected: ${walletStore.paymentAddress}`, 'info')
+  } catch (e: any) {
+    directWalletError.value = e.message ?? 'Failed to import key'
+  }
+}
+
+function disconnectDirectWallet() {
+  walletStore.connected = false
+  walletStore.paymentAddress = null
+  walletStore.balance = null
+  walletStore.ethBalance = null
+  walletStore.antBalance = null
+  directWalletActive.value = false
+  settingsStore.devnetWalletKey = null
+  toasts.add('Wallet disconnected', 'info')
+}
 
 // Indelible connection
 const editingIndelible = ref(false)

@@ -88,6 +88,57 @@ src-tauri/
     config.rs       Settings persistence, daemon port discovery
 ```
 
+## Testing Against a Local or Sepolia Network
+
+The GUI can target a local devnet (Anvil EVM) or Arbitrum Sepolia for E2E testing. Both modes auto-detect from a manifest file written by the devnet launcher.
+
+### Option A: Local Devnet (Anvil)
+
+Starts 25 P2P nodes with an embedded Anvil blockchain. No external accounts needed — uses a funded test wallet automatically.
+
+```powershell
+# Terminal 1: Start devnet (wait for "=== Devnet is running! ===")
+cd src-tauri; cargo run --release --example start-devnet
+
+# Terminal 2: Start GUI in devnet mode
+$env:VITE_DEVNET="1"; npm run tauri:dev
+```
+
+The GUI detects the manifest, bypasses WalletConnect, and uses the devnet wallet directly. Sidebar shows "DEVNET".
+
+### Option B: Arbitrum Sepolia (WalletConnect)
+
+Starts 25 P2P nodes that verify payments against the existing Sepolia contracts. Uses WalletConnect with a real wallet — tests the full production payment flow on a testnet.
+
+**Prerequisites:**
+- A wallet with Arbitrum Sepolia ETH (faucet: https://faucet.quicknode.com/arbitrum/sepolia)
+- Test ANT tokens on the Sepolia token contract (`0x4bc1aCE0E66170375462cB4E6Af42Ad4D5EC689C`)
+
+```powershell
+# Terminal 1: Start devnet (wait for "=== Sepolia Devnet is running! ===")
+cd src-tauri; cargo run --release --example start-devnet-sepolia
+
+# Terminal 2: Start GUI (no env var needed — Sepolia detected from manifest)
+npm run tauri:dev
+```
+
+Connect your wallet to **Arbitrum Sepolia (chain 421614)** when the WalletConnect dialog appears. Sidebar shows "SEPOLIA TESTNET".
+
+### What the devnet scripts do
+
+| Script | Nodes | EVM | Wallet | Contracts |
+|--------|-------|-----|--------|-----------|
+| `start-devnet` | 25 local | Anvil (localhost) | Auto (private key) | Deployed fresh |
+| `start-devnet-sepolia` | 25 local | Arbitrum Sepolia | WalletConnect | Existing on-chain |
+
+Both scripts write a `devnet-manifest.json` to the app config directory. The GUI reads this on startup to configure bootstrap peers, EVM network, and contract addresses. The manifest is cleaned up on Ctrl+C.
+
+### Payment modes
+
+Uploads automatically select the payment method based on file size:
+- **Regular (wave-batch)**: Files under ~16MB (< 64 chunks). Pays per batch of chunks.
+- **Merkle tree**: Files over ~16MB (>= 64 chunks). Single transaction for all chunks, lower gas.
+
 ## Related
 
 - [ant-client](https://github.com/WithAutonomi/ant-client) — Node management daemon + data client library

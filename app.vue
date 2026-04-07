@@ -26,15 +26,33 @@ const filesStore = useFilesStore()
 
 onMounted(async () => {
   await settingsStore.loadConfig()
+  await settingsStore.loadDevnetManifest()
   nodesStore.init()
   filesStore.loadHistory()
   updaterStore.checkForUpdate()
-  // Reconnect to Indelible if credentials are stored
   settingsStore.reconnectIndelible()
-  // Initialize autonomi client (non-blocking — file ops degrade gracefully if unavailable)
-  invoke('init_autonomi_client').catch((e) => {
-    console.warn('Autonomi client init failed (file ops will use mock):', e)
-  })
+
+  // Initialize autonomi client — when manifest present, pass custom config
+  if (settingsStore.devnetActive) {
+    invoke('init_autonomi_client', {
+      bootstrapPeers: settingsStore.devnetBootstrapPeers,
+      evmRpcUrl: settingsStore.devnetRpcUrl,
+      evmTokenAddress: settingsStore.devnetTokenAddress,
+      evmVaultAddress: settingsStore.devnetVaultAddress,
+    }).catch((e) => {
+      console.warn('Autonomi client init failed:', e)
+    })
+
+    // Only bypass WalletConnect for local Anvil devnet, not Sepolia
+    if (!settingsStore.devnetIsSepolia) {
+      const { initDevnetWallet } = await import('~/composables/useDevnetWallet')
+      initDevnetWallet()
+    }
+  } else {
+    invoke('init_autonomi_client').catch((e) => {
+      console.warn('Autonomi client init failed (file ops will use mock):', e)
+    })
+  }
 })
 
 onUnmounted(() => {

@@ -1,17 +1,23 @@
 import { getBalance, readContract } from '@wagmi/core'
 import { formatEther, formatUnits, erc20Abi } from 'viem'
-import { arbitrum } from '@reown/appkit/networks'
 import { useWalletStore } from '~/stores/wallet'
-import { ANT_TOKEN_ADDRESS } from '~/utils/wallet-config'
+import { useSettingsStore } from '~/stores/settings'
+import { getTokenAddress, getActiveChainId } from '~/utils/wallet-config'
 
 export function useWallet() {
   const walletStore = useWalletStore()
+  const settingsStore = useSettingsStore()
   const { $wagmiAdapter, $appkitReady } = useNuxtApp()
 
   async function syncFromAppKit() {
     if (!$appkitReady) return
+    if (settingsStore.devnetWalletKey) return
 
     const { useAppKitAccount } = await import('@reown/appkit/vue')
+
+    // Re-check after async import — key may have been set during the await
+    if (settingsStore.devnetWalletKey) return
+
     const account = useAppKitAccount()
     const address = computed(() => (account.value as any)?.address as string | undefined)
     const isConnected = computed(() => (account.value as any)?.isConnected as boolean | undefined)
@@ -19,6 +25,7 @@ export function useWallet() {
     watch(
       [isConnected, address],
       ([connected, addr]) => {
+        if (settingsStore.devnetWalletKey) return
         walletStore.connected = !!connected
         walletStore.paymentAddress = addr ?? null
         if (connected && addr) {
@@ -42,18 +49,18 @@ export function useWallet() {
 
       const ethResult = await getBalance(config, {
         address: addr,
-        chainId: arbitrum.id,
+        chainId: getActiveChainId(),
       })
       const ethFormatted = parseFloat(formatEther(ethResult.value)).toFixed(4)
 
       let antFormatted = '0.00'
       try {
         const antResult = await readContract(config, {
-          address: ANT_TOKEN_ADDRESS,
+          address: getTokenAddress(),
           abi: erc20Abi,
           functionName: 'balanceOf',
           args: [addr],
-          chainId: arbitrum.id,
+          chainId: getActiveChainId(),
         })
         antFormatted = parseFloat(formatUnits(antResult as bigint, 18)).toFixed(2)
       } catch {

@@ -130,29 +130,44 @@ export const useNodesStore = defineStore('nodes', {
       }
     },
 
-    /** Enrich nodes with detail (data_dir, config) and calculate storage usage. */
+    /** Enrich nodes with storage usage from chunks.mdb. */
     async enrichNodeDetails() {
+      const EMPTY_LMDB_SIZE = 16384
+
       for (const node of this.nodes) {
         if (node.id < 0) continue // skip placeholders
-        try {
-          const detail = await daemonApi.nodeDetail(node.id)
-          node.data_dir = detail.data_dir
-          node.rewards_address = detail.rewards_address
-          node.binary_path = detail.binary_path
-          node.log_dir = detail.log_dir
-          node.node_port = detail.node_port
-          node.metrics_port = detail.metrics_port
 
-          // Calculate storage from data_dir
-          if (detail.data_dir) {
+        // Try detail endpoint first (ant-client PR #22), fall back to known path
+        let dataDir = node.data_dir
+        if (!dataDir) {
+          try {
+            const detail = await daemonApi.nodeDetail(node.id)
+            dataDir = detail.data_dir
+            node.data_dir = detail.data_dir
+            node.rewards_address = detail.rewards_address
+            node.binary_path = detail.binary_path
+            node.log_dir = detail.log_dir
+            node.node_port = detail.node_port
+            node.metrics_port = detail.metrics_port
+          } catch {
+            // Detail endpoint not available — derive path from node name
             try {
-              node.storage_bytes = await invoke<number>('get_dir_size', { path: detail.data_dir })
+              const nodeDir = await invoke<string>('get_node_data_dir', { nodeId: node.id })
+              dataDir = nodeDir
+              node.data_dir = nodeDir
             } catch {
-              // Dir might not exist yet for newly added nodes
+              // Can't determine data dir
             }
           }
-        } catch {
-          // Node may have been removed between status and detail fetch
+        }
+
+        if (dataDir) {
+          try {
+            const raw = await invoke<number>('get_file_size', { path: `${dataDir}/chunks.mdb` })
+            node.storage_bytes = Math.max(0, raw - EMPTY_LMDB_SIZE)
+          } catch {
+            node.storage_bytes = 0
+          }
         }
       }
     },

@@ -30,16 +30,8 @@
         <p class="text-autonomi-text">{{ node.uptime_secs ? formatUptime(node.uptime_secs) : '-' }}</p>
       </div>
       <div>
-        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Peers</p>
-        <p class="text-autonomi-text">{{ node.peer_count ?? '-' }}</p>
-      </div>
-      <div>
         <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Storage</p>
         <p class="text-autonomi-text">{{ node.storage_bytes != null ? formatBytes(node.storage_bytes) : '-' }}</p>
-      </div>
-      <div>
-        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Earnings</p>
-        <p class="text-autonomi-text">{{ node.earnings ?? '-' }}</p>
       </div>
       <div v-if="node.data_dir" class="col-span-2">
         <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Data Directory</p>

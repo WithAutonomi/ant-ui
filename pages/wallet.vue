@@ -81,7 +81,7 @@
       <div class="flex items-center justify-between">
         <div>
           <h2 class="font-medium">Payment Wallet</h2>
-          <p class="text-xs text-autonomi-muted">Optional — required for file uploads</p>
+          <p v-if="!walletStore.connected" class="text-xs text-autonomi-muted">Optional — required for file uploads</p>
         </div>
       </div>
 
@@ -94,7 +94,12 @@
           >
             Connect Wallet
           </button>
-          <p class="mt-2 text-xs text-autonomi-muted">Arbitrum One network required</p>
+          <p class="mt-2 text-xs text-autonomi-muted">
+            {{ settingsStore.devnetIsSepolia ? 'Arbitrum Sepolia testnet' : 'Arbitrum One network required' }}
+          </p>
+          <p class="mt-1 text-xs text-autonomi-muted">
+            Or import a private key in <NuxtLink to="/settings" class="text-autonomi-blue hover:underline">Settings &gt; Advanced</NuxtLink>
+          </p>
         </div>
 
         <div v-else class="space-y-3">
@@ -113,7 +118,7 @@
           <div class="flex gap-2">
             <button
               class="flex-1 rounded-md border border-autonomi-border py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
-              @click="wallet.refreshBalances()"
+              @click="refreshBalances"
             >
               Refresh Balances
             </button>
@@ -136,19 +141,33 @@ import { truncateAddress } from '~/utils/formatters'
 import { isValidEthAddress } from '~/utils/validators'
 import { useSettingsStore } from '~/stores/settings'
 import { useToastStore } from '~/stores/toasts'
-import { useWallet } from '~/composables/useWallet'
-
 const walletStore = useWalletStore()
 const settingsStore = useSettingsStore()
 const toastStore = useToastStore()
-const wallet = useWallet()
 const { $appkit, $appkitReady } = useNuxtApp()
+
+async function refreshBalances() {
+  // Direct wallet — use the devnet wallet's refresh
+  const devnetConfig = getDevnetWagmiConfig?.()
+  if (devnetConfig && walletStore.paymentAddress) {
+    const { initDevnetWallet } = await import('~/composables/useDevnetWallet')
+    initDevnetWallet() // re-fetches balances
+    return
+  }
+  // AppKit wallet
+  if ($appkitReady) {
+    const { useWallet } = await import('~/composables/useWallet')
+    const wallet = useWallet()
+    wallet.refreshBalances()
+  }
+}
 
 function openModal() {
   if ($appkitReady && $appkit) {
     $appkit.open()
   } else {
-    toastStore.add('Wallet provider not initialized', 'warning')
+    navigateTo('/settings')
+    toastStore.add('Import a private key in Settings > Advanced', 'info')
   }
 }
 

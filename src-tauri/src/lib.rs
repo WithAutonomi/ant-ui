@@ -77,6 +77,50 @@ fn get_app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
+/// Load a devnet manifest from the config directory (if one exists).
+/// Returns the parsed manifest info for the frontend, or null if no manifest found.
+#[tauri::command]
+fn load_devnet_manifest() -> Result<Option<serde_json::Value>, String> {
+    let manifest_path = config::config_path().join("devnet-manifest.json");
+    if !manifest_path.exists() {
+        return Ok(None);
+    }
+
+    let data = std::fs::read_to_string(&manifest_path)
+        .map_err(|e| format!("Failed to read devnet manifest: {e}"))?;
+    let manifest: serde_json::Value = serde_json::from_str(&data)
+        .map_err(|e| format!("Failed to parse devnet manifest: {e}"))?;
+
+    // Extract and convert bootstrap multiaddrs to socket addresses
+    let bootstrap = manifest["bootstrap"]
+        .as_array()
+        .map(|addrs| {
+            addrs.iter().filter_map(|addr| {
+                // MultiAddr JSON is a string like "/ip4/127.0.0.1/udp/20000/quic-v1"
+                // Extract the IP and port
+                let s = addr.as_str()?;
+                let parts: Vec<&str> = s.split('/').collect();
+                let ip = parts.iter().position(|&p| p == "ip4").and_then(|i| parts.get(i + 1))?;
+                let port = parts.iter().position(|&p| p == "udp").and_then(|i| parts.get(i + 1))?;
+                Some(format!("{ip}:{port}"))
+            }).collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    let evm = &manifest["evm"];
+    if evm.is_null() {
+        return Err("Devnet manifest has no EVM configuration".into());
+    }
+
+    Ok(Some(serde_json::json!({
+        "bootstrap_peers": bootstrap,
+        "rpc_url": evm["rpc_url"],
+        "wallet_private_key": evm["wallet_private_key"],
+        "payment_token_address": evm["payment_token_address"],
+        "payment_vault_address": evm["payment_vault_address"],
+    })))
+}
+
 #[tauri::command]
 async fn daemon_status(url: String) -> Result<bool, String> {
     let resp = reqwest::get(format!("{url}/api/v1/status"))
@@ -318,6 +362,52 @@ async fn ensure_daemon_running() -> Result<String, String> {
         .ok_or_else(|| "Daemon started but port file not found".to_string())
 }
 
+/// Get the data directory path for a node by ID.
+/// Reads the node_registry.json to find the actual data_dir.
+#[tauri::command]
+fn get_node_data_dir(node_id: u32) -> Result<String, String> {
+    let registry_path = dirs::data_dir()
+        .or_else(dirs::config_dir)
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("ant")
+        .join("node_registry.json");
+
+    if registry_path.exists() {
+        let data = std::fs::read_to_string(&registry_path)
+            .map_err(|e| format!("Failed to read registry: {e}"))?;
+        let registry: serde_json::Value = serde_json::from_str(&data)
+            .map_err(|e| format!("Failed to parse registry: {e}"))?;
+
+        // Search for the node by ID in the registry
+        if let Some(nodes) = registry["nodes"].as_array() {
+            for node in nodes {
+                if node["id"].as_u64() == Some(node_id as u64) {
+                    if let Some(dir) = node["data_dir"].as_str() {
+                        return Ok(dir.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // Fallback: conventional path
+    let base = dirs::data_dir()
+        .or_else(dirs::config_dir)
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("ant")
+        .join("nodes")
+        .join(format!("node-{node_id}"));
+
+    Ok(base.to_string_lossy().into_owned())
+}
+
+/// Get the size of a single file in bytes.
+#[tauri::command]
+fn get_file_size(path: String) -> Result<u64, String> {
+    let meta = std::fs::metadata(&path).map_err(|e| format!("{e}"))?;
+    Ok(meta.len())
+}
+
 #[tauri::command]
 fn get_file_sizes(paths: Vec<String>) -> Result<Vec<FileMetaResult>, String> {
     config::get_file_metas(&paths)
@@ -396,11 +486,14 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             load_config,
             save_config,
+            load_devnet_manifest,
             get_app_version,
             daemon_status,
             daemon_request,
             get_file_sizes,
+            get_file_size,
             get_dir_size,
+            get_node_data_dir,
             read_file_bytes,
             load_upload_history,
             save_upload_history,

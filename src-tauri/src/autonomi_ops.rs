@@ -1,6 +1,7 @@
-use ant_core::data::{Client, ClientConfig, DataMap, EvmNetwork, ExternalPaymentInfo, PreparedUpload};
+use ant_core::data::{Client, ClientConfig, CustomNetwork, DataMap, EvmNetwork, ExternalPaymentInfo, PreparedUpload};
 use evmlib::common::{QuoteHash, TxHash};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter};
@@ -73,6 +74,8 @@ pub struct UploadResult {
     pub upload_id: String,
     /// Serialized DataMap (JSON) — needed for later download.
     pub data_map_json: String,
+    /// Hex address derived from the DataMap (for display/sharing).
+    pub address: String,
     pub chunks_stored: usize,
 }
 
@@ -86,11 +89,15 @@ pub struct StartUploadRequest {
 
 /// Initialize the data client. Connects to the Autonomi network via bootstrap peers.
 ///
-/// `bootstrap_peers`: list of "host:port" strings. If empty, uses defaults.
+/// When `evm_rpc_url` is provided, uses a custom EVM network (for devnet/testnet).
+/// Otherwise defaults to Arbitrum One.
 #[tauri::command]
 pub async fn init_autonomi_client(
     state: tauri::State<'_, AutonomiState>,
     bootstrap_peers: Option<Vec<String>>,
+    evm_rpc_url: Option<String>,
+    evm_token_address: Option<String>,
+    evm_vault_address: Option<String>,
 ) -> Result<bool, String> {
     let mut client_lock = state.client.write().await;
     if client_lock.is_some() {
@@ -112,8 +119,14 @@ pub async fn init_autonomi_client(
         .await
         .map_err(|e| format!("Failed to connect to Autonomi network: {e}"))?;
 
-    // Set up EVM network for price queries (external signer flow — no wallet needed)
-    let evm_network = EvmNetwork::ArbitrumOne;
+    let evm_network = if let Some(rpc_url) = evm_rpc_url {
+        let token = evm_token_address.ok_or("evm_token_address required with evm_rpc_url")?;
+        let vault = evm_vault_address.ok_or("evm_vault_address required with evm_rpc_url")?;
+        EvmNetwork::Custom(CustomNetwork::new(&rpc_url, &token, &vault))
+    } else {
+        EvmNetwork::ArbitrumOne
+    };
+
     let client = client.with_evm_network(evm_network);
 
     *client_lock = Some(client);
@@ -278,9 +291,9 @@ pub async fn confirm_upload(
         .await
         .map_err(|e| format!("Upload failed: {e}"))?;
 
-    // Serialize the DataMap for persistence (needed for later download)
     let data_map_json = serde_json::to_string(&result.data_map)
         .map_err(|e| format!("Failed to serialize DataMap: {e}"))?;
+    let address = format!("0x{:x}", Sha256::digest(data_map_json.as_bytes()));
 
     app.emit(
         "upload-progress",
@@ -295,6 +308,7 @@ pub async fn confirm_upload(
     Ok(UploadResult {
         upload_id,
         data_map_json,
+        address,
         chunks_stored: result.chunks_stored,
     })
 }
@@ -332,6 +346,7 @@ pub async fn confirm_upload_merkle(
 
     let data_map_json = serde_json::to_string(&result.data_map)
         .map_err(|e| format!("Failed to serialize DataMap: {e}"))?;
+    let address = format!("0x{:x}", Sha256::digest(data_map_json.as_bytes()));
 
     app.emit(
         "upload-progress",
@@ -346,6 +361,7 @@ pub async fn confirm_upload_merkle(
     Ok(UploadResult {
         upload_id,
         data_map_json,
+        address,
         chunks_stored: result.chunks_stored,
     })
 }
