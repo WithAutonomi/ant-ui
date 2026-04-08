@@ -1,4 +1,6 @@
-use ant_core::data::{Client, ClientConfig, CustomNetwork, DataMap, EvmNetwork, ExternalPaymentInfo, PreparedUpload};
+use ant_core::data::{
+    Client, ClientConfig, CustomNetwork, DataMap, EvmNetwork, ExternalPaymentInfo, PreparedUpload,
+};
 use evmlib::common::{QuoteHash, TxHash};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -152,9 +154,7 @@ pub async fn start_upload(
     state.gc_pending_uploads().await;
 
     // Single file per upload — frontend sends one file at a time
-    let path = PathBuf::from(
-        request.files.first().ok_or("No files provided")?,
-    );
+    let path = PathBuf::from(request.files.first().ok_or("No files provided")?);
 
     // Validate the path is a real file (prevents path traversal / symlink attacks)
     let canonical = tokio::fs::canonicalize(&path)
@@ -388,8 +388,8 @@ pub async fn download_file(
         .as_ref()
         .ok_or("Autonomi client not initialized")?;
 
-    let data_map: DataMap = serde_json::from_str(&data_map_json)
-        .map_err(|e| format!("Invalid DataMap: {e}"))?;
+    let data_map: DataMap =
+        serde_json::from_str(&data_map_json).map_err(|e| format!("Invalid DataMap: {e}"))?;
 
     let dest = PathBuf::from(&dest_path);
 
@@ -426,9 +426,7 @@ pub async fn download_file(
 
 /// Check if the data client is currently connected.
 #[tauri::command]
-pub async fn is_autonomi_connected(
-    state: tauri::State<'_, AutonomiState>,
-) -> Result<bool, String> {
+pub async fn is_autonomi_connected(state: tauri::State<'_, AutonomiState>) -> Result<bool, String> {
     let client_lock = state.client.read().await;
     Ok(client_lock.is_some())
 }
