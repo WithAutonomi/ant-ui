@@ -69,5 +69,14 @@ jobs:
         if: matrix.check != 'fmt'
         run: npm run build
 
+      # Tauri's build script requires the sidecar binary to exist even for
+      # cargo check/clippy. Create a dummy so the build script passes.
+      - name: create sidecar stub
+        if: matrix.check != 'fmt'
+        run: |
+          TARGET=$(rustc -vV | grep host | awk '{print $2}')
+          mkdir -p src-tauri/binaries
+          touch "src-tauri/binaries/ant-${TARGET}"
+
       - name: ${{ matrix.check }}
         run: ${{ matrix.command }}
