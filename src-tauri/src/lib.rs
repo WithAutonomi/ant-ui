@@ -109,14 +109,34 @@ fn get_app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
-/// Load a devnet manifest from the config directory (if one exists).
+/// Load a devnet manifest (if one exists).
+///
+/// Checks two locations (first match wins):
+/// 1. Shared data directory (`ant_core::config::data_dir()` — e.g. `%APPDATA%/ant/`,
+///    `~/Library/Application Support/ant/`). This is where devnet launchers should
+///    write the manifest so any consumer (GUI, CLI, TUI) can discover it.
+/// 2. Legacy GUI config directory (`config_path()` — `~/.config/autonomi/ant-gui/`
+///    on Linux, platform equivalent elsewhere). Kept for backward compatibility.
+///
 /// Returns the parsed manifest info for the frontend, or null if no manifest found.
 #[tauri::command]
 fn load_devnet_manifest() -> Result<Option<serde_json::Value>, String> {
-    let manifest_path = config::config_path().join("devnet-manifest.json");
-    if !manifest_path.exists() {
+    let manifest_name = "devnet-manifest.json";
+
+    // 1. Shared data directory (preferred — any tool can write here)
+    // 2. Legacy GUI config directory (backward compat)
+    let manifest_path = ant_core::config::data_dir()
+        .ok()
+        .map(|d| d.join(manifest_name))
+        .filter(|p| p.exists())
+        .or_else(|| {
+            let legacy = config::config_path().join(manifest_name);
+            legacy.exists().then_some(legacy)
+        });
+
+    let Some(manifest_path) = manifest_path else {
         return Ok(None);
-    }
+    };
 
     let data = std::fs::read_to_string(&manifest_path)
         .map_err(|e| format!("Failed to read devnet manifest: {e}"))?;
