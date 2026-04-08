@@ -1,0 +1,82 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  frontend:
+    name: frontend (typecheck + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - run: npm install
+
+      - name: nuxt type check
+        run: npx nuxi typecheck
+
+      - name: vitest
+        run: npm run test:run
+
+  rust:
+    name: rust (${{ matrix.check }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - check: fmt
+            command: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+          - check: clippy
+            command: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+          - check: build
+            command: cargo check --manifest-path src-tauri/Cargo.toml
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: install linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - run: npm install
+
+      # Nuxt generate is needed so Tauri can find the frontend dist
+      - name: build frontend
+        if: matrix.check != 'fmt'
+        run: npm run build
+
+      # Tauri's build script requires the sidecar binary to exist even for
+      # cargo check/clippy. Create a dummy so the build script passes.
+      - name: create sidecar stub
+        if: matrix.check != 'fmt'
+        run: |
+          TARGET=$(rustc -vV | grep host | awk '{print $2}')
+          mkdir -p src-tauri/binaries
+          touch "src-tauri/binaries/ant-${TARGET}"
+
+      - name: ${{ matrix.check }}
+        run: ${{ matrix.command }}
