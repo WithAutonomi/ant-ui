@@ -22,9 +22,9 @@ export function resetTauriMocks() {
 
 // Module mocks — these intercept the actual imports
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: (...args: any[]) => mockInvoke(...args),
+  invoke: mockInvoke,
 }))
 
 vi.mock('@tauri-apps/api/event', () => ({
-  listen: (...args: any[]) => mockListen(...args),
+  listen: mockListen,
 }))
