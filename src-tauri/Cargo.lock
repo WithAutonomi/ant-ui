@@ -834,7 +834,7 @@ dependencies = [
  "async-stream",
  "axum",
  "bytes",
- "evmlib 0.8.0",
+ "evmlib",
  "flate2",
  "fs2",
  "futures",
@@ -871,11 +871,11 @@ dependencies = [
 
 [[package]]
 name = "ant-gui"
-version = "0.2.0-rc.1"
+version = "0.5.0"
 dependencies = [
  "ant-core",
  "dirs 5.0.1",
- "evmlib 0.4.9",
+ "evmlib",
  "futures-util",
  "hex",
  "libc",
@@ -914,7 +914,7 @@ dependencies = [
  "clap",
  "color-eyre",
  "directories",
- "evmlib 0.8.0",
+ "evmlib",
  "flate2",
  "fs2",
  "futures",
@@ -2931,23 +2931,6 @@ checksum = "8be9f3dfaaffdae2972880079a491a1a8bb7cbed0b8dd7a347f668b4150a3b93"
 dependencies = [
  "event-listener",
  "pin-project-lite",
-]
-
-[[package]]
-name = "evmlib"
-version = "0.4.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0830ac5a8d0e13e2275782c6375464ea49f255c0b59ccba4ca11f8fb7d67cea5"
-dependencies = [
- "alloy",
- "exponential-backoff",
- "hex",
- "rand 0.8.5",
- "serde",
- "serde_with",
- "thiserror 1.0.69",
- "tokio",
- "tracing",
 ]
 
 [[package]]
