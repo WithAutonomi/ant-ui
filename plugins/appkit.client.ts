@@ -38,11 +38,25 @@ export default defineNuxtPlugin(async () => {
       // Tauri's webview has no browser extensions, so the legacy injected
       // (window.ethereum) and the EIP-6963 multi-wallet discovery channels
       // can never resolve a wallet — disable both so the modal doesn't
-      // advertise an unreachable "Browser" option.
+      // advertise an unreachable "Browser" connector card.
       enableInjected: false,
       enableEIP6963: false,
       themeMode: 'dark',
     })
+
+    // Mark the modal as a "universal provider" client. Two effects:
+    //   1. Suppresses the per-wallet "Browser" platform option (e.g. the
+    //      Browser tab inside MetaMask's connect view) — that path requires
+    //      a browser extension we don't have.
+    //   2. Filters the explorer wallet list down to wallets that have at
+    //      least one of mobile_link / desktop_link / webapp_link — pure
+    //      extension-only wallets are unreachable from Tauri.
+    // Set via OptionsController directly because `isUniversalProvider` lives
+    // in OptionsControllerStateInternal, which Reown does not expose on the
+    // createAppKit options type even though setIsUniversalProvider is the
+    // setter the SDK itself uses.
+    const { OptionsController } = await import('@reown/appkit-controllers')
+    OptionsController.setIsUniversalProvider(true)
 
     return {
       provide: {

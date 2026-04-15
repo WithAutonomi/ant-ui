@@ -166,6 +166,7 @@ import { useFilesStore, type FileEntry, type UploadQuote } from '~/stores/files'
 import { formatBytes, truncateAddress } from '~/utils/formatters'
 import { useSettingsStore } from '~/stores/settings'
 import { useToastStore } from '~/stores/toasts'
+import { useConnectionStore } from '~/stores/connection'
 
 interface FileMeta {
   path: string
@@ -176,17 +177,10 @@ interface FileMeta {
 const filesStore = useFilesStore()
 const settingsStore = useSettingsStore()
 const toastStore = useToastStore()
+const connectionStore = useConnectionStore()
 
-// Autonomi client state
-const autonomiConnected = ref(false)
-
-async function checkAutonomiClient() {
-  try {
-    autonomiConnected.value = await invoke<boolean>('is_autonomi_connected')
-  } catch {
-    autonomiConnected.value = false
-  }
-}
+// Autonomi client state — driven by connection-status events from the backend.
+const autonomiConnected = computed(() => connectionStore.isConnected)
 
 function getWagmiConfig() {
   // Direct wallet (private key) takes priority if initialized
@@ -295,6 +289,7 @@ async function setupDragDrop() {
 const showUploadConfirm = ref(false)
 const uploadEstimating = ref(false)
 const pendingUploadFiles = ref<{ name: string; size: number; path: string }[]>([])
+const pendingMetas = ref<FileMeta[]>([])
 const isQuoting = ref(false)
 const quotedCostDisplay = ref<string | null>(null)
 const quotedGasEstimate = ref<string | null>(null)
@@ -331,6 +326,7 @@ async function uploadFiles() {
 async function showUploadConfirmForPaths(paths: string[]) {
   uploadEstimating.value = true
   pendingUploadFiles.value = []
+  pendingMetas.value = []
   quotedCostDisplay.value = null
   quotedGasEstimate.value = null
   quotedPaymentMode.value = null
@@ -338,6 +334,7 @@ async function showUploadConfirmForPaths(paths: string[]) {
   showUploadConfirm.value = true
 
   const metas = await getFileMetas(paths)
+  pendingMetas.value = metas
   pendingUploadFiles.value = metas.map(m => ({
     name: m.name,
     size: m.size,
@@ -345,11 +342,31 @@ async function showUploadConfirmForPaths(paths: string[]) {
   }))
   uploadEstimating.value = false
 
-  // Start real quoting in background (only when connected to network)
+  // Start real quoting in background (only when connected to network).
+  // The watcher below picks up the case where connection completes after the
+  // dialog is already open.
   if ((autonomiConnected.value || settingsStore.devnetActive) && !settingsStore.indelibleConnected) {
     startQuoting(metas)
   }
 }
+
+// If the embedded ant-core client connects (or finishes retrying) while the
+// upload dialog is open and we don't yet have a quote, kick off quoting now.
+// Without this, opening the dialog before the network is ready leaves the
+// dialog stuck on the misleading "Cost will be quoted from the network when
+// upload starts" fallback even after the connection succeeds.
+watch(
+  () => autonomiConnected.value,
+  (connected) => {
+    if (!connected) return
+    if (!showUploadConfirm.value) return
+    if (settingsStore.indelibleConnected) return
+    if (isQuoting.value) return
+    if (quotedCostDisplay.value) return
+    if (pendingMetas.value.length === 0) return
+    startQuoting(pendingMetas.value)
+  },
+)
 
 async function startQuoting(metas: FileMeta[]) {
   isQuoting.value = true
@@ -507,7 +524,6 @@ onMounted(() => {
   if (!filesStore.historyLoaded) {
     filesStore.loadHistory()
   }
-  checkAutonomiClient()
   setupDragDrop()
 })
 

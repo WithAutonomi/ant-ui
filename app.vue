@@ -11,6 +11,7 @@ import { useSettingsStore } from '~/stores/settings'
 import { useUpdaterStore } from '~/stores/updater'
 import { useNodesStore } from '~/stores/nodes'
 import { useFilesStore } from '~/stores/files'
+import { useConnectionStore } from '~/stores/connection'
 
 useHead({
   title: 'Autonomi',
@@ -23,6 +24,7 @@ const settingsStore = useSettingsStore()
 const updaterStore = useUpdaterStore()
 const nodesStore = useNodesStore()
 const filesStore = useFilesStore()
+const connectionStore = useConnectionStore()
 
 onMounted(async () => {
   await settingsStore.loadConfig()
@@ -31,6 +33,8 @@ onMounted(async () => {
   filesStore.loadHistory()
   updaterStore.checkForUpdate()
   settingsStore.reconnectIndelible()
+  // Listen for backend connection-status events so the UI reflects retry state.
+  connectionStore.startListening()
 
   // Initialize autonomi client — when manifest present, pass custom config
   if (settingsStore.devnetActive) {
