@@ -23,6 +23,8 @@ futures-util = "0.3"
 dirs = "5"
 toml = "0.8"
 tauri-plugin-updater = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 ant-core = { git = "https://github.com/WithAutonomi/ant-client", tag = "ant-cli-v0.1.2" }
 evmlib = "0.8"
 hex = "0.4"
