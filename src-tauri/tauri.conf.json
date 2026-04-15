@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicholasgasior/tauri-v2-schema/refs/heads/master/tauri.conf.json",
   "productName": "Autonomi",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "identifier": "com.autonomi.ant-gui",
   "build": {
     "frontendDist": "../dist",
