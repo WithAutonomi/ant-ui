@@ -467,6 +467,7 @@ function handleDownload(address: string, filename: string) {
 
 const showCostDialog = ref(false)
 const costFiles = ref<{ name: string; size: number; cost?: string }[]>([])
+const costMetas = ref<FileMeta[]>([])
 const costLoading = ref(false)
 
 async function estimateCost() {
@@ -483,16 +484,69 @@ async function estimateCost() {
     costFiles.value = []
     showCostDialog.value = true
 
-    // Cost estimation shows file sizes; real costs come from the upload quote flow
     const metas = await getFileMetas(pathStrings)
+    costMetas.value = metas
+    // Show sizes immediately; the dialog falls back to the heuristic estimate
+    // per file until real costs land below.
     costFiles.value = metas.map(m => ({ name: m.name, size: m.size }))
-
     costLoading.value = false
+
+    // Skip network quoting when Indelible is the active backend — Indelible
+    // prices uploads server-side, so the embedded ant-core has nothing to
+    // quote against.
+    if (settingsStore.indelibleConnected && !settingsStore.devnetActive) return
+
+    // If the embedded client is connected (or devnet override is active),
+    // fire real quotes now. Otherwise the watcher below picks up the case
+    // where the connection completes after the dialog opened.
+    if (autonomiConnected.value || settingsStore.devnetActive) {
+      runCostEstimateQuotes(metas)
+    }
   } catch (err) {
     showCostDialog.value = false
     console.error('File dialog error:', err)
   }
 }
+
+/** Whether a cost-estimate quoting pass is currently in flight. Prevents
+ *  the connection watcher from firing duplicate quote rounds. */
+const costEstimateQuoting = ref(false)
+
+async function runCostEstimateQuotes(metas: FileMeta[]) {
+  if (costEstimateQuoting.value) return
+  costEstimateQuoting.value = true
+  try {
+    for (const meta of metas) {
+      const quote = await filesStore.getUploadQuote(meta.path)
+      if (!quote) continue
+      const idx = costFiles.value.findIndex(f => f.name === meta.name)
+      if (idx === -1) continue
+      // Mutate the entry in place so the dialog's reactive `:files` re-renders.
+      costFiles.value[idx] = {
+        ...costFiles.value[idx],
+        cost: quote.total_cost_display,
+      }
+    }
+  } finally {
+    costEstimateQuoting.value = false
+  }
+}
+
+// Same watch+retry pattern as the upload-confirm dialog: if the estimate
+// dialog is open with sizes only and the network later becomes available,
+// run the quotes then so the user doesn't have to close and reopen.
+watch(
+  () => autonomiConnected.value,
+  (connected) => {
+    if (!connected) return
+    if (!showCostDialog.value) return
+    if (settingsStore.indelibleConnected && !settingsStore.devnetActive) return
+    if (costEstimateQuoting.value) return
+    if (costMetas.value.length === 0) return
+    if (costFiles.value.every(f => f.cost)) return
+    runCostEstimateQuotes(costMetas.value)
+  },
+)
 
 // ── Utilities ──
 
