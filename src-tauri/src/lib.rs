@@ -562,8 +562,9 @@ pub fn run() {
     // for upload visibility; `ant_node=warn` keeps peer-discovery noise low.
     // Override at runtime with the standard `RUST_LOG` env var, e.g.
     // `RUST_LOG=ant_core=debug,ant_node=info` for deeper investigation.
-    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("ant_core=info,ant_node=warn,ant_gui=info,warn"));
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+        tracing_subscriber::EnvFilter::new("ant_core=info,ant_node=warn,ant_gui=info,warn")
+    });
     let _ = tracing_subscriber::fmt()
         .with_env_filter(filter)
         .with_target(true)

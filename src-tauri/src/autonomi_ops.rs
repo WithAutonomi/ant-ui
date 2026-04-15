@@ -241,6 +241,13 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
         EvmNetwork::ArbitrumOne
     };
 
+    // Devnet (custom EVM RPC) runs on loopback — opt the saorsa-transport
+    // `local` flag in for that case only. Production peers reject the
+    // loopback handshake variant, so the default of `false` is correct
+    // for mainnet uploads. Matches the `--allow-loopback` semantics in
+    // ant-cli (see WithAutonomi/ant-client#40).
+    let allow_loopback = args.evm_rpc_url.is_some();
+
     let mut last_error = String::new();
     for attempt in 1..=CONNECT_MAX_ATTEMPTS {
         set_connection_status(
@@ -252,7 +259,10 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
         )
         .await;
 
-        let config = ClientConfig::default();
+        let config = ClientConfig {
+            allow_loopback,
+            ..ClientConfig::default()
+        };
         match tokio::time::timeout(CONNECT_ATTEMPT_TIMEOUT, Client::connect(&peers, config)).await {
             Ok(Ok(client)) => {
                 let client = client.with_evm_network(evm_network.clone());
