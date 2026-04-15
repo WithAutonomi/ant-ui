@@ -21,3 +21,15 @@ New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 Copy-Item (Join-Path $ClientDir "target\release\ant.exe") (Join-Path $BinDir "ant-$Target.exe")
 
 Write-Host "Sidecar binary installed: src-tauri\binaries\ant-$Target.exe"
+
+# Refresh bundled bootstrap peers from the sibling ant-client repo so dev
+# builds use the same peer list the daemon ships with.
+$ResourceDir = Join-Path $GuiDir "src-tauri\resources"
+$PeersSrc = Join-Path $ClientDir "resources\bootstrap_peers.toml"
+if (Test-Path $PeersSrc) {
+    New-Item -ItemType Directory -Force -Path $ResourceDir | Out-Null
+    Copy-Item $PeersSrc (Join-Path $ResourceDir "bootstrap_peers.toml") -Force
+    Write-Host "Bootstrap peers refreshed: src-tauri\resources\bootstrap_peers.toml"
+} else {
+    Write-Warning "bootstrap_peers.toml not found at $PeersSrc — keeping vendored snapshot"
+}

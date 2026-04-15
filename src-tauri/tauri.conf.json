@@ -13,6 +13,7 @@
     "active": true,
     "createUpdaterArtifacts": true,
     "externalBin": ["binaries/ant"],
+    "resources": ["resources/bootstrap_peers.toml"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -35,7 +36,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' ipc: http://ipc.localhost; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:* https: wss:; img-src 'self' asset: http://asset.localhost data: https:; font-src 'self' data:"
+      "csp": "default-src 'self' ipc: http://ipc.localhost; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:* https: wss:; img-src 'self' asset: http://asset.localhost data: blob: https:; font-src 'self' data:"
     }
   },
   "plugins": {
