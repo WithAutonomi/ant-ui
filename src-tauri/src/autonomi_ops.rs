@@ -6,8 +6,46 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::RwLock;
+
+#[derive(Deserialize)]
+struct BootstrapPeersFile {
+    peers: Vec<String>,
+}
+
+/// Read the bundled `bootstrap_peers.toml` shipped as a Tauri resource.
+///
+/// The file lives at `src-tauri/resources/bootstrap_peers.toml` in the repo and
+/// is bundled into the app at build time. CI overwrites it from the daemon
+/// release archive so the bundled list always matches the daemon being shipped.
+fn load_bundled_bootstrap_peers(app: &AppHandle) -> Result<Vec<std::net::SocketAddr>, String> {
+    let path = app
+        .path()
+        .resolve(
+            "resources/bootstrap_peers.toml",
+            tauri::path::BaseDirectory::Resource,
+        )
+        .map_err(|e| format!("Failed to resolve bootstrap_peers.toml resource: {e}"))?;
+
+    let contents = std::fs::read_to_string(&path).map_err(|e| {
+        format!(
+            "Failed to read bundled bootstrap_peers.toml at {}: {e}",
+            path.display()
+        )
+    })?;
+
+    let parsed: BootstrapPeersFile = toml::from_str(&contents)
+        .map_err(|e| format!("Failed to parse bootstrap_peers.toml: {e}"))?;
+
+    let peers: Vec<std::net::SocketAddr> =
+        parsed.peers.iter().filter_map(|s| s.parse().ok()).collect();
+
+    if peers.is_empty() {
+        return Err("Bundled bootstrap_peers.toml has no parseable peers".into());
+    }
+    Ok(peers)
+}
 
 // ── Shared state managed by Tauri ──
 
@@ -91,10 +129,16 @@ pub struct StartUploadRequest {
 
 /// Initialize the data client. Connects to the Autonomi network via bootstrap peers.
 ///
+/// `bootstrap_peers` overrides the bundled list (used by the devnet path).
+/// When `bootstrap_peers` is `None` or empty, falls back to
+/// `resources/bootstrap_peers.toml` shipped with the app — this is the
+/// production-mainnet path.
+///
 /// When `evm_rpc_url` is provided, uses a custom EVM network (for devnet/testnet).
 /// Otherwise defaults to Arbitrum One.
 #[tauri::command]
 pub async fn init_autonomi_client(
+    app: AppHandle,
     state: tauri::State<'_, AutonomiState>,
     bootstrap_peers: Option<Vec<String>>,
     evm_rpc_url: Option<String>,
@@ -106,14 +150,15 @@ pub async fn init_autonomi_client(
         return Ok(true);
     }
 
-    let peers: Vec<std::net::SocketAddr> = bootstrap_peers
-        .unwrap_or_default()
-        .iter()
-        .filter_map(|s| s.parse().ok())
-        .collect();
+    let peers: Vec<std::net::SocketAddr> = match bootstrap_peers {
+        Some(list) if !list.is_empty() => list.iter().filter_map(|s| s.parse().ok()).collect(),
+        _ => load_bundled_bootstrap_peers(&app)?,
+    };
 
     if peers.is_empty() {
-        return Err("No bootstrap peers provided".into());
+        return Err(
+            "No bootstrap peers available (overrides empty and bundled list invalid)".into(),
+        );
     }
 
     let config = ClientConfig::default();

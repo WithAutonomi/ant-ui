@@ -22,3 +22,14 @@ mkdir -p "$GUI_DIR/src-tauri/binaries"
 cp "target/release/ant" "$GUI_DIR/src-tauri/binaries/ant-${TARGET}"
 
 echo "Sidecar binary installed: src-tauri/binaries/ant-${TARGET}"
+
+# Refresh bundled bootstrap peers from the sibling ant-client repo so dev
+# builds use the same peer list the daemon ships with.
+PEERS_SRC="$CLIENT_DIR/resources/bootstrap_peers.toml"
+if [ -f "$PEERS_SRC" ]; then
+    mkdir -p "$GUI_DIR/src-tauri/resources"
+    cp "$PEERS_SRC" "$GUI_DIR/src-tauri/resources/bootstrap_peers.toml"
+    echo "Bootstrap peers refreshed: src-tauri/resources/bootstrap_peers.toml"
+else
+    echo "Warning: bootstrap_peers.toml not found at $PEERS_SRC — keeping vendored snapshot"
+fi

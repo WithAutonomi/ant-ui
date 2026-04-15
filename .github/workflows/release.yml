@@ -190,6 +190,13 @@ jobs:
           chmod +x "src-tauri/binaries/ant-${CROSS_TARGET}"
           echo "Sidecar ready: src-tauri/binaries/ant-${CROSS_TARGET}"
 
+          # Bundle the bootstrap_peers.toml that ships with this daemon version
+          # so the GUI's embedded ant-core client can connect on a fresh install.
+          mkdir -p src-tauri/resources
+          cp "/tmp/ant-${ANT_VERSION}-${ANT_TARGET}/bootstrap_peers.toml" \
+             "src-tauri/resources/bootstrap_peers.toml"
+          echo "Bootstrap peers refreshed from $ANT_TAG"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -259,6 +266,13 @@ jobs:
           cp "$RUNNER_TEMP/ant-${ANT_VERSION}-${TARGET}/ant.exe" \
             "$GITHUB_WORKSPACE/src-tauri/binaries/ant-${TARGET}.exe"
           echo "Sidecar ready: src-tauri/binaries/ant-${TARGET}.exe"
+
+          # Bundle the bootstrap_peers.toml that ships with this daemon version
+          # so the GUI's embedded ant-core client can connect on a fresh install.
+          mkdir -p "$GITHUB_WORKSPACE/src-tauri/resources"
+          cp "$RUNNER_TEMP/ant-${ANT_VERSION}-${TARGET}/bootstrap_peers.toml" \
+            "$GITHUB_WORKSPACE/src-tauri/resources/bootstrap_peers.toml"
+          echo "Bootstrap peers refreshed from $ANT_TAG"
 
       - name: create client certificate file
         id: prepare_cert
