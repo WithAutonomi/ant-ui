@@ -49,10 +49,60 @@ fn load_bundled_bootstrap_peers(app: &AppHandle) -> Result<Vec<std::net::SocketA
 
 // ── Shared state managed by Tauri ──
 
+/// State of the embedded ant-core client connection. Mirrored to the frontend
+/// via `connection-status` events so the UI can show progress / retry buttons.
+#[derive(Serialize, Clone, Debug)]
+#[serde(tag = "status", rename_all = "lowercase")]
+pub enum ConnectionStatus {
+    /// No connect attempt has run yet (initial state on app start).
+    Idle,
+    /// A connect attempt is in flight.
+    Connecting { attempt: u32, of: u32 },
+    /// Successfully connected to the network.
+    Connected,
+    /// All retries exhausted. `reason` is the error from the last attempt.
+    Failed { reason: String, attempts: u32 },
+}
+
 pub struct AutonomiState {
     pub client: RwLock<Option<Client>>,
     pub pending_uploads: RwLock<HashMap<String, (PreparedUpload, std::time::Instant)>>,
+    pub connection_status: RwLock<ConnectionStatus>,
+    /// Holds the last set of args used for `init_autonomi_client`, so a manual
+    /// `retry_autonomi_client` can re-run with the same configuration.
+    pub last_init_args: RwLock<Option<InitArgs>>,
 }
+
+/// Captured arguments from the most recent `init_autonomi_client` call.
+#[derive(Clone)]
+pub struct InitArgs {
+    pub bootstrap_peers: Option<Vec<String>>,
+    pub evm_rpc_url: Option<String>,
+    pub evm_token_address: Option<String>,
+    pub evm_vault_address: Option<String>,
+}
+
+/// Per-attempt timeout for building + starting the embedded P2P node.
+///
+/// `P2PNode::start()` blocks until the saorsa-core bootstrap loop has
+/// processed every configured peer. That loop is sequential (one `.await`
+/// per peer — see saorsa-core `network.rs` ~line 2022), with a 15s
+/// identity-exchange timeout per unresponsive peer. With 7 bundled
+/// bootstrap peers and realistic network conditions (2-3 unresponsive or
+/// firewalled at any given time) the loop commonly takes 90-180s on a
+/// cold start. `ant-cli` has no timeout on this phase and relies on its
+/// spinner for progress; we give ourselves 240s, which covers the worst
+/// case we've observed without letting a genuine failure wedge the UI.
+const CONNECT_ATTEMPT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(240);
+/// Maximum number of connect attempts before giving up.
+///
+/// Two attempts is enough in practice: if a 4-minute attempt fails, the
+/// bootstrap peer list or the local network is actually broken, not
+/// transiently slow. A second attempt is a cheap hedge; a third just
+/// keeps the user staring at a spinner.
+const CONNECT_MAX_ATTEMPTS: u32 = 2;
+/// Backoff schedule between attempts (length must be ≥ CONNECT_MAX_ATTEMPTS - 1).
+const CONNECT_BACKOFFS: [std::time::Duration; 1] = [std::time::Duration::from_secs(5)];
 
 /// Pending uploads older than this are garbage-collected.
 const PENDING_UPLOAD_TTL: std::time::Duration = std::time::Duration::from_secs(30 * 60);
@@ -62,6 +112,8 @@ impl AutonomiState {
         Self {
             client: RwLock::new(None),
             pending_uploads: RwLock::new(HashMap::new()),
+            connection_status: RwLock::new(ConnectionStatus::Idle),
+            last_init_args: RwLock::new(None),
         }
     }
 
@@ -127,15 +179,150 @@ pub struct StartUploadRequest {
 
 // ── Tauri commands ──
 
-/// Initialize the data client. Connects to the Autonomi network via bootstrap peers.
-///
-/// `bootstrap_peers` overrides the bundled list (used by the devnet path).
-/// When `bootstrap_peers` is `None` or empty, falls back to
-/// `resources/bootstrap_peers.toml` shipped with the app — this is the
-/// production-mainnet path.
-///
-/// When `evm_rpc_url` is provided, uses a custom EVM network (for devnet/testnet).
-/// Otherwise defaults to Arbitrum One.
+/// Update the connection status and emit a `connection-status` event for the
+/// frontend. Always call this rather than mutating `connection_status` directly
+/// so the UI stays in sync.
+async fn set_connection_status(app: &AppHandle, new_status: ConnectionStatus) {
+    let state = app.state::<AutonomiState>();
+    *state.connection_status.write().await = new_status.clone();
+    if let Err(e) = app.emit("connection-status", &new_status) {
+        eprintln!("Failed to emit connection-status event: {e}");
+    }
+}
+
+/// Background task: try `Client::connect` up to `CONNECT_MAX_ATTEMPTS` times
+/// with a per-attempt timeout and backoff between attempts. Each transition is
+/// emitted to the frontend via `set_connection_status`. Returns silently — the
+/// frontend learns the outcome through events / `get_connection_status`.
+async fn run_connection_loop(app: AppHandle, args: InitArgs) {
+    let peers: Vec<std::net::SocketAddr> = match &args.bootstrap_peers {
+        Some(list) if !list.is_empty() => list.iter().filter_map(|s| s.parse().ok()).collect(),
+        _ => match load_bundled_bootstrap_peers(&app) {
+            Ok(peers) => peers,
+            Err(e) => {
+                set_connection_status(
+                    &app,
+                    ConnectionStatus::Failed {
+                        reason: format!("Could not load bootstrap peers: {e}"),
+                        attempts: 0,
+                    },
+                )
+                .await;
+                return;
+            }
+        },
+    };
+
+    if peers.is_empty() {
+        set_connection_status(
+            &app,
+            ConnectionStatus::Failed {
+                reason: "No bootstrap peers available".into(),
+                attempts: 0,
+            },
+        )
+        .await;
+        return;
+    }
+
+    let evm_network = if let Some(rpc_url) = &args.evm_rpc_url {
+        let Some(token) = &args.evm_token_address else {
+            set_connection_status(
+                &app,
+                ConnectionStatus::Failed {
+                    reason: "evm_token_address required with evm_rpc_url".into(),
+                    attempts: 0,
+                },
+            )
+            .await;
+            return;
+        };
+        let Some(vault) = &args.evm_vault_address else {
+            set_connection_status(
+                &app,
+                ConnectionStatus::Failed {
+                    reason: "evm_vault_address required with evm_rpc_url".into(),
+                    attempts: 0,
+                },
+            )
+            .await;
+            return;
+        };
+        EvmNetwork::Custom(CustomNetwork::new(rpc_url, token, vault))
+    } else {
+        EvmNetwork::ArbitrumOne
+    };
+
+    // Devnet (custom EVM RPC) runs on loopback — opt the saorsa-transport
+    // `local` flag in for that case only. Production peers reject the
+    // loopback handshake variant, so the default of `false` is correct
+    // for mainnet uploads. Matches the `--allow-loopback` semantics in
+    // ant-cli (see WithAutonomi/ant-client#40).
+    let allow_loopback = args.evm_rpc_url.is_some();
+
+    let mut last_error = String::new();
+    for attempt in 1..=CONNECT_MAX_ATTEMPTS {
+        set_connection_status(
+            &app,
+            ConnectionStatus::Connecting {
+                attempt,
+                of: CONNECT_MAX_ATTEMPTS,
+            },
+        )
+        .await;
+
+        let config = ClientConfig {
+            allow_loopback,
+            ..ClientConfig::default()
+        };
+        match tokio::time::timeout(CONNECT_ATTEMPT_TIMEOUT, Client::connect(&peers, config)).await {
+            Ok(Ok(client)) => {
+                let peer_count = client.network().connected_peers().await.len();
+                let client = client.with_evm_network(evm_network.clone());
+                *app.state::<AutonomiState>().client.write().await = Some(client);
+                eprintln!("Autonomi connect attempt {attempt} succeeded ({peer_count} peers)");
+                set_connection_status(&app, ConnectionStatus::Connected).await;
+                return;
+            }
+            Ok(Err(e)) => {
+                last_error = format!("connect failed: {e}");
+                eprintln!("Autonomi connect attempt {attempt} failed: {e}");
+            }
+            Err(_) => {
+                last_error = format!(
+                    "connect timed out after {}s",
+                    CONNECT_ATTEMPT_TIMEOUT.as_secs()
+                );
+                eprintln!("Autonomi connect attempt {attempt} timed out");
+            }
+        }
+
+        if attempt < CONNECT_MAX_ATTEMPTS {
+            let backoff = CONNECT_BACKOFFS
+                .get((attempt - 1) as usize)
+                .copied()
+                .unwrap_or(std::time::Duration::from_secs(20));
+            tokio::time::sleep(backoff).await;
+        }
+    }
+
+    set_connection_status(
+        &app,
+        ConnectionStatus::Failed {
+            reason: last_error,
+            attempts: CONNECT_MAX_ATTEMPTS,
+        },
+    )
+    .await;
+}
+
+/// Spawn the connection loop if no client is already set. Returns immediately —
+/// the actual connect runs in the background and reports state via
+/// `connection-status` events. `bootstrap_peers` overrides the bundled list
+/// (devnet path); when None/empty, falls back to the bundled
+/// `resources/bootstrap_peers.toml`. `evm_rpc_url`/`evm_token_address`/
+/// `evm_vault_address` together select a custom EVM network; otherwise the
+/// client uses Arbitrum One.
 #[tauri::command]
 pub async fn init_autonomi_client(
     app: AppHandle,
@@ -145,39 +332,68 @@ pub async fn init_autonomi_client(
     evm_token_address: Option<String>,
     evm_vault_address: Option<String>,
 ) -> Result<bool, String> {
-    let mut client_lock = state.client.write().await;
-    if client_lock.is_some() {
+    if state.client.read().await.is_some() {
         return Ok(true);
     }
-
-    let peers: Vec<std::net::SocketAddr> = match bootstrap_peers {
-        Some(list) if !list.is_empty() => list.iter().filter_map(|s| s.parse().ok()).collect(),
-        _ => load_bundled_bootstrap_peers(&app)?,
-    };
-
-    if peers.is_empty() {
-        return Err(
-            "No bootstrap peers available (overrides empty and bundled list invalid)".into(),
-        );
+    // Don't start a second loop if one is already in flight.
+    if matches!(
+        *state.connection_status.read().await,
+        ConnectionStatus::Connecting { .. }
+    ) {
+        return Ok(false);
     }
 
-    let config = ClientConfig::default();
-    let client = Client::connect(&peers, config)
-        .await
-        .map_err(|e| format!("Failed to connect to Autonomi network: {e}"))?;
-
-    let evm_network = if let Some(rpc_url) = evm_rpc_url {
-        let token = evm_token_address.ok_or("evm_token_address required with evm_rpc_url")?;
-        let vault = evm_vault_address.ok_or("evm_vault_address required with evm_rpc_url")?;
-        EvmNetwork::Custom(CustomNetwork::new(&rpc_url, &token, &vault))
-    } else {
-        EvmNetwork::ArbitrumOne
+    let args = InitArgs {
+        bootstrap_peers,
+        evm_rpc_url,
+        evm_token_address,
+        evm_vault_address,
     };
+    *state.last_init_args.write().await = Some(args.clone());
 
-    let client = client.with_evm_network(evm_network);
+    let app_for_task = app.clone();
+    tokio::spawn(async move { run_connection_loop(app_for_task, args).await });
 
-    *client_lock = Some(client);
-    Ok(true)
+    Ok(false)
+}
+
+/// Re-run the connection loop with the same arguments as the most recent
+/// `init_autonomi_client` call. Used by the frontend Retry button on the
+/// "could not connect" screen.
+#[tauri::command]
+pub async fn retry_autonomi_client(
+    app: AppHandle,
+    state: tauri::State<'_, AutonomiState>,
+) -> Result<(), String> {
+    if state.client.read().await.is_some() {
+        return Ok(());
+    }
+    if matches!(
+        *state.connection_status.read().await,
+        ConnectionStatus::Connecting { .. }
+    ) {
+        return Ok(());
+    }
+
+    let args = state
+        .last_init_args
+        .read()
+        .await
+        .clone()
+        .ok_or("init_autonomi_client has not been called yet")?;
+
+    let app_for_task = app.clone();
+    tokio::spawn(async move { run_connection_loop(app_for_task, args).await });
+    Ok(())
+}
+
+/// Return the current connection status. Used by the frontend on first mount
+/// to populate state; subsequent updates arrive via `connection-status` events.
+#[tauri::command]
+pub async fn get_connection_status(
+    state: tauri::State<'_, AutonomiState>,
+) -> Result<ConnectionStatus, String> {
+    Ok(state.connection_status.read().await.clone())
 }
 
 /// Start an upload: encrypts file, collects quotes, emits quote event

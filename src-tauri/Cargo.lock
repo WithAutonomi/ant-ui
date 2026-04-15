@@ -828,7 +828,7 @@ dependencies = [
 [[package]]
 name = "ant-core"
 version = "0.1.1"
-source = "git+https://github.com/WithAutonomi/ant-client?tag=ant-cli-v0.1.2#c7d9ee131ddd0edddac1b8d915b999ea812424e5"
+source = "git+https://github.com/WithAutonomi/ant-client?rev=f88c95daa003d9e5aee3c76eb67914ed1d907ccb#f88c95daa003d9e5aee3c76eb67914ed1d907ccb"
 dependencies = [
  "ant-node",
  "async-stream",
@@ -891,6 +891,8 @@ dependencies = [
  "tauri-plugin-updater",
  "tokio",
  "toml 0.8.2",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

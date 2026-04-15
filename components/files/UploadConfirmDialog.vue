@@ -56,18 +56,36 @@
                 <span>Getting cost quote from network...</span>
               </div>
             </template>
-            <template v-else-if="!networkConnected">
-              <div v-if="!networkTimedOut" class="flex items-center gap-2 text-sm text-autonomi-muted">
+            <template v-else-if="connectionStore.isConnecting">
+              <div class="flex items-center gap-2 text-sm text-autonomi-muted">
                 <div class="h-3 w-3 animate-spin rounded-full border-2 border-yellow-500 border-t-transparent" />
-                <span>Discovering network...</span>
+                <span>
+                  Connecting to the Autonomi network
+                  <template v-if="connectingDetails">({{ connectingDetails }})</template>...
+                </span>
               </div>
-              <div v-else class="text-sm text-yellow-500/80">
-                Could not connect to the Autonomi network. You can still upload — the cost will be quoted when the network becomes available.
+            </template>
+            <template v-else-if="connectionStore.hasFailed">
+              <div class="space-y-2">
+                <div class="text-sm text-yellow-500/80">
+                  Could not connect to the Autonomi network after {{ failedAttempts }} attempt{{ failedAttempts !== 1 ? 's' : '' }}.
+                </div>
+                <div v-if="failedReason" class="text-xs text-autonomi-muted break-words">
+                  {{ failedReason }}
+                </div>
+                <button
+                  type="button"
+                  class="rounded-md border border-autonomi-blue/40 px-2.5 py-1 text-xs font-medium text-autonomi-blue hover:bg-autonomi-blue/10"
+                  @click="connectionStore.retry()"
+                >
+                  Retry
+                </button>
               </div>
             </template>
             <template v-else>
-              <div class="text-sm text-autonomi-muted">
-                Cost will be quoted from the network when the upload starts.
+              <div class="flex items-center gap-2 text-sm text-autonomi-muted">
+                <div class="h-3 w-3 animate-spin rounded-full border-2 border-autonomi-blue border-t-transparent" />
+                <span>Preparing cost quote...</span>
               </div>
             </template>
           </div>
@@ -145,8 +163,7 @@
 <script setup lang="ts">
 import { formatBytes } from '~/utils/formatters'
 import { MERKLE_THRESHOLD, AVG_CHUNK_SIZE } from '~/utils/constants'
-
-const NETWORK_TIMEOUT_MS = 15_000
+import { useConnectionStore } from '~/stores/connection'
 
 const props = defineProps<{
   open: boolean
@@ -160,7 +177,11 @@ const props = defineProps<{
   quoting?: boolean
   /** Payment mode selected by the backend (null if no quote yet) */
   quotedPaymentMode?: 'wave-batch' | 'merkle' | null
-  /** Whether the Autonomi network client is connected */
+  /**
+   * Kept for backward compatibility with the parent — the dialog now reads
+   * the richer connection state directly from useConnectionStore() so it can
+   * show "Connecting (attempt N of M)..." and a Retry button.
+   */
   networkConnected?: boolean
 }>()
 
@@ -169,9 +190,9 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const connectionStore = useConnectionStore()
+
 const visibility = ref<'private' | 'public'>('private')
-const networkTimedOut = ref(false)
-let networkTimer: ReturnType<typeof setTimeout> | null = null
 
 const totalSize = computed(() => props.files.reduce((sum, f) => sum + f.size, 0))
 const estimatedChunks = computed(() => Math.max(1, Math.ceil(totalSize.value / AVG_CHUNK_SIZE)))
@@ -183,34 +204,23 @@ const effectivePaymentMode = computed(() => {
   return estimatedChunks.value >= MERKLE_THRESHOLD ? 'merkle' : 'regular'
 })
 
+const connectingDetails = computed(() => {
+  const s = connectionStore.current
+  if (s.status !== 'connecting') return null
+  return `attempt ${s.attempt} of ${s.of}`
+})
+const failedReason = computed(() =>
+  connectionStore.current.status === 'failed' ? connectionStore.current.reason : null,
+)
+const failedAttempts = computed(() =>
+  connectionStore.current.status === 'failed' ? connectionStore.current.attempts : 0,
+)
+
 watch(
   () => props.open,
   (val) => {
     if (val) {
       visibility.value = 'private'
-      networkTimedOut.value = false
-      // Start network discovery timeout when dialog opens and not connected
-      if (!props.networkConnected) {
-        networkTimer = setTimeout(() => {
-          networkTimedOut.value = true
-        }, NETWORK_TIMEOUT_MS)
-      }
-    } else {
-      if (networkTimer) {
-        clearTimeout(networkTimer)
-        networkTimer = null
-      }
-    }
-  },
-)
-
-// Clear timeout if network connects while dialog is open
-watch(
-  () => props.networkConnected,
-  (connected) => {
-    if (connected && networkTimer) {
-      clearTimeout(networkTimer)
-      networkTimer = null
     }
   },
 )

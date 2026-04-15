@@ -553,6 +553,24 @@ fn save_upload_history(entries: Vec<UploadHistoryEntry>) -> Result<(), String> {
 }
 
 pub fn run() {
+    // Pipe ant-core / ant-node tracing events to stderr so the dev console
+    // surfaces upload progress (encrypt → quote → store → finalize). Without
+    // a subscriber installed every `tracing::info!()` from those crates is
+    // silently dropped, which makes long-running operations look hung.
+    //
+    // Filter defaults are conservative — `ant_core=info` is the sweet spot
+    // for upload visibility; `ant_node=warn` keeps peer-discovery noise low.
+    // Override at runtime with the standard `RUST_LOG` env var, e.g.
+    // `RUST_LOG=ant_core=debug,ant_node=info` for deeper investigation.
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+        tracing_subscriber::EnvFilter::new("ant_core=info,ant_node=warn,ant_gui=info,warn")
+    });
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_target(true)
+        .with_writer(std::io::stderr)
+        .try_init();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -584,6 +602,8 @@ pub fn run() {
             autonomi_ops::confirm_upload_merkle,
             autonomi_ops::download_file,
             autonomi_ops::is_autonomi_connected,
+            autonomi_ops::retry_autonomi_client,
+            autonomi_ops::get_connection_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

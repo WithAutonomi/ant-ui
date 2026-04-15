@@ -166,6 +166,7 @@ import { useFilesStore, type FileEntry, type UploadQuote } from '~/stores/files'
 import { formatBytes, truncateAddress } from '~/utils/formatters'
 import { useSettingsStore } from '~/stores/settings'
 import { useToastStore } from '~/stores/toasts'
+import { useConnectionStore } from '~/stores/connection'
 
 interface FileMeta {
   path: string
@@ -176,17 +177,10 @@ interface FileMeta {
 const filesStore = useFilesStore()
 const settingsStore = useSettingsStore()
 const toastStore = useToastStore()
+const connectionStore = useConnectionStore()
 
-// Autonomi client state
-const autonomiConnected = ref(false)
-
-async function checkAutonomiClient() {
-  try {
-    autonomiConnected.value = await invoke<boolean>('is_autonomi_connected')
-  } catch {
-    autonomiConnected.value = false
-  }
-}
+// Autonomi client state — driven by connection-status events from the backend.
+const autonomiConnected = computed(() => connectionStore.isConnected)
 
 function getWagmiConfig() {
   // Direct wallet (private key) takes priority if initialized
@@ -295,6 +289,7 @@ async function setupDragDrop() {
 const showUploadConfirm = ref(false)
 const uploadEstimating = ref(false)
 const pendingUploadFiles = ref<{ name: string; size: number; path: string }[]>([])
+const pendingMetas = ref<FileMeta[]>([])
 const isQuoting = ref(false)
 const quotedCostDisplay = ref<string | null>(null)
 const quotedGasEstimate = ref<string | null>(null)
@@ -331,6 +326,7 @@ async function uploadFiles() {
 async function showUploadConfirmForPaths(paths: string[]) {
   uploadEstimating.value = true
   pendingUploadFiles.value = []
+  pendingMetas.value = []
   quotedCostDisplay.value = null
   quotedGasEstimate.value = null
   quotedPaymentMode.value = null
@@ -338,6 +334,7 @@ async function showUploadConfirmForPaths(paths: string[]) {
   showUploadConfirm.value = true
 
   const metas = await getFileMetas(paths)
+  pendingMetas.value = metas
   pendingUploadFiles.value = metas.map(m => ({
     name: m.name,
     size: m.size,
@@ -345,11 +342,31 @@ async function showUploadConfirmForPaths(paths: string[]) {
   }))
   uploadEstimating.value = false
 
-  // Start real quoting in background (only when connected to network)
+  // Start real quoting in background (only when connected to network).
+  // The watcher below picks up the case where connection completes after the
+  // dialog is already open.
   if ((autonomiConnected.value || settingsStore.devnetActive) && !settingsStore.indelibleConnected) {
     startQuoting(metas)
   }
 }
+
+// If the embedded ant-core client connects (or finishes retrying) while the
+// upload dialog is open and we don't yet have a quote, kick off quoting now.
+// Without this, opening the dialog before the network is ready leaves the
+// dialog stuck on the misleading "Cost will be quoted from the network when
+// upload starts" fallback even after the connection succeeds.
+watch(
+  () => autonomiConnected.value,
+  (connected) => {
+    if (!connected) return
+    if (!showUploadConfirm.value) return
+    if (settingsStore.indelibleConnected) return
+    if (isQuoting.value) return
+    if (quotedCostDisplay.value) return
+    if (pendingMetas.value.length === 0) return
+    startQuoting(pendingMetas.value)
+  },
+)
 
 async function startQuoting(metas: FileMeta[]) {
   isQuoting.value = true
@@ -450,6 +467,7 @@ function handleDownload(address: string, filename: string) {
 
 const showCostDialog = ref(false)
 const costFiles = ref<{ name: string; size: number; cost?: string }[]>([])
+const costMetas = ref<FileMeta[]>([])
 const costLoading = ref(false)
 
 async function estimateCost() {
@@ -466,16 +484,69 @@ async function estimateCost() {
     costFiles.value = []
     showCostDialog.value = true
 
-    // Cost estimation shows file sizes; real costs come from the upload quote flow
     const metas = await getFileMetas(pathStrings)
+    costMetas.value = metas
+    // Show sizes immediately; the dialog falls back to the heuristic estimate
+    // per file until real costs land below.
     costFiles.value = metas.map(m => ({ name: m.name, size: m.size }))
-
     costLoading.value = false
+
+    // Skip network quoting when Indelible is the active backend — Indelible
+    // prices uploads server-side, so the embedded ant-core has nothing to
+    // quote against.
+    if (settingsStore.indelibleConnected && !settingsStore.devnetActive) return
+
+    // If the embedded client is connected (or devnet override is active),
+    // fire real quotes now. Otherwise the watcher below picks up the case
+    // where the connection completes after the dialog opened.
+    if (autonomiConnected.value || settingsStore.devnetActive) {
+      runCostEstimateQuotes(metas)
+    }
   } catch (err) {
     showCostDialog.value = false
     console.error('File dialog error:', err)
   }
 }
+
+/** Whether a cost-estimate quoting pass is currently in flight. Prevents
+ *  the connection watcher from firing duplicate quote rounds. */
+const costEstimateQuoting = ref(false)
+
+async function runCostEstimateQuotes(metas: FileMeta[]) {
+  if (costEstimateQuoting.value) return
+  costEstimateQuoting.value = true
+  try {
+    for (const meta of metas) {
+      const quote = await filesStore.getUploadQuote(meta.path)
+      if (!quote) continue
+      const idx = costFiles.value.findIndex(f => f.name === meta.name)
+      if (idx === -1) continue
+      // Mutate the entry in place so the dialog's reactive `:files` re-renders.
+      costFiles.value[idx] = {
+        ...costFiles.value[idx],
+        cost: quote.total_cost_display,
+      }
+    }
+  } finally {
+    costEstimateQuoting.value = false
+  }
+}
+
+// Same watch+retry pattern as the upload-confirm dialog: if the estimate
+// dialog is open with sizes only and the network later becomes available,
+// run the quotes then so the user doesn't have to close and reopen.
+watch(
+  () => autonomiConnected.value,
+  (connected) => {
+    if (!connected) return
+    if (!showCostDialog.value) return
+    if (settingsStore.indelibleConnected && !settingsStore.devnetActive) return
+    if (costEstimateQuoting.value) return
+    if (costMetas.value.length === 0) return
+    if (costFiles.value.every(f => f.cost)) return
+    runCostEstimateQuotes(costMetas.value)
+  },
+)
 
 // ── Utilities ──
 
@@ -507,7 +578,6 @@ onMounted(() => {
   if (!filesStore.historyLoaded) {
     filesStore.loadHistory()
   }
-  checkAutonomiClient()
   setupDragDrop()
 })
 

@@ -154,11 +154,12 @@ async function refreshBalances() {
     initDevnetWallet() // re-fetches balances
     return
   }
-  // AppKit wallet
+  // AppKit wallet — call refreshBalances directly. Calling useWallet() here
+  // would re-install the AppKit watcher and momentarily flicker the wallet
+  // into a disconnected state.
   if ($appkitReady) {
-    const { useWallet } = await import('~/composables/useWallet')
-    const wallet = useWallet()
-    wallet.refreshBalances()
+    const { refreshBalances: refresh } = await import('~/composables/useWallet')
+    await refresh()
   }
 }
 
