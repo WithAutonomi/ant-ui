@@ -35,6 +35,12 @@ export default defineNuxtPlugin(async () => {
         email: false,
         socials: false,
       },
+      // Tauri's webview has no browser extensions, so the legacy injected
+      // (window.ethereum) and the EIP-6963 multi-wallet discovery channels
+      // can never resolve a wallet — disable both so the modal doesn't
+      // advertise an unreachable "Browser" option.
+      enableInjected: false,
+      enableEIP6963: false,
       themeMode: 'dark',
     })
 
