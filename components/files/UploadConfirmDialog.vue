@@ -98,25 +98,21 @@
                 </p>
               </button>
 
-              <!-- Public -->
+              <!-- Public (disabled — not yet implemented in backend) -->
               <button
-                class="flex-1 rounded-lg border p-3 text-left transition-all"
-                :class="visibility === 'public'
-                  ? 'border-autonomi-blue bg-autonomi-blue/10'
-                  : 'border-autonomi-border hover:border-autonomi-blue/30'"
-                @click="visibility = 'public'"
+                type="button"
+                disabled
+                aria-disabled="true"
+                title="Public uploads are not yet available"
+                class="flex-1 cursor-not-allowed rounded-lg border border-autonomi-border p-3 text-left opacity-50"
               >
                 <div class="flex items-center gap-2">
-                  <div
-                    class="flex h-4 w-4 items-center justify-center rounded-full border-2"
-                    :class="visibility === 'public' ? 'border-autonomi-blue' : 'border-autonomi-muted'"
-                  >
-                    <div v-if="visibility === 'public'" class="h-2 w-2 rounded-full bg-autonomi-blue" />
-                  </div>
+                  <div class="flex h-4 w-4 items-center justify-center rounded-full border-2 border-autonomi-muted" />
                   <span class="text-sm font-medium">Public</span>
+                  <span class="ml-auto rounded bg-autonomi-border/60 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-autonomi-muted">Coming soon</span>
                 </div>
-                <p class="mt-1.5 pl-6 text-xs text-autonomi-warning">
-                  Not encrypted. Anyone on the network can access this file with its address.
+                <p class="mt-1.5 pl-6 text-xs text-autonomi-muted">
+                  Not yet available. All uploads are currently private.
                 </p>
               </button>
             </div>
