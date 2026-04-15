@@ -82,15 +82,27 @@ pub struct InitArgs {
     pub evm_vault_address: Option<String>,
 }
 
-/// Per-attempt timeout for `Client::connect`.
-const CONNECT_ATTEMPT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+/// Per-attempt timeout for building + starting the embedded P2P node.
+///
+/// `P2PNode::start()` blocks until the saorsa-core bootstrap loop has
+/// processed every configured peer. That loop is sequential (one `.await`
+/// per peer — see saorsa-core `network.rs` ~line 2022), with a 15s
+/// identity-exchange timeout per unresponsive peer. With 7 bundled
+/// bootstrap peers and realistic network conditions (2-3 unresponsive or
+/// firewalled at any given time) the loop commonly takes 90-180s on a
+/// cold start. `ant-cli` has no timeout on this phase and relies on its
+/// spinner for progress; we give ourselves 240s, which covers the worst
+/// case we've observed without letting a genuine failure wedge the UI.
+const CONNECT_ATTEMPT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(240);
 /// Maximum number of connect attempts before giving up.
-const CONNECT_MAX_ATTEMPTS: u32 = 3;
+///
+/// Two attempts is enough in practice: if a 4-minute attempt fails, the
+/// bootstrap peer list or the local network is actually broken, not
+/// transiently slow. A second attempt is a cheap hedge; a third just
+/// keeps the user staring at a spinner.
+const CONNECT_MAX_ATTEMPTS: u32 = 2;
 /// Backoff schedule between attempts (length must be ≥ CONNECT_MAX_ATTEMPTS - 1).
-const CONNECT_BACKOFFS: [std::time::Duration; 2] = [
-    std::time::Duration::from_secs(5),
-    std::time::Duration::from_secs(10),
-];
+const CONNECT_BACKOFFS: [std::time::Duration; 1] = [std::time::Duration::from_secs(5)];
 
 /// Pending uploads older than this are garbage-collected.
 const PENDING_UPLOAD_TTL: std::time::Duration = std::time::Duration::from_secs(30 * 60);
@@ -265,8 +277,10 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
         };
         match tokio::time::timeout(CONNECT_ATTEMPT_TIMEOUT, Client::connect(&peers, config)).await {
             Ok(Ok(client)) => {
+                let peer_count = client.network().connected_peers().await.len();
                 let client = client.with_evm_network(evm_network.clone());
                 *app.state::<AutonomiState>().client.write().await = Some(client);
+                eprintln!("Autonomi connect attempt {attempt} succeeded ({peer_count} peers)");
                 set_connection_status(&app, ConnectionStatus::Connected).await;
                 return;
             }
