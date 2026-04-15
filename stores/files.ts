@@ -200,16 +200,36 @@ export const useFilesStore = defineStore('files', {
     async getUploadQuote(path: string): Promise<UploadQuote | null> {
       const uploadId = `quote-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
+      // Deferred so we can resolve/reject from the listener and the timeout
+      // independently of where the Promise is awaited.
+      let resolveQuote: (value: any) => void = () => {}
+      let rejectQuote: (err: Error) => void = () => {}
+      const quotePromise = new Promise<any>((resolve, reject) => {
+        resolveQuote = resolve
+        rejectQuote = reject
+      })
+
+      let unlisten: (() => void) | null = null
+      // The 120s timeout is registered AFTER listen() is awaited below — see
+      // explanation there. Holding the handle here so finally{} can clear it.
+      let timeoutId: ReturnType<typeof setTimeout> | null = null
+
       try {
-        const quotePromise = new Promise<any>((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error('Quote timeout')), 120_000)
-          listen<any>('upload-quote', (event) => {
-            if (event.payload.upload_id === uploadId) {
-              clearTimeout(timeout)
-              resolve(event.payload)
-            }
-          })
+        // Register the listener BEFORE invoking start_upload. The previous
+        // implementation called listen() inside a `new Promise(...)` executor
+        // without awaiting it, then immediately did `await invoke(...)`. The
+        // backend can emit `upload-quote` before listen() finishes registering,
+        // in which case the event is missed and the 120s timeout eventually
+        // fires — visible in the dev console as "Uncaught (in promise) Error:
+        // Quote timeout". Awaiting listen() first eliminates the race and
+        // capturing `unlisten` lets us clean up so listeners do not pile up.
+        unlisten = await listen<any>('upload-quote', (event) => {
+          if (event.payload.upload_id === uploadId) {
+            resolveQuote(event.payload)
+          }
         })
+
+        timeoutId = setTimeout(() => rejectQuote(new Error('Quote timeout')), 120_000)
 
         await invoke('start_upload', {
           request: { files: [path], upload_id: uploadId },
@@ -227,8 +247,16 @@ export const useFilesStore = defineStore('files', {
           merkle_pool_commitments: quote.merkle_pool_commitments,
           merkle_timestamp: quote.merkle_timestamp,
         }
-      } catch {
+      } catch (err) {
+        // Settle the deferred so any later listener firing does not surface
+        // as an unhandled rejection; we already returned null to the caller.
+        rejectQuote(err instanceof Error ? err : new Error(String(err)))
+        // Swallow our own rejection so the deferred has a handler.
+        quotePromise.catch(() => {})
         return null
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId)
+        if (unlisten) unlisten()
       }
     },
 
