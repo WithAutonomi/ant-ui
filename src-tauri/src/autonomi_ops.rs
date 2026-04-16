@@ -1,6 +1,5 @@
 use ant_core::data::{
-    Client, ClientConfig, CoreNodeConfig, CustomNetwork, DataMap, EvmNetwork, ExternalPaymentInfo,
-    MultiAddr, NodeMode, P2PNode, PreparedUpload, MAX_WIRE_MESSAGE_SIZE,
+    Client, ClientConfig, CustomNetwork, DataMap, EvmNetwork, ExternalPaymentInfo, PreparedUpload,
 };
 use evmlib::common::{QuoteHash, TxHash};
 use serde::{Deserialize, Serialize};
@@ -89,11 +88,11 @@ pub struct InitArgs {
 /// processed every configured peer. That loop is sequential (one `.await`
 /// per peer — see saorsa-core `network.rs` ~line 2022), with a 15s
 /// identity-exchange timeout per unresponsive peer. With 7 bundled
-/// bootstrap peers and IPv4-only sockets (see the `ipv6(false)` override
-/// in the connect loop) cold start is ~60-120s in practice. `ant-cli` has
-/// no timeout on this phase and relies on its spinner for progress; we
-/// give ourselves 240s, which covers the worst case we've observed
-/// without letting a genuine failure wedge the UI.
+/// bootstrap peers and realistic network conditions (2-3 unresponsive or
+/// firewalled at any given time) the loop commonly takes 90-180s on a
+/// cold start. `ant-cli` has no timeout on this phase and relies on its
+/// spinner for progress; we give ourselves 240s, which covers the worst
+/// case we've observed without letting a genuine failure wedge the UI.
 const CONNECT_ATTEMPT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(240);
 /// Maximum number of connect attempts before giving up.
 ///
@@ -272,63 +271,14 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
         )
         .await;
 
-        let client_config = ClientConfig {
+        let config = ClientConfig {
             allow_loopback,
             ..ClientConfig::default()
         };
-
-        // Force IPv4-only on outbound connections. Upstream `Network::new`
-        // hardcodes `ipv6(true)` (ant-client PR #33), which dual-stacks the
-        // socket and turns every peer send into a `[DUAL SEND]` that wastes
-        // ~15s per failing IPv6 leg on home networks where the ISP drops
-        // outbound v6. Measured cold-start on this machine was 100s with
-        // ipv6(false) vs 218s with ipv6(true).
-        //
-        // Temporary workaround — remove once upstream ships RFC 8305 happy
-        // eyeballs / IPv6 reachability detection so dual-stack is safe to
-        // leave on by default (see docs/ipv6-bootstrap-proposal.md in the
-        // review thread). Until then we mirror `ant-cli::create_client_node_raw`
-        // by building `CoreNodeConfig` directly and calling `Client::from_node`,
-        // bypassing `Client::connect` / `Network::new`.
-        let mut core_config = match CoreNodeConfig::builder()
-            .port(0)
-            .ipv6(false)
-            .local(allow_loopback)
-            .mode(NodeMode::Client)
-            .max_message_size(MAX_WIRE_MESSAGE_SIZE)
-            .build()
-        {
-            Ok(cfg) => cfg,
-            Err(e) => {
-                last_error = format!("core config build failed: {e}");
-                eprintln!("Autonomi connect attempt {attempt}: {last_error}");
-                if attempt < CONNECT_MAX_ATTEMPTS {
-                    let backoff = CONNECT_BACKOFFS
-                        .get((attempt - 1) as usize)
-                        .copied()
-                        .unwrap_or(std::time::Duration::from_secs(20));
-                    tokio::time::sleep(backoff).await;
-                }
-                continue;
-            }
-        };
-        core_config.bootstrap_peers = peers.iter().map(|addr| MultiAddr::quic(*addr)).collect();
-
-        let connect_fut = async move {
-            let node = P2PNode::new(core_config)
-                .await
-                .map_err(|e| format!("P2PNode::new failed: {e}"))?;
-            node.start()
-                .await
-                .map_err(|e| format!("P2PNode::start failed: {e}"))?;
-            Ok::<_, String>(std::sync::Arc::new(node))
-        };
-
-        match tokio::time::timeout(CONNECT_ATTEMPT_TIMEOUT, connect_fut).await {
-            Ok(Ok(node)) => {
-                let peer_count = node.connected_peers().await.len();
-                let client =
-                    Client::from_node(node, client_config).with_evm_network(evm_network.clone());
+        match tokio::time::timeout(CONNECT_ATTEMPT_TIMEOUT, Client::connect(&peers, config)).await {
+            Ok(Ok(client)) => {
+                let peer_count = client.network().connected_peers().await.len();
+                let client = client.with_evm_network(evm_network.clone());
                 *app.state::<AutonomiState>().client.write().await = Some(client);
                 eprintln!("Autonomi connect attempt {attempt} succeeded ({peer_count} peers)");
                 set_connection_status(&app, ConnectionStatus::Connected).await;
