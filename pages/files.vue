@@ -177,7 +177,6 @@
                 Size {{ downloadSortIndicator('size_bytes') }}
               </th>
               <th class="px-4 py-2.5">Status</th>
-              <th class="px-4 py-2.5">Source</th>
               <th class="px-4 py-2.5">Saved to</th>
               <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleDownloadSort('date')">
                 Date {{ downloadSortIndicator('date') }}
@@ -196,24 +195,6 @@
               <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
               <td class="px-4 py-2.5">
                 <StatusBadge :status="statusLabel(file)" />
-              </td>
-              <td class="px-4 py-2.5">
-                <span
-                  v-if="file.data_map_file"
-                  class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue"
-                  :title="`Reveal ${datamapBasename(file.data_map_file)} in its folder`"
-                  @click.stop="openFolder(file.data_map_file)"
-                >
-                  {{ datamapBasename(file.data_map_file) }}
-                </span>
-                <span
-                  v-else-if="file.address"
-                  class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue"
-                  @click.stop="copyAddress(file.address)"
-                >
-                  {{ truncateAddress(file.address, 8, 6) }}
-                </span>
-                <span v-else class="text-autonomi-muted">-</span>
               </td>
               <td class="px-4 py-2.5 font-mono text-xs text-autonomi-muted">
                 {{ file.dest_path ? basenameOf(file.dest_path) : '-' }}
