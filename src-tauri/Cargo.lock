@@ -828,7 +828,7 @@ dependencies = [
 [[package]]
 name = "ant-core"
 version = "0.1.1"
-source = "git+https://github.com/WithAutonomi/ant-client?rev=eb29e99937b1aedba02db04e1ae59bd923b424a3#eb29e99937b1aedba02db04e1ae59bd923b424a3"
+source = "git+https://github.com/WithAutonomi/ant-client?rev=f88c95daa003d9e5aee3c76eb67914ed1d907ccb#f88c95daa003d9e5aee3c76eb67914ed1d907ccb"
 dependencies = [
  "ant-node",
  "async-stream",
@@ -871,7 +871,7 @@ dependencies = [
 
 [[package]]
 name = "ant-gui"
-version = "0.6.3"
+version = "0.6.4"
 dependencies = [
  "ant-core",
  "dirs 5.0.1",

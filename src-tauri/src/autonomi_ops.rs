@@ -1,6 +1,5 @@
 use ant_core::data::{
-    Client, ClientConfig, CoreNodeConfig, CustomNetwork, DataMap, EvmNetwork, ExternalPaymentInfo,
-    MultiAddr, NodeMode, P2PNode, PreparedUpload, MAX_WIRE_MESSAGE_SIZE,
+    Client, ClientConfig, CustomNetwork, DataMap, EvmNetwork, ExternalPaymentInfo, PreparedUpload,
 };
 use evmlib::common::{QuoteHash, TxHash};
 use serde::{Deserialize, Serialize};
@@ -183,13 +182,14 @@ async fn set_connection_status(app: &AppHandle, new_status: ConnectionStatus) {
     }
 }
 
-/// Background task: build + start the embedded P2P node once and emit status
+/// Background task: run a single `Client::connect` and emit status
 /// transitions via `set_connection_status`. Matches `ant-cli`'s behavior —
-/// no per-attempt timeout and no retry loop. `P2PNode::start()` blocks on
-/// the saorsa-core bootstrap loop (sequential `.await` per peer with a 15s
-/// identity-exchange timeout each), so cold start can take 1-4 minutes on
-/// a fresh connect. If it genuinely wedges, the user can hit Retry (which
-/// calls `retry_autonomi_client`) or restart the app.
+/// no per-attempt timeout and no retry loop. The saorsa-core bootstrap
+/// loop inside `Client::connect` walks peers sequentially (one `.await`
+/// per peer with a 15s identity-exchange timeout each), so cold start
+/// can take 1-4 minutes on a fresh connect. If it genuinely wedges, the
+/// user can hit Retry (which calls `retry_autonomi_client`) or restart
+/// the app.
 async fn run_connection_loop(app: AppHandle, args: InitArgs) {
     let peers: Vec<std::net::SocketAddr> = match &args.bootstrap_peers {
         Some(list) if !list.is_empty() => list.iter().filter_map(|s| s.parse().ok()).collect(),
@@ -259,60 +259,20 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
         ..ClientConfig::default()
     };
 
-    // Force IPv4-only on outbound connections. Upstream `Network::new`
-    // hardcodes `ipv6(true)` (ant-client PR #33), which dual-stacks the
-    // socket and turns every peer send into a `[DUAL SEND]` that wastes
-    // ~15s per failing IPv6 leg on home networks where the ISP drops
-    // outbound v6. Measured cold-start on this machine was 100s with
-    // ipv6(false) vs 218s with ipv6(true).
-    //
-    // Temporary workaround — remove once upstream ships RFC 8305 happy
-    // eyeballs / IPv6 reachability detection so dual-stack is safe to
-    // leave on by default (see docs/ipv6-bootstrap-proposal.md in the
-    // review thread). Until then we mirror `ant-cli::create_client_node_raw`
-    // by building `CoreNodeConfig` directly and calling `Client::from_node`,
-    // bypassing `Client::connect` / `Network::new`.
-    let mut core_config = match CoreNodeConfig::builder()
-        .port(0)
-        .ipv6(false)
-        .local(allow_loopback)
-        .mode(NodeMode::Client)
-        .max_message_size(MAX_WIRE_MESSAGE_SIZE)
-        .build()
-    {
-        Ok(cfg) => cfg,
+    match Client::connect(&peers, client_config).await {
+        Ok(client) => {
+            let peer_count = client.network().connected_peers().await.len();
+            let client = client.with_evm_network(evm_network);
+            *app.state::<AutonomiState>().client.write().await = Some(client);
+            eprintln!("Autonomi connect succeeded ({peer_count} peers)");
+            set_connection_status(&app, ConnectionStatus::Connected).await;
+        }
         Err(e) => {
-            let reason = format!("core config build failed: {e}");
+            let reason = format!("connect failed: {e}");
             eprintln!("Autonomi connect: {reason}");
             set_connection_status(&app, ConnectionStatus::Failed { reason }).await;
-            return;
         }
-    };
-    core_config.bootstrap_peers = peers.iter().map(|addr| MultiAddr::quic(*addr)).collect();
-
-    let node = match P2PNode::new(core_config).await {
-        Ok(n) => n,
-        Err(e) => {
-            let reason = format!("P2PNode::new failed: {e}");
-            eprintln!("Autonomi connect: {reason}");
-            set_connection_status(&app, ConnectionStatus::Failed { reason }).await;
-            return;
-        }
-    };
-
-    if let Err(e) = node.start().await {
-        let reason = format!("P2PNode::start failed: {e}");
-        eprintln!("Autonomi connect: {reason}");
-        set_connection_status(&app, ConnectionStatus::Failed { reason }).await;
-        return;
     }
-
-    let node = std::sync::Arc::new(node);
-    let peer_count = node.connected_peers().await.len();
-    let client = Client::from_node(node, client_config).with_evm_network(evm_network);
-    *app.state::<AutonomiState>().client.write().await = Some(client);
-    eprintln!("Autonomi connect succeeded ({peer_count} peers)");
-    set_connection_status(&app, ConnectionStatus::Connected).await;
 }
 
 /// Spawn the connection loop if no client is already set. Returns immediately —
