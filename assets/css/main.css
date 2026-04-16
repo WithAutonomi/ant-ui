@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Light-mode overrides. Dark values live in tailwind.config.cjs as the
+ * fallback on each `var(--autonomi-*)`, so the absence of a `.light` class
+ * on <html> yields the dark palette without needing a `:root` block here.
+ *
+ * Toggle: add/remove `light` class on <html>. See composables/useTheme.ts.
+ */
+:root.light {
+  --autonomi-dark: #F8FAFC;
+  --autonomi-surface: #FFFFFF;
+  --autonomi-border: #CBD5E1;
+  --autonomi-text: #0F172A;
+  --autonomi-muted: #64748B;
+}

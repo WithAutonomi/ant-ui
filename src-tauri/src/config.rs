@@ -22,6 +22,8 @@ pub struct AppConfig {
     pub indelible_url: Option<String>,
     #[serde(default)]
     pub indelible_api_key: Option<String>,
+    #[serde(default = "default_theme_mode")]
+    pub theme_mode: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,10 +35,15 @@ pub struct FileMetaResult {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UploadHistoryEntry {
+    #[serde(default)]
     pub name: String,
+    #[serde(default)]
     pub size_bytes: u64,
+    #[serde(default)]
     pub address: String,
+    #[serde(default)]
     pub cost: Option<String>,
+    #[serde(default)]
     pub uploaded_at: String,
     /// Absolute path to the serialized DataMap JSON file persisted alongside
     /// this history entry. `None` for legacy entries written before datamap
@@ -49,6 +56,10 @@ pub struct UploadHistoryEntry {
 pub struct UploadHistory {
     #[serde(default)]
     pub entries: Vec<UploadHistoryEntry>,
+}
+
+fn default_theme_mode() -> String {
+    "dark".to_string()
 }
 
 fn default_daemon_url() -> String {
@@ -94,6 +105,7 @@ impl Default for AppConfig {
             earnings_address: None,
             indelible_url: None,
             indelible_api_key: None,
+            theme_mode: default_theme_mode(),
         }
     }
 }

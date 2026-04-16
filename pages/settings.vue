@@ -81,6 +81,27 @@
       </button>
     </div>
 
+    <!-- Appearance -->
+    <div class="flex items-center justify-between rounded-lg border border-autonomi-border p-4">
+      <div>
+        <h3 class="text-sm font-medium">Light Mode</h3>
+        <p class="text-xs text-autonomi-muted">Switch between dark and light themes</p>
+      </div>
+      <button
+        role="switch"
+        :aria-checked="settingsStore.themeMode === 'light'"
+        aria-label="Toggle light mode"
+        class="relative h-6 w-11 rounded-full transition-colors"
+        :class="settingsStore.themeMode === 'light' ? 'bg-autonomi-blue' : 'bg-autonomi-border'"
+        @click="settingsStore.setThemeMode(settingsStore.themeMode === 'light' ? 'dark' : 'light')"
+      >
+        <span
+          class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform"
+          :class="settingsStore.themeMode === 'light' ? 'translate-x-5' : ''"
+        />
+      </button>
+    </div>
+
     <!-- Advanced -->
     <div>
       <button
@@ -308,16 +329,35 @@
       </div>
     </div>
 
+    <!-- Software -->
+    <div class="rounded-lg border border-autonomi-border p-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0 flex-1">
+          <h3 class="text-sm font-medium">Software</h3>
+          <div class="mt-1 flex items-baseline gap-2 text-xs">
+            <span class="text-autonomi-muted">Version</span>
+            <span class="font-mono">{{ appVersion }}</span>
+          </div>
+          <p v-if="lastCheckedLabel" class="mt-0.5 text-xs text-autonomi-muted">
+            Last checked {{ lastCheckedLabel }}
+          </p>
+        </div>
+        <button
+          :disabled="updaterStore.checking"
+          class="shrink-0 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-text disabled:opacity-50"
+          @click="checkForUpdates"
+        >
+          {{ updaterStore.checking ? 'Checking…' : 'Check for Updates' }}
+        </button>
+      </div>
+    </div>
+
     <!-- About -->
     <div class="rounded-lg border border-autonomi-border p-4">
       <h3 class="text-sm font-medium">About</h3>
       <div class="mt-3 space-y-1.5 text-xs">
         <div class="flex justify-between">
-          <span class="text-autonomi-muted">App version</span>
-          <span class="font-mono">{{ appVersion }}</span>
-        </div>
-        <div class="flex justify-between">
-          <span class="text-autonomi-muted">Node version</span>
+          <span class="text-autonomi-muted">Node daemon version</span>
           <span class="font-mono">{{ nodeVersion }}</span>
         </div>
       </div>
@@ -342,15 +382,56 @@ import { useSettingsStore } from '~/stores/settings'
 import { isValidEthAddress } from '~/utils/validators'
 import { useToastStore } from '~/stores/toasts'
 import { useErrorLogStore } from '~/stores/errorlog'
+import { useUpdaterStore } from '~/stores/updater'
 
 const settingsStore = useSettingsStore()
 const walletStore = useWalletStore()
 const nodesStore = useNodesStore()
 const toasts = useToastStore()
 const errorLogStore = useErrorLogStore()
+const updaterStore = useUpdaterStore()
 const showAdvanced = ref(false)
 const showLog = ref(false)
 const appVersion = ref('0.1.0')
+
+// Re-compute "Last checked X ago" every 30s so the label stays fresh while
+// the settings page is visible, without paying for a global ticker.
+const nowTick = ref(Date.now())
+let tickHandle: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  tickHandle = setInterval(() => { nowTick.value = Date.now() }, 30_000)
+})
+onUnmounted(() => {
+  if (tickHandle) clearInterval(tickHandle)
+})
+
+const lastCheckedLabel = computed(() => {
+  const ts = updaterStore.lastCheckedAt
+  if (!ts) return ''
+  const secs = Math.max(0, Math.round((nowTick.value - ts) / 1000))
+  if (secs < 10) return 'just now'
+  if (secs < 60) return `${secs}s ago`
+  const mins = Math.round(secs / 60)
+  if (mins < 60) return `${mins} min ago`
+  const hours = Math.round(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.round(hours / 24)
+  return `${days}d ago`
+})
+
+async function checkForUpdates() {
+  const result = await updaterStore.checkForUpdate()
+  if (!result.ok) {
+    toasts.add(result.error ?? 'Update check failed', 'error')
+    return
+  }
+  if (result.available) {
+    toasts.add(`Update available: v${updaterStore.version}`, 'info')
+    updaterStore.showDialog = true
+  } else {
+    toasts.add(`You're on the latest version (v${appVersion.value})`, 'info')
+  }
+}
 const nodeVersion = computed(() => {
   const versions = nodesStore.nodes.map(n => n.version).filter(Boolean)
   return versions.length > 0 ? versions[0] : '-'

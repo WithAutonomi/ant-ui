@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
 import { check, type Update } from '@tauri-apps/plugin-updater'
 
+export interface CheckResult {
+  ok: boolean
+  available: boolean
+  error?: string
+}
+
 export const useUpdaterStore = defineStore('updater', {
   state: () => ({
     available: false,
@@ -10,6 +16,8 @@ export const useUpdaterStore = defineStore('updater', {
     showDialog: false,
     downloadTotal: null as number | null,
     downloadedBytes: 0,
+    checking: false,
+    lastCheckedAt: null as number | null,
     _update: null as Update | null,
   }),
 
@@ -21,17 +29,25 @@ export const useUpdaterStore = defineStore('updater', {
   },
 
   actions: {
-    async checkForUpdate() {
+    async checkForUpdate(): Promise<CheckResult> {
+      if (this.checking) return { ok: false, available: false, error: 'Check already in progress' }
+      this.checking = true
       try {
         const update = await check()
+        this.lastCheckedAt = Date.now()
         if (update) {
           this.available = true
           this.version = update.version
           this.body = update.body ?? null
           this._update = update
+          return { ok: true, available: true }
         }
-      } catch (e) {
+        return { ok: true, available: false }
+      } catch (e: any) {
         console.error('Update check failed:', e)
+        return { ok: false, available: false, error: e?.message ?? String(e) }
+      } finally {
+        this.checking = false
       }
     },
 
