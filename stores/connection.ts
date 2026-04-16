@@ -21,7 +21,9 @@ export const useConnectionStore = defineStore('connection', {
 
   getters: {
     isConnected: (state) => state.current.status === 'connected',
-    isConnecting: (state) => state.current.status === 'connecting',
+    // Treat `idle` (pre-init bootstrap) the same as `connecting` so the UI
+    // always shows a spinner while the client is being prepared.
+    isConnecting: (state) => state.current.status === 'connecting' || state.current.status === 'idle',
     hasFailed: (state) => state.current.status === 'failed',
   },
 
@@ -35,15 +37,18 @@ export const useConnectionStore = defineStore('connection', {
       if (this.listening) return
       this.listening = true
 
+      // Install the listener BEFORE fetching the current status, otherwise a
+      // state change emitted between the fetch and the subscription is lost
+      // and the UI can get stuck at `idle` indefinitely.
+      await listen<ConnectionStatus>('connection-status', (event) => {
+        this.current = event.payload
+      })
+
       try {
         this.current = await invoke<ConnectionStatus>('get_connection_status')
       } catch (e) {
         console.warn('get_connection_status failed:', e)
       }
-
-      await listen<ConnectionStatus>('connection-status', (event) => {
-        this.current = event.payload
-      })
     },
 
     /**
