@@ -93,30 +93,42 @@ jobs:
         run: |
           tag="v${{ needs.release-meta.outputs.version }}"
 
-          # Create release if it doesn't already exist (idempotent for re-runs)
-          existing_id=$(gh api "repos/$GITHUB_REPOSITORY/releases" \
-            --jq ".[] | select(.tag_name == \"$tag\") | .id" 2>/dev/null || true)
-
-          if [ -n "$existing_id" ]; then
-            echo "Release $tag already exists (id: $existing_id)"
-            echo "release_id=$existing_id" >> $GITHUB_OUTPUT
+          # `gh release create` (as opposed to raw `gh api`) attaches the pushed
+          # git tag to the release object from creation, so downstream jobs and
+          # the final latest.json see the proper tag name instead of GitHub's
+          # internal `untagged-<id>` placeholder.
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" &>/dev/null; then
+            echo "Release $tag already exists (re-run)"
           else
             prerelease_flag=""
             if [ "${{ needs.release-meta.outputs.prerelease }}" = "true" ]; then
               prerelease_flag="--prerelease"
             fi
 
-            release_id=$(gh api repos/$GITHUB_REPOSITORY/releases \
-              -f tag_name="$tag" \
-              -f name="Autonomi v${{ needs.release-meta.outputs.version }}" \
-              -F draft=true \
-              -F generate_release_notes=true \
-              $prerelease_flag \
-              --jq '.id')
+            gh release create "$tag" \
+              --repo "$GITHUB_REPOSITORY" \
+              --draft \
+              --title "Autonomi v${{ needs.release-meta.outputs.version }}" \
+              --generate-notes \
+              $prerelease_flag
 
-            echo "Created draft release $tag (id: $release_id)"
-            echo "release_id=$release_id" >> $GITHUB_OUTPUT
+            echo "Created draft release $tag"
           fi
+
+          # Tag-attached assertion: fails fast if GitHub still reports the
+          # release under an `untagged-*` slug. Without this, Windows MSI
+          # upload (which runs earliest) would freeze that slug into the
+          # final latest.json URL.
+          attached_tag=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName)
+          if [ "$attached_tag" != "$tag" ]; then
+            echo "ERROR: draft release tag is '$attached_tag', expected '$tag'" >&2
+            exit 1
+          fi
+          echo "Tag $tag confirmed attached to draft release"
+
+          release_id=$(gh api "repos/$GITHUB_REPOSITORY/releases" \
+            --jq ".[] | select(.tag_name == \"$tag\") | .id")
+          echo "release_id=$release_id" >> $GITHUB_OUTPUT
 
   build-linux-macos:
     name: build (${{ matrix.args && matrix.args || matrix.platform }})
@@ -212,10 +224,15 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
-          tagName: v__VERSION__
-          releaseName: "Autonomi v__VERSION__"
+          # Pass the concrete tag (not the literal `v__VERSION__` template) so
+          # asset URLs tauri-action stamps into any artifact metadata are
+          # correct. latest.json is composed from scratch in the final job, so
+          # includeUpdaterJson is disabled here to avoid parallel writes.
+          tagName: v${{ needs.release-meta.outputs.version }}
+          releaseName: "Autonomi v${{ needs.release-meta.outputs.version }}"
           releaseDraft: true
           prerelease: ${{ needs.release-meta.outputs.prerelease == 'true' }}
+          includeUpdaterJson: false
           args: ${{ matrix.args }}
 
   build-windows:
@@ -375,48 +392,108 @@ jobs:
           path: ${{ github.workspace }}\smctl-signing.log
           if-no-files-found: ignore
 
-  update-latest-json:
-    name: merge Windows into latest.json
+  compose-latest-json:
+    name: compose and upload latest.json
     runs-on: ubuntu-latest
-    needs: [build-windows, build-linux-macos, release-meta]
+    needs: [release-meta, build-linux-macos, build-windows]
     steps:
-      - name: download latest.json from release
+      - name: download all signature files
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="v${{ needs.release-meta.outputs.version }}"
-          gh release download "$tag" --pattern "latest.json" --dir . --repo "$GITHUB_REPOSITORY"
+          mkdir -p sigs
+          gh release download "$tag" --pattern "*.sig" --dir sigs --clobber --repo "$GITHUB_REPOSITORY"
+          echo "Downloaded signatures:"
+          ls -l sigs
 
-      - name: get Windows updater artifact URL and signature
+      - name: compose latest.json from scratch
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.release-meta.outputs.version }}
         run: |
-          tag="v${{ needs.release-meta.outputs.version }}"
+          tag="v${VERSION}"
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${tag}"
 
-          # In Tauri v2, the .msi is the updater artifact directly (no .msi.zip wrapper)
-          # Use test() to match only .msi files (not .msi.sig or other .msi-containing names)
-          msi_url=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets \
-            --jq '.assets[] | select(.name | test("Autonomi.*\\.msi$")) | .url')
+          read_sig() {
+            local path="sigs/$1"
+            if [ ! -s "$path" ]; then
+              echo "ERROR: signature file missing or empty: $path" >&2
+              ls -l sigs >&2
+              exit 1
+            fi
+            cat "$path"
+          }
 
-          # Download the .msi.sig and read its contents
-          gh release download "$tag" --pattern "*.msi.sig" --dir . --repo "$GITHUB_REPOSITORY"
-          sig_content=$(cat *.msi.sig)
+          mac_x64_sig=$(read_sig "Autonomi_x64.app.tar.gz.sig")
+          mac_aarch64_sig=$(read_sig "Autonomi_aarch64.app.tar.gz.sig")
+          linux_appimage_sig=$(read_sig "Autonomi_${VERSION}_amd64.AppImage.sig")
+          linux_deb_sig=$(read_sig "Autonomi_${VERSION}_amd64.deb.sig")
+          linux_rpm_sig=$(read_sig "Autonomi-${VERSION}-1.x86_64.rpm.sig")
+          win_sig=$(read_sig "Autonomi_${VERSION}_x64_en-US.msi.sig")
 
-          echo "MSI_URL=${msi_url}" >> $GITHUB_ENV
-          echo "MSI_SIG=${sig_content}" >> $GITHUB_ENV
+          pub_date=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
 
-      - name: merge Windows entry into latest.json
+          jq -n \
+            --arg version       "${VERSION}" \
+            --arg pub_date      "${pub_date}" \
+            --arg mac_x64_url   "${base}/Autonomi_x64.app.tar.gz" \
+            --arg mac_arm_url   "${base}/Autonomi_aarch64.app.tar.gz" \
+            --arg lx_app_url    "${base}/Autonomi_${VERSION}_amd64.AppImage" \
+            --arg lx_deb_url    "${base}/Autonomi_${VERSION}_amd64.deb" \
+            --arg lx_rpm_url    "${base}/Autonomi-${VERSION}-1.x86_64.rpm" \
+            --arg win_url       "${base}/Autonomi_${VERSION}_x64_en-US.msi" \
+            --arg mac_x64_sig   "${mac_x64_sig}" \
+            --arg mac_arm_sig   "${mac_aarch64_sig}" \
+            --arg lx_app_sig    "${linux_appimage_sig}" \
+            --arg lx_deb_sig    "${linux_deb_sig}" \
+            --arg lx_rpm_sig    "${linux_rpm_sig}" \
+            --arg win_sig       "${win_sig}" \
+            '{
+              version: $version,
+              notes: "",
+              pub_date: $pub_date,
+              platforms: {
+                "darwin-x86_64":         {signature: $mac_x64_sig, url: $mac_x64_url},
+                "darwin-x86_64-app":     {signature: $mac_x64_sig, url: $mac_x64_url},
+                "darwin-aarch64":        {signature: $mac_arm_sig, url: $mac_arm_url},
+                "darwin-aarch64-app":    {signature: $mac_arm_sig, url: $mac_arm_url},
+                "linux-x86_64":          {signature: $lx_app_sig,  url: $lx_app_url},
+                "linux-x86_64-appimage": {signature: $lx_app_sig,  url: $lx_app_url},
+                "linux-x86_64-deb":      {signature: $lx_deb_sig,  url: $lx_deb_url},
+                "linux-x86_64-rpm":      {signature: $lx_rpm_sig,  url: $lx_rpm_url},
+                "windows-x86_64":        {signature: $win_sig,     url: $win_url}
+              }
+            }' > latest.json
+
+          echo "--- composed latest.json ---"
+          jq . latest.json
+
+      - name: assert latest.json integrity
         run: |
-          # Add windows-x86_64 platform to latest.json
-          jq --arg url "$MSI_URL" \
-             --arg sig "$MSI_SIG" \
-             '.platforms["windows-x86_64"] = {"signature": $sig, "url": $url}' \
-             latest.json > latest-updated.json
-          mv latest-updated.json latest.json
-          echo "Updated latest.json:"
-          cat latest.json | jq .
+          # Fails if any URL still contains GitHub's `untagged-*` draft slug or
+          # tauri-action's unsubstituted `__VERSION__` template. Also guards
+          # against empty/null signatures.
+          if jq -e '.platforms | to_entries[] | select(.value.url | test("__VERSION__|/releases/download/untagged-"))' latest.json > /dev/null; then
+            echo "ERROR: latest.json contains broken URLs (__VERSION__ or untagged-*)" >&2
+            jq '.platforms' latest.json >&2
+            exit 1
+          fi
+          if jq -e '.platforms | to_entries[] | select(.value.signature == "" or .value.signature == null)' latest.json > /dev/null; then
+            echo "ERROR: latest.json contains empty signatures" >&2
+            jq '.platforms' latest.json >&2
+            exit 1
+          fi
+          expected_platforms='["darwin-aarch64","darwin-aarch64-app","darwin-x86_64","darwin-x86_64-app","linux-x86_64","linux-x86_64-appimage","linux-x86_64-deb","linux-x86_64-rpm","windows-x86_64"]'
+          actual_platforms=$(jq -c '.platforms | keys' latest.json)
+          if [ "$actual_platforms" != "$expected_platforms" ]; then
+            echo "ERROR: latest.json platforms mismatch" >&2
+            echo "expected: $expected_platforms" >&2
+            echo "actual:   $actual_platforms" >&2
+            exit 1
+          fi
+          echo "latest.json passed integrity checks"
 
-      - name: upload merged latest.json
+      - name: upload latest.json to release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
