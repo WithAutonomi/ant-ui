@@ -480,31 +480,27 @@ async function estimateCost() {
 
     const paths = Array.isArray(selected) ? selected : [selected]
     const pathStrings = paths.map(p => String(p))
-
-    // Indelible prices uploads server-side, so the embedded ant-core has
-    // nothing to quote against. There's no heuristic fallback anymore —
-    // tell the user up front rather than open an empty dialog.
-    if (settingsStore.indelibleConnected && !settingsStore.devnetActive) {
-      toastStore.add('Cost estimation requires the Autonomi backend', 'warning')
-      return
-    }
-
     costLoading.value = true
     costFiles.value = []
     showCostDialog.value = true
 
     const metas = await getFileMetas(pathStrings)
     costMetas.value = metas
+    // Show sizes immediately; the dialog falls back to the heuristic estimate
+    // per file until real costs land below.
     costFiles.value = metas.map(m => ({ name: m.name, size: m.size }))
+    costLoading.value = false
 
+    // Skip network quoting when Indelible is the active backend — Indelible
+    // prices uploads server-side, so the embedded ant-core has nothing to
+    // quote against.
+    if (settingsStore.indelibleConnected && !settingsStore.devnetActive) return
+
+    // If the embedded client is connected (or devnet override is active),
+    // fire real quotes now. Otherwise the watcher below picks up the case
+    // where the connection completes after the dialog opened.
     if (autonomiConnected.value || settingsStore.devnetActive) {
-      await runCostEstimateQuotes(metas)
-      costLoading.value = false
-    } else {
-      // Kick off a connection attempt; the watcher below runs the quotes
-      // once the connection lands and clears loading then. Dialog stays
-      // in its loading state until real costs arrive.
-      invoke('retry_autonomi_client').catch(() => {})
+      runCostEstimateQuotes(metas)
     }
   } catch (err) {
     showCostDialog.value = false
@@ -536,20 +532,19 @@ async function runCostEstimateQuotes(metas: FileMeta[]) {
   }
 }
 
-// If estimateCost() opened the dialog before the embedded client was
-// connected, invoke('retry_autonomi_client') is in flight; this watcher
-// fires the real quotes once the connection lands and clears loading.
+// Same watch+retry pattern as the upload-confirm dialog: if the estimate
+// dialog is open with sizes only and the network later becomes available,
+// run the quotes then so the user doesn't have to close and reopen.
 watch(
   () => autonomiConnected.value,
-  async (connected) => {
+  (connected) => {
     if (!connected) return
     if (!showCostDialog.value) return
     if (settingsStore.indelibleConnected && !settingsStore.devnetActive) return
     if (costEstimateQuoting.value) return
     if (costMetas.value.length === 0) return
     if (costFiles.value.every(f => f.cost)) return
-    await runCostEstimateQuotes(costMetas.value)
-    costLoading.value = false
+    runCostEstimateQuotes(costMetas.value)
   },
 )
 
