@@ -7,6 +7,7 @@
 <script setup lang="ts">
 import { invoke } from '@tauri-apps/api/core'
 import { useWallet } from '~/composables/useWallet'
+import { useTheme } from '~/composables/useTheme'
 import { useSettingsStore } from '~/stores/settings'
 import { useUpdaterStore } from '~/stores/updater'
 import { useNodesStore } from '~/stores/nodes'
@@ -15,9 +16,13 @@ import { useConnectionStore } from '~/stores/connection'
 
 useHead({
   title: 'Autonomi',
-  htmlAttrs: { class: 'dark' },
   bodyAttrs: { class: 'bg-autonomi-dark text-autonomi-text' },
 })
+
+// Reactively sync html class + AppKit theme with settingsStore.themeMode.
+// Dark is the default — the class only flips once loadConfig resolves with
+// a persisted light preference, so the first paint always uses dark values.
+useTheme()
 
 // Load persisted config on startup, then init nodes (needs daemon URL from config)
 const settingsStore = useSettingsStore()

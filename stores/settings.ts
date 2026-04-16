@@ -6,6 +6,8 @@ let _walletKey: string | null = null
 export function setDevnetWalletKey(key: string | null) { _walletKey = key }
 export function getDevnetWalletKey(): string | null { return _walletKey }
 
+export type ThemeMode = 'dark' | 'light'
+
 interface AppConfig {
   storage_dir: string | null
   download_dir: string | null
@@ -14,6 +16,7 @@ interface AppConfig {
   earnings_address: string | null
   indelible_url: string | null
   indelible_api_key: string | null
+  theme_mode: string
 }
 
 export const useSettingsStore = defineStore('settings', {
@@ -28,6 +31,7 @@ export const useSettingsStore = defineStore('settings', {
     indelibleConnected: false,
     indelibleOrgName: null as string | null,
     indelibleUserEmail: null as string | null,
+    themeMode: 'dark' as ThemeMode,
     loaded: false,
     // Devnet/testnet mode (auto-detected from manifest file)
     devnetActive: false,
@@ -52,6 +56,7 @@ export const useSettingsStore = defineStore('settings', {
         this.earningsAddress = config.earnings_address
         this.indelibleUrl = config.indelible_url
         this.indelibleApiKey = config.indelible_api_key
+        this.themeMode = config.theme_mode === 'light' ? 'light' : 'dark'
         this.loaded = true
       } catch (e) {
         console.error('Failed to load config:', e)
@@ -68,6 +73,7 @@ export const useSettingsStore = defineStore('settings', {
           earnings_address: this.earningsAddress,
           indelible_url: this.indelibleUrl,
           indelible_api_key: this.indelibleApiKey,
+          theme_mode: this.themeMode,
         }
         await invoke('save_config', { config })
       } catch (e) {
@@ -97,6 +103,11 @@ export const useSettingsStore = defineStore('settings', {
 
     async toggleBell() {
       this.bellOnCritical = !this.bellOnCritical
+      await this.saveConfig()
+    },
+
+    async setThemeMode(mode: ThemeMode) {
+      this.themeMode = mode
       await this.saveConfig()
     },
 
