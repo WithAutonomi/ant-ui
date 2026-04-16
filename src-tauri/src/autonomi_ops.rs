@@ -58,11 +58,11 @@ pub enum ConnectionStatus {
     /// No connect attempt has run yet (initial state on app start).
     Idle,
     /// A connect attempt is in flight.
-    Connecting { attempt: u32, of: u32 },
+    Connecting,
     /// Successfully connected to the network.
     Connected,
-    /// All retries exhausted. `reason` is the error from the last attempt.
-    Failed { reason: String, attempts: u32 },
+    /// Connect failed. `reason` is the error from the backend.
+    Failed { reason: String },
 }
 
 pub struct AutonomiState {
@@ -82,28 +82,6 @@ pub struct InitArgs {
     pub evm_token_address: Option<String>,
     pub evm_vault_address: Option<String>,
 }
-
-/// Per-attempt timeout for building + starting the embedded P2P node.
-///
-/// `P2PNode::start()` blocks until the saorsa-core bootstrap loop has
-/// processed every configured peer. That loop is sequential (one `.await`
-/// per peer — see saorsa-core `network.rs` ~line 2022), with a 15s
-/// identity-exchange timeout per unresponsive peer. With 7 bundled
-/// bootstrap peers and IPv4-only sockets (see the `ipv6(false)` override
-/// in the connect loop) cold start is ~60-120s in practice. `ant-cli` has
-/// no timeout on this phase and relies on its spinner for progress; we
-/// give ourselves 240s, which covers the worst case we've observed
-/// without letting a genuine failure wedge the UI.
-const CONNECT_ATTEMPT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(240);
-/// Maximum number of connect attempts before giving up.
-///
-/// Two attempts is enough in practice: if a 4-minute attempt fails, the
-/// bootstrap peer list or the local network is actually broken, not
-/// transiently slow. A second attempt is a cheap hedge; a third just
-/// keeps the user staring at a spinner.
-const CONNECT_MAX_ATTEMPTS: u32 = 2;
-/// Backoff schedule between attempts (length must be ≥ CONNECT_MAX_ATTEMPTS - 1).
-const CONNECT_BACKOFFS: [std::time::Duration; 1] = [std::time::Duration::from_secs(5)];
 
 /// Pending uploads older than this are garbage-collected.
 const PENDING_UPLOAD_TTL: std::time::Duration = std::time::Duration::from_secs(30 * 60);
@@ -191,10 +169,13 @@ async fn set_connection_status(app: &AppHandle, new_status: ConnectionStatus) {
     }
 }
 
-/// Background task: try `Client::connect` up to `CONNECT_MAX_ATTEMPTS` times
-/// with a per-attempt timeout and backoff between attempts. Each transition is
-/// emitted to the frontend via `set_connection_status`. Returns silently — the
-/// frontend learns the outcome through events / `get_connection_status`.
+/// Background task: build + start the embedded P2P node once and emit status
+/// transitions via `set_connection_status`. Matches `ant-cli`'s behavior —
+/// no per-attempt timeout and no retry loop. `P2PNode::start()` blocks on
+/// the saorsa-core bootstrap loop (sequential `.await` per peer with a 15s
+/// identity-exchange timeout each), so cold start can take 1-4 minutes on
+/// a fresh connect. If it genuinely wedges, the user can hit Retry (which
+/// calls `retry_autonomi_client`) or restart the app.
 async fn run_connection_loop(app: AppHandle, args: InitArgs) {
     let peers: Vec<std::net::SocketAddr> = match &args.bootstrap_peers {
         Some(list) if !list.is_empty() => list.iter().filter_map(|s| s.parse().ok()).collect(),
@@ -205,7 +186,6 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
                     &app,
                     ConnectionStatus::Failed {
                         reason: format!("Could not load bootstrap peers: {e}"),
-                        attempts: 0,
                     },
                 )
                 .await;
@@ -219,7 +199,6 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
             &app,
             ConnectionStatus::Failed {
                 reason: "No bootstrap peers available".into(),
-                attempts: 0,
             },
         )
         .await;
@@ -232,7 +211,6 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
                 &app,
                 ConnectionStatus::Failed {
                     reason: "evm_token_address required with evm_rpc_url".into(),
-                    attempts: 0,
                 },
             )
             .await;
@@ -243,7 +221,6 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
                 &app,
                 ConnectionStatus::Failed {
                     reason: "evm_vault_address required with evm_rpc_url".into(),
-                    attempts: 0,
                 },
             )
             .await;
@@ -261,109 +238,67 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
     // ant-cli (see WithAutonomi/ant-client#40).
     let allow_loopback = args.evm_rpc_url.is_some();
 
-    let mut last_error = String::new();
-    for attempt in 1..=CONNECT_MAX_ATTEMPTS {
-        set_connection_status(
-            &app,
-            ConnectionStatus::Connecting {
-                attempt,
-                of: CONNECT_MAX_ATTEMPTS,
-            },
-        )
-        .await;
+    set_connection_status(&app, ConnectionStatus::Connecting).await;
 
-        let client_config = ClientConfig {
-            allow_loopback,
-            ..ClientConfig::default()
-        };
+    let client_config = ClientConfig {
+        allow_loopback,
+        ..ClientConfig::default()
+    };
 
-        // Force IPv4-only on outbound connections. Upstream `Network::new`
-        // hardcodes `ipv6(true)` (ant-client PR #33), which dual-stacks the
-        // socket and turns every peer send into a `[DUAL SEND]` that wastes
-        // ~15s per failing IPv6 leg on home networks where the ISP drops
-        // outbound v6. Measured cold-start on this machine was 100s with
-        // ipv6(false) vs 218s with ipv6(true).
-        //
-        // Temporary workaround — remove once upstream ships RFC 8305 happy
-        // eyeballs / IPv6 reachability detection so dual-stack is safe to
-        // leave on by default (see docs/ipv6-bootstrap-proposal.md in the
-        // review thread). Until then we mirror `ant-cli::create_client_node_raw`
-        // by building `CoreNodeConfig` directly and calling `Client::from_node`,
-        // bypassing `Client::connect` / `Network::new`.
-        let mut core_config = match CoreNodeConfig::builder()
-            .port(0)
-            .ipv6(false)
-            .local(allow_loopback)
-            .mode(NodeMode::Client)
-            .max_message_size(MAX_WIRE_MESSAGE_SIZE)
-            .build()
-        {
-            Ok(cfg) => cfg,
-            Err(e) => {
-                last_error = format!("core config build failed: {e}");
-                eprintln!("Autonomi connect attempt {attempt}: {last_error}");
-                if attempt < CONNECT_MAX_ATTEMPTS {
-                    let backoff = CONNECT_BACKOFFS
-                        .get((attempt - 1) as usize)
-                        .copied()
-                        .unwrap_or(std::time::Duration::from_secs(20));
-                    tokio::time::sleep(backoff).await;
-                }
-                continue;
-            }
-        };
-        core_config.bootstrap_peers = peers.iter().map(|addr| MultiAddr::quic(*addr)).collect();
-
-        let connect_fut = async move {
-            let node = P2PNode::new(core_config)
-                .await
-                .map_err(|e| format!("P2PNode::new failed: {e}"))?;
-            node.start()
-                .await
-                .map_err(|e| format!("P2PNode::start failed: {e}"))?;
-            Ok::<_, String>(std::sync::Arc::new(node))
-        };
-
-        match tokio::time::timeout(CONNECT_ATTEMPT_TIMEOUT, connect_fut).await {
-            Ok(Ok(node)) => {
-                let peer_count = node.connected_peers().await.len();
-                let client =
-                    Client::from_node(node, client_config).with_evm_network(evm_network.clone());
-                *app.state::<AutonomiState>().client.write().await = Some(client);
-                eprintln!("Autonomi connect attempt {attempt} succeeded ({peer_count} peers)");
-                set_connection_status(&app, ConnectionStatus::Connected).await;
-                return;
-            }
-            Ok(Err(e)) => {
-                last_error = format!("connect failed: {e}");
-                eprintln!("Autonomi connect attempt {attempt} failed: {e}");
-            }
-            Err(_) => {
-                last_error = format!(
-                    "connect timed out after {}s",
-                    CONNECT_ATTEMPT_TIMEOUT.as_secs()
-                );
-                eprintln!("Autonomi connect attempt {attempt} timed out");
-            }
+    // Force IPv4-only on outbound connections. Upstream `Network::new`
+    // hardcodes `ipv6(true)` (ant-client PR #33), which dual-stacks the
+    // socket and turns every peer send into a `[DUAL SEND]` that wastes
+    // ~15s per failing IPv6 leg on home networks where the ISP drops
+    // outbound v6. Measured cold-start on this machine was 100s with
+    // ipv6(false) vs 218s with ipv6(true).
+    //
+    // Temporary workaround — remove once upstream ships RFC 8305 happy
+    // eyeballs / IPv6 reachability detection so dual-stack is safe to
+    // leave on by default (see docs/ipv6-bootstrap-proposal.md in the
+    // review thread). Until then we mirror `ant-cli::create_client_node_raw`
+    // by building `CoreNodeConfig` directly and calling `Client::from_node`,
+    // bypassing `Client::connect` / `Network::new`.
+    let mut core_config = match CoreNodeConfig::builder()
+        .port(0)
+        .ipv6(false)
+        .local(allow_loopback)
+        .mode(NodeMode::Client)
+        .max_message_size(MAX_WIRE_MESSAGE_SIZE)
+        .build()
+    {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            let reason = format!("core config build failed: {e}");
+            eprintln!("Autonomi connect: {reason}");
+            set_connection_status(&app, ConnectionStatus::Failed { reason }).await;
+            return;
         }
+    };
+    core_config.bootstrap_peers = peers.iter().map(|addr| MultiAddr::quic(*addr)).collect();
 
-        if attempt < CONNECT_MAX_ATTEMPTS {
-            let backoff = CONNECT_BACKOFFS
-                .get((attempt - 1) as usize)
-                .copied()
-                .unwrap_or(std::time::Duration::from_secs(20));
-            tokio::time::sleep(backoff).await;
+    let node = match P2PNode::new(core_config).await {
+        Ok(n) => n,
+        Err(e) => {
+            let reason = format!("P2PNode::new failed: {e}");
+            eprintln!("Autonomi connect: {reason}");
+            set_connection_status(&app, ConnectionStatus::Failed { reason }).await;
+            return;
         }
+    };
+
+    if let Err(e) = node.start().await {
+        let reason = format!("P2PNode::start failed: {e}");
+        eprintln!("Autonomi connect: {reason}");
+        set_connection_status(&app, ConnectionStatus::Failed { reason }).await;
+        return;
     }
 
-    set_connection_status(
-        &app,
-        ConnectionStatus::Failed {
-            reason: last_error,
-            attempts: CONNECT_MAX_ATTEMPTS,
-        },
-    )
-    .await;
+    let node = std::sync::Arc::new(node);
+    let peer_count = node.connected_peers().await.len();
+    let client = Client::from_node(node, client_config).with_evm_network(evm_network);
+    *app.state::<AutonomiState>().client.write().await = Some(client);
+    eprintln!("Autonomi connect succeeded ({peer_count} peers)");
+    set_connection_status(&app, ConnectionStatus::Connected).await;
 }
 
 /// Spawn the connection loop if no client is already set. Returns immediately —
@@ -388,7 +323,7 @@ pub async fn init_autonomi_client(
     // Don't start a second loop if one is already in flight.
     if matches!(
         *state.connection_status.read().await,
-        ConnectionStatus::Connecting { .. }
+        ConnectionStatus::Connecting
     ) {
         return Ok(false);
     }
@@ -420,7 +355,7 @@ pub async fn retry_autonomi_client(
     }
     if matches!(
         *state.connection_status.read().await,
-        ConnectionStatus::Connecting { .. }
+        ConnectionStatus::Connecting
     ) {
         return Ok(());
     }

@@ -59,16 +59,13 @@
             <template v-else-if="connectionStore.isConnecting">
               <div class="flex items-center gap-2 text-sm text-autonomi-muted">
                 <div class="h-3 w-3 animate-spin rounded-full border-2 border-yellow-500 border-t-transparent" />
-                <span>
-                  Connecting to the Autonomi network
-                  <template v-if="connectingDetails">({{ connectingDetails }})</template>...
-                </span>
+                <span>Connecting to the Autonomi network...</span>
               </div>
             </template>
             <template v-else-if="connectionStore.hasFailed">
               <div class="space-y-2">
                 <div class="text-sm text-yellow-500/80">
-                  Could not connect to the Autonomi network after {{ failedAttempts }} attempt{{ failedAttempts !== 1 ? 's' : '' }}.
+                  Could not connect to the Autonomi network.
                 </div>
                 <div v-if="failedReason" class="text-xs text-autonomi-muted break-words">
                   {{ failedReason }}
@@ -179,8 +176,8 @@ const props = defineProps<{
   quotedPaymentMode?: 'wave-batch' | 'merkle' | null
   /**
    * Kept for backward compatibility with the parent — the dialog now reads
-   * the richer connection state directly from useConnectionStore() so it can
-   * show "Connecting (attempt N of M)..." and a Retry button.
+   * the connection state directly from useConnectionStore() so it can show
+   * a Retry button when the connect fails.
    */
   networkConnected?: boolean
 }>()
@@ -204,16 +201,8 @@ const effectivePaymentMode = computed(() => {
   return estimatedChunks.value >= MERKLE_THRESHOLD ? 'merkle' : 'regular'
 })
 
-const connectingDetails = computed(() => {
-  const s = connectionStore.current
-  if (s.status !== 'connecting') return null
-  return `attempt ${s.attempt} of ${s.of}`
-})
 const failedReason = computed(() =>
   connectionStore.current.status === 'failed' ? connectionStore.current.reason : null,
-)
-const failedAttempts = computed(() =>
-  connectionStore.current.status === 'failed' ? connectionStore.current.attempts : 0,
 )
 
 watch(

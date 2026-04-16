@@ -8,9 +8,9 @@ import { listen } from '@tauri-apps/api/event'
  */
 export type ConnectionStatus =
   | { status: 'idle' }
-  | { status: 'connecting'; attempt: number; of: number }
+  | { status: 'connecting' }
   | { status: 'connected' }
-  | { status: 'failed'; reason: string; attempts: number }
+  | { status: 'failed'; reason: string }
 
 export const useConnectionStore = defineStore('connection', {
   state: () => ({
