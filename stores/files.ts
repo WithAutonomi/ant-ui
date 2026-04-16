@@ -200,36 +200,31 @@ export const useFilesStore = defineStore('files', {
     async getUploadQuote(path: string): Promise<UploadQuote | null> {
       const uploadId = `quote-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
-      // Deferred so we can resolve/reject from the listener and the timeout
-      // independently of where the Promise is awaited.
+      // Deferred so the listener can resolve independently of where the
+      // Promise is awaited.
       let resolveQuote: (value: any) => void = () => {}
-      let rejectQuote: (err: Error) => void = () => {}
-      const quotePromise = new Promise<any>((resolve, reject) => {
+      const quotePromise = new Promise<any>((resolve) => {
         resolveQuote = resolve
-        rejectQuote = reject
       })
 
       let unlisten: (() => void) | null = null
-      // The 120s timeout is registered AFTER listen() is awaited below — see
-      // explanation there. Holding the handle here so finally{} can clear it.
-      let timeoutId: ReturnType<typeof setTimeout> | null = null
 
       try {
-        // Register the listener BEFORE invoking start_upload. The previous
-        // implementation called listen() inside a `new Promise(...)` executor
-        // without awaiting it, then immediately did `await invoke(...)`. The
-        // backend can emit `upload-quote` before listen() finishes registering,
-        // in which case the event is missed and the 120s timeout eventually
-        // fires — visible in the dev console as "Uncaught (in promise) Error:
-        // Quote timeout". Awaiting listen() first eliminates the race and
-        // capturing `unlisten` lets us clean up so listeners do not pile up.
+        // Backend contract: `start_upload` emits `upload-quote` before it
+        // returns Ok. So `invoke` itself is our timing signal — when it
+        // resolves, the event has been dispatched. No separate timeout on
+        // the listener: on slow networks quote collection can legitimately
+        // take minutes, and an independent timeout just discards the
+        // result after the fact. Errors from the backend come through
+        // `invoke`'s rejection.
+        //
+        // Listener is awaited BEFORE invoke so the event cannot be emitted
+        // before we're listening.
         unlisten = await listen<any>('upload-quote', (event) => {
           if (event.payload.upload_id === uploadId) {
             resolveQuote(event.payload)
           }
         })
-
-        timeoutId = setTimeout(() => rejectQuote(new Error('Quote timeout')), 120_000)
 
         await invoke('start_upload', {
           request: { files: [path], upload_id: uploadId },
@@ -247,15 +242,9 @@ export const useFilesStore = defineStore('files', {
           merkle_pool_commitments: quote.merkle_pool_commitments,
           merkle_timestamp: quote.merkle_timestamp,
         }
-      } catch (err) {
-        // Settle the deferred so any later listener firing does not surface
-        // as an unhandled rejection; we already returned null to the caller.
-        rejectQuote(err instanceof Error ? err : new Error(String(err)))
-        // Swallow our own rejection so the deferred has a handler.
-        quotePromise.catch(() => {})
+      } catch {
         return null
       } finally {
-        if (timeoutId) clearTimeout(timeoutId)
         if (unlisten) unlisten()
       }
     },
@@ -280,39 +269,14 @@ export const useFilesStore = defineStore('files', {
           quote = preQuote
           this.updateEntry(id, { cost: preQuote.total_cost_display })
         } else {
-          // Get fresh quote from network
-          uploadId = `upload-${id}-${Date.now()}`
+          // Get fresh quote from network. Delegates to getUploadQuote so
+          // there is a single implementation of the listen+invoke dance.
+          if (!entry.path) throw new Error('Upload entry has no file path')
           this.updateEntry(id, { status: 'quoting' })
-
-          const quotePromise = new Promise<any>((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Quote timeout')), 120_000)
-            listen<any>('upload-quote', (event) => {
-              if (event.payload.upload_id === uploadId) {
-                clearTimeout(timeout)
-                resolve(event.payload)
-              }
-            })
-          })
-
-          await invoke('start_upload', {
-            request: {
-              files: [entry.path],
-              upload_id: uploadId,
-            },
-          })
-
-          const raw = await quotePromise
-          quote = {
-            upload_id: uploadId,
-            payment_mode: raw.payment_mode,
-            payments: raw.payments ?? [],
-            total_cost: raw.total_cost,
-            total_cost_display: raw.payment_mode === 'merkle' ? 'Determined on-chain' : formatNanoTokens(raw.total_cost),
-            payment_required: raw.payment_required,
-            merkle_depth: raw.merkle_depth,
-            merkle_pool_commitments: raw.merkle_pool_commitments,
-            merkle_timestamp: raw.merkle_timestamp,
-          }
+          const fresh = await this.getUploadQuote(entry.path)
+          if (!fresh) throw new Error('Failed to get quote from network')
+          uploadId = fresh.upload_id
+          quote = fresh
           this.updateEntry(id, { cost: quote.total_cost_display })
         }
 
@@ -339,14 +303,14 @@ export const useFilesStore = defineStore('files', {
               gas_cost: formatGasCost(payResult.gasSpent.toString()),
             })
 
-            const result = await withTimeout(
-              invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number }>('confirm_upload_merkle', {
-                uploadId,
-                winnerPoolHash: payResult.winnerPoolHash,
-              }),
-              120_000,
-              'Upload timed out',
-            )
+            // No frontend timeout: the backend drives chunk storage, which
+            // can legitimately take many minutes for larger files. The CLI
+            // (which works) also has no timeout here. Backend errors still
+            // surface through invoke's rejection.
+            const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number }>('confirm_upload_merkle', {
+              uploadId,
+              winnerPoolHash: payResult.winnerPoolHash,
+            })
 
             const duration = entry.transferStartedAt
               ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
@@ -385,14 +349,11 @@ export const useFilesStore = defineStore('files', {
 
           this.updateEntry(id, { status: 'uploading', progress: 0 })
 
-          const result = await withTimeout(
-            invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number }>('confirm_upload', {
-              uploadId,
-              txHashes,
-            }),
-            120_000,
-            'Upload timed out',
-          )
+          // No frontend timeout — see confirm_upload_merkle above for rationale.
+          const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number }>('confirm_upload', {
+            uploadId,
+            txHashes,
+          })
 
           const duration = entry.transferStartedAt
             ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
