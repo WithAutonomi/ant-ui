@@ -327,8 +327,8 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
         match tokio::time::timeout(CONNECT_ATTEMPT_TIMEOUT, connect_fut).await {
             Ok(Ok(node)) => {
                 let peer_count = node.connected_peers().await.len();
-                let client = Client::from_node(node, client_config)
-                    .with_evm_network(evm_network.clone());
+                let client =
+                    Client::from_node(node, client_config).with_evm_network(evm_network.clone());
                 *app.state::<AutonomiState>().client.write().await = Some(client);
                 eprintln!("Autonomi connect attempt {attempt} succeeded ({peer_count} peers)");
                 set_connection_status(&app, ConnectionStatus::Connected).await;
