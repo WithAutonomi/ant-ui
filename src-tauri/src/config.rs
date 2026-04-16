@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::io::Write;
+use std::path::{Path, PathBuf};
+
+/// Extension for persisted datamap files. Kept public so the frontend's file
+/// picker and sanity checks can share a single source of truth.
+pub const DATAMAP_EXTENSION: &str = "datamap";
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct AppConfig {
@@ -33,6 +38,11 @@ pub struct UploadHistoryEntry {
     pub address: String,
     pub cost: Option<String>,
     pub uploaded_at: String,
+    /// Absolute path to the serialized DataMap JSON file persisted alongside
+    /// this history entry. `None` for legacy entries written before datamap
+    /// persistence existed.
+    #[serde(default)]
+    pub data_map_file: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -160,4 +170,76 @@ pub fn get_file_metas(paths: &[String]) -> Result<Vec<FileMetaResult>, String> {
             })
         })
         .collect()
+}
+
+/// Persist a serialized DataMap JSON string alongside `upload_history.json`.
+///
+/// The file is named after the upload's original basename (with its extension
+/// stripped) plus `.datamap` — e.g. `test.pdf` becomes `test.datamap`. When a
+/// file of that name already exists, a numeric suffix is appended so we never
+/// overwrite a prior datamap: `test (2).datamap`, `test (3).datamap`, …
+///
+/// Returns the absolute path to the written file.
+pub fn write_datamap_for(original_name: &str, json: &str) -> Result<PathBuf, String> {
+    let stem = sanitize_stem(original_name);
+    let dir = config_path();
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create config dir: {e}"))?;
+
+    // Cap the number of collision attempts at a generous-but-finite limit so a
+    // pathological state (e.g. thousands of collisions) yields an error rather
+    // than an infinite loop.
+    const MAX_COLLISION_ATTEMPTS: u32 = 10_000;
+    for attempt in 0..MAX_COLLISION_ATTEMPTS {
+        let file_name = if attempt == 0 {
+            format!("{stem}.{DATAMAP_EXTENSION}")
+        } else {
+            format!("{stem} ({}).{DATAMAP_EXTENSION}", attempt + 1)
+        };
+        let path = dir.join(&file_name);
+        match std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)
+        {
+            Ok(mut f) => {
+                f.write_all(json.as_bytes())
+                    .map_err(|e| format!("Failed to write datamap: {e}"))?;
+                return Ok(path);
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(format!("Failed to create datamap file: {e}")),
+        }
+    }
+    Err("Unable to reserve a datamap filename after many attempts".into())
+}
+
+/// Reduce an arbitrary upload filename to a safe datamap filename stem: drop
+/// the final extension, replace characters that are awkward on disk across
+/// platforms with `_`, and fall back to "datamap" if the result is empty.
+fn sanitize_stem(original_name: &str) -> String {
+    let raw = Path::new(original_name)
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
+
+    let cleaned: String = raw
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || matches!(c, ' ' | '-' | '_' | '.' | '(' | ')') {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+
+    let trimmed = cleaned
+        .trim_matches(|c: char| c == '.' || c.is_whitespace())
+        .to_string();
+
+    if trimmed.is_empty() {
+        "datamap".to_string()
+    } else {
+        trimmed
+    }
 }

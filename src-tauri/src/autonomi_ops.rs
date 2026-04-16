@@ -67,7 +67,7 @@ pub enum ConnectionStatus {
 
 pub struct AutonomiState {
     pub client: RwLock<Option<Client>>,
-    pub pending_uploads: RwLock<HashMap<String, (PreparedUpload, std::time::Instant)>>,
+    pub pending_uploads: RwLock<HashMap<String, PendingUpload>>,
     pub connection_status: RwLock<ConnectionStatus>,
     /// Holds the last set of args used for `init_autonomi_client`, so a manual
     /// `retry_autonomi_client` can re-run with the same configuration.
@@ -86,6 +86,16 @@ pub struct InitArgs {
 /// Pending uploads older than this are garbage-collected.
 const PENDING_UPLOAD_TTL: std::time::Duration = std::time::Duration::from_secs(30 * 60);
 
+/// An upload that's been prepared (encrypted + quoted) and is waiting for the
+/// frontend to complete its payment step before chunks are stored on the
+/// network. `file_name` is the basename of the original file — captured here
+/// so `confirm_upload` can name the persisted datamap after it.
+pub struct PendingUpload {
+    pub prepared: PreparedUpload,
+    pub created_at: std::time::Instant,
+    pub file_name: String,
+}
+
 impl AutonomiState {
     pub fn new() -> Self {
         Self {
@@ -102,7 +112,7 @@ impl AutonomiState {
         self.pending_uploads
             .write()
             .await
-            .retain(|_, (_, created_at)| *created_at > cutoff);
+            .retain(|_, pending| pending.created_at > cutoff);
     }
 }
 
@@ -148,6 +158,10 @@ pub struct UploadResult {
     /// Hex address derived from the DataMap (for display/sharing).
     pub address: String,
     pub chunks_stored: usize,
+    /// Absolute path to the persisted DataMap file on the local filesystem.
+    /// This is the user-visible handle for private uploads — without it, the
+    /// data is unreachable after the app restarts.
+    pub data_map_file: String,
 }
 
 #[derive(Deserialize)]
@@ -485,12 +499,22 @@ pub async fn start_upload(
     app.emit("upload-quote", &quote_event)
         .map_err(|e| format!("Failed to emit quote event: {e}"))?;
 
+    // Capture the basename so confirm_upload can name the persisted datamap
+    // after the original file.
+    let file_name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "upload".to_string());
+
     // Store prepared upload with timestamp for TTL cleanup
-    state
-        .pending_uploads
-        .write()
-        .await
-        .insert(request.upload_id, (prepared, std::time::Instant::now()));
+    state.pending_uploads.write().await.insert(
+        request.upload_id,
+        PendingUpload {
+            prepared,
+            created_at: std::time::Instant::now(),
+            file_name,
+        },
+    );
 
     Ok(())
 }
@@ -509,7 +533,11 @@ pub async fn confirm_upload(
         .as_ref()
         .ok_or("Autonomi client not initialized")?;
 
-    let (prepared, _created_at) = state
+    let PendingUpload {
+        prepared,
+        file_name,
+        ..
+    } = state
         .pending_uploads
         .write()
         .await
@@ -549,6 +577,9 @@ pub async fn confirm_upload(
     let data_map_json = serde_json::to_string(&result.data_map)
         .map_err(|e| format!("Failed to serialize DataMap: {e}"))?;
     let address = format!("0x{:x}", Sha256::digest(data_map_json.as_bytes()));
+    let data_map_file = crate::config::write_datamap_for(&file_name, &data_map_json)?
+        .to_string_lossy()
+        .into_owned();
 
     app.emit(
         "upload-progress",
@@ -565,6 +596,7 @@ pub async fn confirm_upload(
         data_map_json,
         address,
         chunks_stored: result.chunks_stored,
+        data_map_file,
     })
 }
 
@@ -582,7 +614,11 @@ pub async fn confirm_upload_merkle(
         .as_ref()
         .ok_or("Autonomi client not initialized")?;
 
-    let (prepared, _created_at) = state
+    let PendingUpload {
+        prepared,
+        file_name,
+        ..
+    } = state
         .pending_uploads
         .write()
         .await
@@ -602,6 +638,9 @@ pub async fn confirm_upload_merkle(
     let data_map_json = serde_json::to_string(&result.data_map)
         .map_err(|e| format!("Failed to serialize DataMap: {e}"))?;
     let address = format!("0x{:x}", Sha256::digest(data_map_json.as_bytes()));
+    let data_map_file = crate::config::write_datamap_for(&file_name, &data_map_json)?
+        .to_string_lossy()
+        .into_owned();
 
     app.emit(
         "upload-progress",
@@ -618,6 +657,7 @@ pub async fn confirm_upload_merkle(
         data_map_json,
         address,
         chunks_stored: result.chunks_stored,
+        data_map_file,
     })
 }
 
@@ -668,6 +708,22 @@ pub async fn download_file(
     .ok();
 
     Ok(bytes_written)
+}
+
+/// Read a persisted DataMap file from disk and return its JSON contents.
+///
+/// Used by the "Download by datamap" flow: the user picks a `.datamap` file
+/// via the OS file dialog, and the frontend forwards the returned JSON to
+/// `download_file`. The path is trusted (chosen by the user through the
+/// native picker); we only validate that the file parses as UTF-8.
+#[tauri::command]
+pub fn read_datamap_file(path: String) -> Result<String, String> {
+    let canonical =
+        std::fs::canonicalize(&path).map_err(|e| format!("Invalid datamap path {path}: {e}"))?;
+    if !canonical.is_file() {
+        return Err(format!("Not a regular file: {path}"));
+    }
+    std::fs::read_to_string(&canonical).map_err(|e| format!("Failed to read {path}: {e}"))
 }
 
 /// Check if the data client is currently connected.

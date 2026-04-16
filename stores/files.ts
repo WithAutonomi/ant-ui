@@ -48,6 +48,10 @@ export interface FileEntry {
   address?: string
   /** Serialized DataMap JSON — needed for download from network */
   data_map_json?: string
+  /** Absolute path to the persisted DataMap file on disk. Set for private
+   *  uploads performed by this app; `undefined` for legacy entries or for
+   *  rows that represent a pure download-by-address with no local datamap. */
+  data_map_file?: string
   /** Upload cost (ANT) */
   cost?: string
   /** Gas cost (ETH) */
@@ -77,6 +81,9 @@ export interface UploadHistoryEntry {
   address: string
   cost: string | null
   uploaded_at: string
+  /** Absolute path to the persisted DataMap file; `null`/absent for legacy
+   *  entries written before datamap persistence was added. */
+  data_map_file?: string | null
 }
 
 export const useFilesStore = defineStore('files', {
@@ -121,6 +128,7 @@ export const useFilesStore = defineStore('files', {
             size_bytes: e.size_bytes,
             address: e.address,
             cost: e.cost ?? undefined,
+            data_map_file: e.data_map_file ?? undefined,
             status: 'complete',
             date: e.uploaded_at,
           })
@@ -142,6 +150,7 @@ export const useFilesStore = defineStore('files', {
           address: f.address!,
           cost: f.cost ?? null,
           uploaded_at: f.date,
+          data_map_file: f.data_map_file ?? null,
         }))
 
       try {
@@ -307,7 +316,7 @@ export const useFilesStore = defineStore('files', {
             // can legitimately take many minutes for larger files. The CLI
             // (which works) also has no timeout here. Backend errors still
             // surface through invoke's rejection.
-            const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number }>('confirm_upload_merkle', {
+            const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number; data_map_file: string }>('confirm_upload_merkle', {
               uploadId,
               winnerPoolHash: payResult.winnerPoolHash,
             })
@@ -320,6 +329,7 @@ export const useFilesStore = defineStore('files', {
               progress: 100,
               address: result.address,
               data_map_json: result.data_map_json,
+              data_map_file: result.data_map_file,
               duration,
               transferStartedAt: undefined,
             })
@@ -350,7 +360,7 @@ export const useFilesStore = defineStore('files', {
           this.updateEntry(id, { status: 'uploading', progress: 0 })
 
           // No frontend timeout — see confirm_upload_merkle above for rationale.
-          const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number }>('confirm_upload', {
+          const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number; data_map_file: string }>('confirm_upload', {
             uploadId,
             txHashes,
           })
@@ -363,6 +373,7 @@ export const useFilesStore = defineStore('files', {
             progress: 100,
             address: result.address,
             data_map_json: result.data_map_json,
+            data_map_file: result.data_map_file,
             duration,
             transferStartedAt: undefined,
           })
@@ -456,6 +467,21 @@ export const useFilesStore = defineStore('files', {
       const entry = this.findById(id)
       if (!entry) return
 
+      // Lazy-load the serialized DataMap from disk if only its path is known —
+      // e.g. after restarting the app, history entries carry `data_map_file`
+      // but not the JSON itself. Without this, re-downloads fail even though
+      // we persisted everything we need.
+      if (!entry.data_map_json && entry.data_map_file) {
+        try {
+          const json = await invoke<string>('read_datamap_file', { path: entry.data_map_file })
+          this.updateEntry(id, { data_map_json: json })
+        } catch (e: any) {
+          this.updateEntry(id, { status: 'failed', error: `Failed to read datamap: ${e.message ?? e}` })
+          toasts.add('Cannot download: datamap file missing or unreadable', 'error')
+          return
+        }
+      }
+
       if (!entry.data_map_json) {
         this.updateEntry(id, { status: 'failed', error: 'No data map available — file must be uploaded first' })
         toasts.add('Cannot download: no data map for this address', 'error')
@@ -520,8 +546,82 @@ export const useFilesStore = defineStore('files', {
       const settings = useSettingsStore()
       return settings.downloadDir ?? '~/Downloads'
     },
+
+    /**
+     * Download from a user-picked `.datamap` file on disk. Reads the JSON,
+     * reuses the entry for its address if one already exists, otherwise
+     * creates a fresh row. Returns the entry ID so callers can drive the
+     * actual transfer via `startRealDownload`.
+     *
+     * The output filename is derived from the datamap's basename with the
+     * `.datamap` extension stripped — not a perfect round-trip (we don't
+     * know the original file type), but good enough as a starting name.
+     */
+    async downloadFromDatamapFile(datamapPath: string): Promise<number | null> {
+      const toasts = useToastStore()
+
+      let json: string
+      try {
+        json = await invoke<string>('read_datamap_file', { path: datamapPath })
+      } catch (e: any) {
+        toasts.add(`Could not read datamap: ${e.message ?? e}`, 'error')
+        return null
+      }
+
+      // Derive the display/destination filename from the datamap's basename.
+      const basename = datamapPath.split(/[\\/]/).pop() ?? 'download'
+      const filename = basename.replace(/\.datamap$/i, '') || basename
+
+      // Compute the address the same way the backend does (sha256 of the
+      // serialized JSON) so we can find and reuse an existing entry.
+      const address = await sha256Hex(json)
+
+      const destPath = `${this.getDownloadDir()}/${filename}`
+      const existing = this.findByAddress(address)
+      if (existing) {
+        this.updateEntry(existing.id, {
+          status: 'downloading',
+          dest_path: destPath,
+          data_map_json: json,
+          data_map_file: datamapPath,
+          progress: 0,
+          transferStartedAt: Date.now(),
+          existedBeforeDownload: true,
+        })
+        return existing.id
+      }
+
+      const id = this.nextId++
+      this.files.unshift({
+        id,
+        name: filename,
+        size_bytes: 0,
+        address,
+        data_map_json: json,
+        data_map_file: datamapPath,
+        status: 'downloading',
+        dest_path: destPath,
+        progress: 0,
+        date: new Date().toISOString(),
+        transferStartedAt: Date.now(),
+        existedBeforeDownload: false,
+      })
+      return id
+    },
   },
 })
+
+/** Compute `sha256(text)` as a `0x`-prefixed lowercase hex string. Matches
+ *  the address derivation in `src-tauri/src/autonomi_ops.rs` so the frontend
+ *  can recognise re-downloads of known uploads without a round-trip. */
+async function sha256Hex(text: string): Promise<string> {
+  const bytes = new TextEncoder().encode(text)
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
+  const hex = Array.from(new Uint8Array(digest))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+  return `0x${hex}`
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return new Promise((resolve, reject) => {

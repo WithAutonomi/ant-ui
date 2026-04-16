@@ -601,6 +601,7 @@ pub fn run() {
             autonomi_ops::confirm_upload,
             autonomi_ops::confirm_upload_merkle,
             autonomi_ops::download_file,
+            autonomi_ops::read_datamap_file,
             autonomi_ops::is_autonomi_connected,
             autonomi_ops::retry_autonomi_client,
             autonomi_ops::get_connection_status,

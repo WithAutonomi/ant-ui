@@ -17,6 +17,12 @@
         </button>
         <button
           class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
+          @click="openDownloadByDatamap"
+        >
+          Download by Datamap
+        </button>
+        <button
+          class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
           @click="estimateCost"
         >
           Estimate Cost
@@ -113,7 +119,15 @@
               </td>
               <td class="px-4 py-2.5">
                 <span
-                  v-if="file.address"
+                  v-if="file.data_map_file"
+                  class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue"
+                  :title="`Reveal ${datamapBasename(file.data_map_file)} in its folder`"
+                  @click.stop="openFolder(file.data_map_file)"
+                >
+                  {{ datamapBasename(file.data_map_file) }}
+                </span>
+                <span
+                  v-else-if="file.address"
                   class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue"
                   @click.stop="copyAddress(file.address)"
                 >
@@ -133,6 +147,14 @@
       :open="showDownloadDialog"
       @close="showDownloadDialog = false"
       @download="handleDownload"
+    />
+
+    <FilesDownloadByDatamapDialog
+      :open="showDatamapDialog"
+      :candidates="datamapCandidates"
+      @close="showDatamapDialog = false"
+      @browse="browseForDatamap"
+      @select="startDatamapDownload"
     />
 
     <FilesUploadConfirmDialog
@@ -475,6 +497,60 @@ function waitForConnection(): Promise<boolean> {
   })
 }
 
+const showDatamapDialog = ref(false)
+
+/** Previously uploaded files for which we still hold a local datamap — the
+ *  set the user can re-download from without picking a file from disk. */
+const datamapCandidates = computed(() =>
+  filesStore.files
+    .filter(f => f.status === 'complete' && f.data_map_file)
+    .map(f => ({
+      name: f.name,
+      data_map_file: f.data_map_file!,
+      date: f.date,
+      size_bytes: f.size_bytes,
+    })),
+)
+
+function openDownloadByDatamap() {
+  showDatamapDialog.value = true
+}
+
+async function browseForDatamap() {
+  showDatamapDialog.value = false
+  let selected: string | string[] | null
+  try {
+    selected = await openFileDialog({
+      multiple: false,
+      title: 'Select a datamap file to download',
+      filters: [{ name: 'Datamap', extensions: ['datamap'] }],
+    })
+  } catch (err) {
+    console.error('File dialog error:', err)
+    return
+  }
+  if (!selected) return
+  const datamapPath = String(Array.isArray(selected) ? selected[0] : selected)
+  await startDatamapDownload(datamapPath)
+}
+
+async function startDatamapDownload(datamapPath: string) {
+  const id = await filesStore.downloadFromDatamapFile(datamapPath)
+  if (id === null) return
+
+  if (!autonomiConnected.value) {
+    invoke('retry_autonomi_client').catch(() => {})
+    const connected = await waitForConnection()
+    if (!connected) {
+      filesStore.updateEntry(id, { status: 'failed', error: 'Not connected to network' })
+      toastStore.add('Download requires network connection', 'warning')
+      return
+    }
+  }
+
+  filesStore.startRealDownload(id)
+}
+
 async function handleDownload(address: string, filename: string) {
   const downloadDir = filesStore.getDownloadDir()
   const destPath = `${downloadDir}/${filename}`
@@ -599,6 +675,10 @@ async function openFolder(path: string) {
 function copyAddress(addr: string) {
   navigator.clipboard.writeText(addr)
   toastStore.add('Address copied to clipboard', 'info')
+}
+
+function datamapBasename(path: string): string {
+  return path.split(/[\\/]/).pop() ?? path
 }
 
 function formatDate(iso: string): string {
