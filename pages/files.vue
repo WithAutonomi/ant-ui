@@ -451,16 +451,49 @@ function cancelUpload() {
 
 const showDownloadDialog = ref(false)
 
-function handleDownload(address: string, filename: string) {
+/**
+ * Resolve once the embedded ant-core client is connected, or returns false
+ * if it transitions to `failed`. No timeout — matches the upload-while-
+ * connecting flow, which just waits on a reactive watcher. A user who
+ * no longer wants to wait can close the app or dismiss the row.
+ */
+function waitForConnection(): Promise<boolean> {
+  if (autonomiConnected.value) return Promise.resolve(true)
+  return new Promise((resolve) => {
+    const stop = watch(
+      () => connectionStore.current.status,
+      (status) => {
+        if (status === 'connected') {
+          stop()
+          resolve(true)
+        } else if (status === 'failed') {
+          stop()
+          resolve(false)
+        }
+      },
+    )
+  })
+}
+
+async function handleDownload(address: string, filename: string) {
   const downloadDir = filesStore.getDownloadDir()
   const destPath = `${downloadDir}/${filename}`
   const id = filesStore.startDownload(address, filename, destPath)
-  if (autonomiConnected.value) {
-    filesStore.startRealDownload(id)
-  } else {
-    filesStore.updateEntry(id, { status: 'failed', error: 'Not connected to network' })
-    toastStore.add('Download requires network connection', 'warning')
+
+  if (!autonomiConnected.value) {
+    // Kick the connect loop (no-op if already connecting) and wait. The row
+    // already shows `downloading` — progress just stays at 0 until the
+    // client is ready.
+    invoke('retry_autonomi_client').catch(() => {})
+    const connected = await waitForConnection()
+    if (!connected) {
+      filesStore.updateEntry(id, { status: 'failed', error: 'Not connected to network' })
+      toastStore.add('Download requires network connection', 'warning')
+      return
+    }
   }
+
+  filesStore.startRealDownload(id)
 }
 
 // ── Cost estimation ──
