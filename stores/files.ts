@@ -38,6 +38,10 @@ export type FileStatus =
 export interface FileEntry {
   /** Unique ID for reactive tracking */
   id: number
+  /** Whether this row represents an upload or a download. Uploads persist
+   *  across restarts; downloads are in-memory only and a fresh session
+   *  always starts with an empty downloads table. */
+  kind: 'upload' | 'download'
   /** Display name */
   name: string
   /** Local file path (for uploads) */
@@ -70,9 +74,10 @@ export interface FileEntry {
   duration?: number
   /** Error message if failed */
   error?: string
-  /** Whether this entry existed in history before a download (vs downloaded-by-address) */
-  existedBeforeDownload?: boolean
 }
+
+const ACTIVE_STATUSES: FileStatus[] = ['quoting', 'paying', 'uploading', 'downloading', 'downloaded']
+const IN_FLIGHT_STATUSES: FileStatus[] = ['quoting', 'paying', 'uploading', 'downloading']
 
 /** Shape persisted to upload_history.json (kept for backwards compat) */
 export interface UploadHistoryEntry {
@@ -94,22 +99,32 @@ export const useFilesStore = defineStore('files', {
   }),
 
   getters: {
-    /** Rows that are actively transferring (pinned to top) */
-    pinnedFiles: (state) =>
-      state.files.filter(f =>
-        ['quoting', 'paying', 'uploading', 'downloading', 'downloaded'].includes(f.status),
-      ),
+    uploads: (state) => state.files.filter(f => f.kind === 'upload'),
+    downloads: (state) => state.files.filter(f => f.kind === 'download'),
+
+    /** Rows that are actively transferring (pinned to top of their table) */
+    pinnedUploads(): FileEntry[] {
+      return this.uploads.filter(f => ACTIVE_STATUSES.includes(f.status))
+    },
+    pinnedDownloads(): FileEntry[] {
+      return this.downloads.filter(f => ACTIVE_STATUSES.includes(f.status))
+    },
 
     /** Rows that are not active transfers (sorted normally) */
-    settledFiles: (state) =>
-      state.files.filter(f =>
-        !['quoting', 'paying', 'uploading', 'downloading', 'downloaded'].includes(f.status),
-      ),
+    settledUploads(): FileEntry[] {
+      return this.uploads.filter(f => !ACTIVE_STATUSES.includes(f.status))
+    },
+    settledDownloads(): FileEntry[] {
+      return this.downloads.filter(f => !ACTIVE_STATUSES.includes(f.status))
+    },
+
+    /** Any row in any table currently mid-transfer. Used by the header. */
+    pinnedFiles(): FileEntry[] {
+      return this.files.filter(f => ACTIVE_STATUSES.includes(f.status))
+    },
 
     hasActiveTransfers: (state) =>
-      state.files.some(f =>
-        ['quoting', 'paying', 'uploading', 'downloading'].includes(f.status),
-      ),
+      state.files.some(f => IN_FLIGHT_STATUSES.includes(f.status)),
   },
 
   actions: {
@@ -118,12 +133,13 @@ export const useFilesStore = defineStore('files', {
     async loadHistory() {
       try {
         const entries = await invoke<UploadHistoryEntry[]>('load_upload_history')
-        // Convert legacy history entries to unified FileEntry
         for (const e of entries) {
-          // Skip if we already have this address
-          if (this.files.some(f => f.address === e.address)) continue
+          // Skip if we already have this address in the uploads table — guards
+          // against double-loading on HMR without adding duplicates.
+          if (this.files.some(f => f.kind === 'upload' && f.address === e.address)) continue
           this.files.push({
             id: this.nextId++,
+            kind: 'upload',
             name: e.name,
             size_bytes: e.size_bytes,
             address: e.address,
@@ -141,9 +157,10 @@ export const useFilesStore = defineStore('files', {
     },
 
     async persistHistory() {
-      // Serialize settled complete entries back to legacy format
+      // Only uploads are persisted — downloads are intentionally in-memory
+      // so the table starts fresh each session.
       const entries: UploadHistoryEntry[] = this.files
-        .filter(f => f.status === 'complete' && f.address)
+        .filter(f => f.kind === 'upload' && f.status === 'complete' && f.address)
         .map(f => ({
           name: f.name,
           size_bytes: f.size_bytes,
@@ -166,11 +183,6 @@ export const useFilesStore = defineStore('files', {
       return this.files.find(f => f.id === id)
     },
 
-    findByAddress(address: string): FileEntry | undefined {
-      const norm = address.toLowerCase().replace(/^0x/, '')
-      return this.files.find(f => f.address?.toLowerCase().replace(/^0x/, '') === norm)
-    },
-
     updateEntry(id: number, updates: Partial<FileEntry>) {
       const entry = this.files.find(f => f.id === id)
       if (entry) Object.assign(entry, updates)
@@ -178,15 +190,25 @@ export const useFilesStore = defineStore('files', {
 
     removeEntry(id: number) {
       const idx = this.files.findIndex(f => f.id === id)
-      if (idx !== -1) {
-        this.files.splice(idx, 1)
-        this.persistHistory()
-      }
+      if (idx === -1) return
+      const wasUpload = this.files[idx].kind === 'upload'
+      this.files.splice(idx, 1)
+      if (wasUpload) this.persistHistory()
     },
 
-    clearCompleted() {
-      this.files = this.files.filter(f => f.status !== 'complete' && f.status !== 'failed')
+    /** Remove every upload row in a settled state. Persists. */
+    clearUploadHistory() {
+      this.files = this.files.filter(f =>
+        !(f.kind === 'upload' && (f.status === 'complete' || f.status === 'failed')),
+      )
       this.persistHistory()
+    },
+
+    /** Drop every download row that isn't mid-transfer. Memory-only, no persist. */
+    clearDownloads() {
+      this.files = this.files.filter(f =>
+        !(f.kind === 'download' && !IN_FLIGHT_STATUSES.includes(f.status)),
+      )
     },
 
     // ── Upload flow ──
@@ -195,6 +217,7 @@ export const useFilesStore = defineStore('files', {
       const id = this.nextId++
       this.files.unshift({
         id,
+        kind: 'upload',
         name,
         path,
         size_bytes,
@@ -428,27 +451,15 @@ export const useFilesStore = defineStore('files', {
     // ── Download flow ──
 
     /**
-     * Start a download. If the address already exists in the table,
-     * pin that row; otherwise create a new entry.
+     * Start a download row. Always creates a fresh entry in the downloads
+     * table — uploads are never mutated in place, so the upload history
+     * stays stable across download attempts.
      */
     startDownload(address: string, filename: string, dest_path: string): number {
-      const existing = this.findByAddress(address)
-      if (existing) {
-        // Re-downloading an existing upload — pin it to top
-        this.updateEntry(existing.id, {
-          status: 'downloading',
-          dest_path,
-          progress: 0,
-          transferStartedAt: Date.now(),
-          existedBeforeDownload: true,
-        })
-        return existing.id
-      }
-
-      // New download by address
       const id = this.nextId++
       this.files.unshift({
         id,
+        kind: 'download',
         name: filename,
         size_bytes: 0,
         address,
@@ -457,7 +468,6 @@ export const useFilesStore = defineStore('files', {
         progress: 0,
         date: new Date().toISOString(),
         transferStartedAt: Date.now(),
-        existedBeforeDownload: false,
       })
       return id
     },
@@ -516,30 +526,17 @@ export const useFilesStore = defineStore('files', {
     },
 
     /**
-     * Called when user clicks on a downloaded row to open the folder.
-     * Unpins the row and returns it to normal sort order.
+     * Called when the user clicks on a downloaded row to open the folder.
+     * Unpins the row and returns it to normal sort order. Downloads are
+     * memory-only, so there's nothing to persist.
      */
     acknowledgeDownload(id: number) {
       const entry = this.findById(id)
       if (!entry || entry.status !== 'downloaded') return
-
-      if (entry.existedBeforeDownload) {
-        // Was already in table — just unpin, return to complete
-        this.updateEntry(id, {
-          status: 'complete',
-          dest_path: undefined,
-          transferStartedAt: undefined,
-          existedBeforeDownload: undefined,
-        })
-      } else {
-        // Downloaded by address — keep as a complete entry
-        this.updateEntry(id, {
-          status: 'complete',
-          transferStartedAt: undefined,
-          existedBeforeDownload: undefined,
-        })
-        this.persistHistory()
-      }
+      this.updateEntry(id, {
+        status: 'complete',
+        transferStartedAt: undefined,
+      })
     },
 
     getDownloadDir(): string {
@@ -548,10 +545,9 @@ export const useFilesStore = defineStore('files', {
     },
 
     /**
-     * Download from a user-picked `.datamap` file on disk. Reads the JSON,
-     * reuses the entry for its address if one already exists, otherwise
-     * creates a fresh row. Returns the entry ID so callers can drive the
-     * actual transfer via `startRealDownload`.
+     * Download from a user-picked `.datamap` file on disk. Reads the JSON
+     * and creates a fresh download row. The matching upload row (if any)
+     * is left untouched so the uploads table stays stable.
      *
      * The output filename is derived from the datamap's basename with the
      * `.datamap` extension stripped — not a perfect round-trip (we don't
@@ -568,32 +564,15 @@ export const useFilesStore = defineStore('files', {
         return null
       }
 
-      // Derive the display/destination filename from the datamap's basename.
       const basename = datamapPath.split(/[\\/]/).pop() ?? 'download'
       const filename = basename.replace(/\.datamap$/i, '') || basename
-
-      // Compute the address the same way the backend does (sha256 of the
-      // serialized JSON) so we can find and reuse an existing entry.
       const address = await sha256Hex(json)
-
       const destPath = `${this.getDownloadDir()}/${filename}`
-      const existing = this.findByAddress(address)
-      if (existing) {
-        this.updateEntry(existing.id, {
-          status: 'downloading',
-          dest_path: destPath,
-          data_map_json: json,
-          data_map_file: datamapPath,
-          progress: 0,
-          transferStartedAt: Date.now(),
-          existedBeforeDownload: true,
-        })
-        return existing.id
-      }
 
       const id = this.nextId++
       this.files.unshift({
         id,
+        kind: 'download',
         name: filename,
         size_bytes: 0,
         address,
@@ -604,7 +583,6 @@ export const useFilesStore = defineStore('files', {
         progress: 0,
         date: new Date().toISOString(),
         transferStartedAt: Date.now(),
-        existedBeforeDownload: false,
       })
       return id
     },

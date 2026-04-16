@@ -33,76 +33,160 @@
         <span v-if="filesStore.files.length" class="text-xs text-autonomi-muted">
           {{ filesStore.files.length }} file{{ filesStore.files.length !== 1 ? 's' : '' }}
         </span>
+      </div>
+    </div>
+
+    <!-- Uploads table + drop zone -->
+    <section class="mb-6">
+      <div class="mb-2 flex items-center justify-between">
+        <h2 class="text-sm font-medium text-autonomi-text">Uploads</h2>
         <button
-          v-if="filesStore.settledFiles.some(f => f.status === 'complete' || f.status === 'failed')"
+          v-if="hasSettledUploads"
           class="text-xs text-autonomi-muted hover:text-autonomi-text"
-          @click="filesStore.clearCompleted()"
+          @click="filesStore.clearUploadHistory()"
         >
           Clear History
         </button>
       </div>
-    </div>
 
-    <!-- Unified table / drop zone -->
-    <div class="relative">
-      <!-- Drop overlay -->
-      <Transition
-        enter-active-class="transition-opacity duration-150"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition-opacity duration-150"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-if="dragging"
-          class="absolute inset-0 z-10 flex items-center justify-center rounded-lg border-2 border-dashed border-autonomi-blue bg-autonomi-dark/90"
+      <div class="relative">
+        <!-- Drop overlay -->
+        <Transition
+          enter-active-class="transition-opacity duration-150"
+          enter-from-class="opacity-0"
+          enter-to-class="opacity-100"
+          leave-active-class="transition-opacity duration-150"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
         >
-          <div class="text-center">
-            <svg class="mx-auto mb-2 h-8 w-8 text-autonomi-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-            <p class="text-sm font-medium text-autonomi-blue">Drop files to upload</p>
+          <div
+            v-if="dragging"
+            class="absolute inset-0 z-10 flex items-center justify-center rounded-lg border-2 border-dashed border-autonomi-blue bg-autonomi-dark/90"
+          >
+            <div class="text-center">
+              <svg class="mx-auto mb-2 h-8 w-8 text-autonomi-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
+              <p class="text-sm font-medium text-autonomi-blue">Drop files to upload</p>
+            </div>
           </div>
-        </div>
-      </Transition>
+        </Transition>
 
-      <!-- Empty state -->
-      <div
-        v-if="sortedFiles.length === 0"
-        class="flex flex-col items-center justify-center rounded-lg border border-dashed border-autonomi-border py-20"
-      >
-        <svg class="mb-3 h-8 w-8 text-autonomi-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-        </svg>
-        <p class="text-sm text-autonomi-muted">No files yet</p>
-        <p class="mt-1 text-xs text-autonomi-muted">Drag files here, or use the buttons above</p>
+        <div
+          v-if="sortedUploads.length === 0"
+          class="flex flex-col items-center justify-center rounded-lg border border-dashed border-autonomi-border py-16"
+        >
+          <svg class="mb-3 h-8 w-8 text-autonomi-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+          <p class="text-sm text-autonomi-muted">No uploads yet</p>
+          <p class="mt-1 text-xs text-autonomi-muted">Drag files here, or use the buttons above</p>
+        </div>
+
+        <div v-else class="overflow-hidden rounded-lg border border-autonomi-border">
+          <table class="w-full text-sm">
+            <thead class="bg-autonomi-surface">
+              <tr class="text-left text-xs uppercase tracking-wider text-autonomi-muted">
+                <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('name')">
+                  Name {{ uploadSortIndicator('name') }}
+                </th>
+                <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('size_bytes')">
+                  Size {{ uploadSortIndicator('size_bytes') }}
+                </th>
+                <th class="px-4 py-2.5">Status</th>
+                <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('cost')">
+                  Cost {{ uploadSortIndicator('cost') }}
+                </th>
+                <th class="px-4 py-2.5">Address</th>
+                <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('date')">
+                  Date {{ uploadSortIndicator('date') }}
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-autonomi-border">
+              <tr
+                v-for="file in sortedUploads"
+                :key="file.id"
+                class="transition-colors"
+                :class="rowClass(file)"
+              >
+                <td class="px-4 py-2.5">{{ file.name }}</td>
+                <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
+                <td class="px-4 py-2.5">
+                  <StatusBadge :status="statusLabel(file)" />
+                </td>
+                <td class="px-4 py-2.5 text-autonomi-muted">
+                  <span>{{ file.cost ?? '-' }}</span>
+                  <span v-if="file.gas_cost" class="block text-[10px] text-autonomi-muted/60">+ {{ file.gas_cost }} gas</span>
+                </td>
+                <td class="px-4 py-2.5">
+                  <span
+                    v-if="file.data_map_file"
+                    class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue"
+                    :title="`Reveal ${datamapBasename(file.data_map_file)} in its folder`"
+                    @click.stop="openFolder(file.data_map_file)"
+                  >
+                    {{ datamapBasename(file.data_map_file) }}
+                  </span>
+                  <span
+                    v-else-if="file.address"
+                    class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue"
+                    @click.stop="copyAddress(file.address)"
+                  >
+                    {{ truncateAddress(file.address, 8, 6) }}
+                  </span>
+                  <span v-else class="text-autonomi-muted">-</span>
+                </td>
+                <td class="px-4 py-2.5 text-autonomi-muted">{{ formatDate(file.date) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Downloads table -->
+    <section>
+      <div class="mb-2 flex items-center justify-between">
+        <h2 class="text-sm font-medium text-autonomi-text">Downloads</h2>
+        <button
+          v-if="hasSettledDownloads"
+          class="text-xs text-autonomi-muted hover:text-autonomi-text"
+          @click="filesStore.clearDownloads()"
+        >
+          Clear
+        </button>
       </div>
 
-      <!-- File table -->
+      <div
+        v-if="sortedDownloads.length === 0"
+        class="flex flex-col items-center justify-center rounded-lg border border-dashed border-autonomi-border py-12"
+      >
+        <p class="text-sm text-autonomi-muted">No downloads yet</p>
+        <p class="mt-1 text-xs text-autonomi-muted">Use "Download by Address" or "Download by Datamap"</p>
+      </div>
+
       <div v-else class="overflow-hidden rounded-lg border border-autonomi-border">
         <table class="w-full text-sm">
           <thead class="bg-autonomi-surface">
             <tr class="text-left text-xs uppercase tracking-wider text-autonomi-muted">
-              <th class="px-4 py-2.5 cursor-pointer hover:text-autonomi-text" @click="toggleSort('name')">
-                Name {{ sortIndicator('name') }}
+              <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleDownloadSort('name')">
+                Name {{ downloadSortIndicator('name') }}
               </th>
-              <th class="px-4 py-2.5 cursor-pointer hover:text-autonomi-text" @click="toggleSort('size_bytes')">
-                Size {{ sortIndicator('size_bytes') }}
+              <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleDownloadSort('size_bytes')">
+                Size {{ downloadSortIndicator('size_bytes') }}
               </th>
               <th class="px-4 py-2.5">Status</th>
-              <th class="px-4 py-2.5 cursor-pointer hover:text-autonomi-text" @click="toggleSort('cost')">
-                Cost {{ sortIndicator('cost') }}
-              </th>
-              <th class="px-4 py-2.5">Address</th>
-              <th class="px-4 py-2.5 cursor-pointer hover:text-autonomi-text" @click="toggleSort('date')">
-                Date {{ sortIndicator('date') }}
+              <th class="px-4 py-2.5">Source</th>
+              <th class="px-4 py-2.5">Saved to</th>
+              <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleDownloadSort('date')">
+                Date {{ downloadSortIndicator('date') }}
               </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-autonomi-border">
             <tr
-              v-for="file in sortedFiles"
+              v-for="file in sortedDownloads"
               :key="file.id"
               class="transition-colors"
               :class="rowClass(file)"
@@ -112,10 +196,6 @@
               <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
               <td class="px-4 py-2.5">
                 <StatusBadge :status="statusLabel(file)" />
-              </td>
-              <td class="px-4 py-2.5 text-autonomi-muted">
-                <span>{{ file.cost ?? '-' }}</span>
-                <span v-if="file.gas_cost" class="block text-[10px] text-autonomi-muted/60">+ {{ file.gas_cost }} gas</span>
               </td>
               <td class="px-4 py-2.5">
                 <span
@@ -135,12 +215,15 @@
                 </span>
                 <span v-else class="text-autonomi-muted">-</span>
               </td>
+              <td class="px-4 py-2.5 font-mono text-xs text-autonomi-muted">
+                {{ file.dest_path ? basenameOf(file.dest_path) : '-' }}
+              </td>
               <td class="px-4 py-2.5 text-autonomi-muted">{{ formatDate(file.date) }}</td>
             </tr>
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
 
     <!-- Dialogs -->
     <FilesDownloadDialog
@@ -214,49 +297,93 @@ function getWagmiConfig() {
 }
 
 // ── Sorting ──
+//
+// Uploads and downloads have independent sort state: a download doesn't
+// reorder the uploads table, and vice versa. Both default to newest-first.
 
-type SortKey = 'name' | 'size_bytes' | 'cost' | 'date'
-const sortKey = ref<SortKey>('date')
-const sortAsc = ref(false) // default: newest first
+type UploadSortKey = 'name' | 'size_bytes' | 'cost' | 'date'
+type DownloadSortKey = 'name' | 'size_bytes' | 'date'
 
-function toggleSort(key: SortKey) {
-  if (sortKey.value === key) {
-    sortAsc.value = !sortAsc.value
+const uploadSortKey = ref<UploadSortKey>('date')
+const uploadSortAsc = ref(false)
+const downloadSortKey = ref<DownloadSortKey>('date')
+const downloadSortAsc = ref(false)
+
+function toggleUploadSort(key: UploadSortKey) {
+  if (uploadSortKey.value === key) {
+    uploadSortAsc.value = !uploadSortAsc.value
   } else {
-    sortKey.value = key
-    sortAsc.value = key === 'name' // name defaults ascending, others descending
+    uploadSortKey.value = key
+    uploadSortAsc.value = key === 'name'
   }
 }
 
-function sortIndicator(key: SortKey): string {
-  if (sortKey.value !== key) return ''
-  return sortAsc.value ? '↑' : '↓'
+function toggleDownloadSort(key: DownloadSortKey) {
+  if (downloadSortKey.value === key) {
+    downloadSortAsc.value = !downloadSortAsc.value
+  } else {
+    downloadSortKey.value = key
+    downloadSortAsc.value = key === 'name'
+  }
 }
 
-const sortedFiles = computed(() => {
-  const pinned = filesStore.pinnedFiles.slice().sort(
-    (a, b) => (b.transferStartedAt ?? 0) - (a.transferStartedAt ?? 0),
-  )
-  const settled = filesStore.settledFiles.slice().sort((a, b) => {
-    let cmp = 0
-    switch (sortKey.value) {
-      case 'name':
-        cmp = a.name.localeCompare(b.name)
-        break
-      case 'size_bytes':
-        cmp = a.size_bytes - b.size_bytes
-        break
-      case 'cost':
-        cmp = (a.cost ?? '').localeCompare(b.cost ?? '')
-        break
-      case 'date':
-        cmp = a.date.localeCompare(b.date)
-        break
-    }
-    return sortAsc.value ? cmp : -cmp
+function uploadSortIndicator(key: UploadSortKey): string {
+  if (uploadSortKey.value !== key) return ''
+  return uploadSortAsc.value ? '↑' : '↓'
+}
+
+function downloadSortIndicator(key: DownloadSortKey): string {
+  if (downloadSortKey.value !== key) return ''
+  return downloadSortAsc.value ? '↑' : '↓'
+}
+
+function compareEntries(
+  a: FileEntry,
+  b: FileEntry,
+  key: UploadSortKey | DownloadSortKey,
+): number {
+  switch (key) {
+    case 'name': return a.name.localeCompare(b.name)
+    case 'size_bytes': return a.size_bytes - b.size_bytes
+    case 'cost': return (a.cost ?? '').localeCompare(b.cost ?? '')
+    case 'date': return a.date.localeCompare(b.date)
+  }
+}
+
+/** Active (pinned) rows sort by when their transfer started — newest at top. */
+function byTransferStart(a: FileEntry, b: FileEntry): number {
+  return (b.transferStartedAt ?? 0) - (a.transferStartedAt ?? 0)
+}
+
+const sortedUploads = computed(() => {
+  const pinned = filesStore.pinnedUploads.slice().sort(byTransferStart)
+  const settled = filesStore.settledUploads.slice().sort((a, b) => {
+    const cmp = compareEntries(a, b, uploadSortKey.value)
+    return uploadSortAsc.value ? cmp : -cmp
   })
   return [...pinned, ...settled]
 })
+
+const sortedDownloads = computed(() => {
+  const pinned = filesStore.pinnedDownloads.slice().sort(byTransferStart)
+  const settled = filesStore.settledDownloads.slice().sort((a, b) => {
+    const cmp = compareEntries(a, b, downloadSortKey.value)
+    return downloadSortAsc.value ? cmp : -cmp
+  })
+  return [...pinned, ...settled]
+})
+
+const hasSettledUploads = computed(() =>
+  filesStore.settledUploads.some(f => f.status === 'complete' || f.status === 'failed'),
+)
+
+const hasSettledDownloads = computed(() =>
+  filesStore.settledDownloads.some(f => f.status !== 'downloading'),
+)
+
+function basenameOf(path: string): string {
+  return path.split(/[\\/]/).pop() ?? path
+}
 
 // ── Row display helpers ──
 
