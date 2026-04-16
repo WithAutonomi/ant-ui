@@ -20,27 +20,14 @@
           >
             <span class="max-w-[200px] truncate">{{ file.name }}</span>
             <div class="text-right">
-              <span v-if="file.size" class="text-autonomi-muted">{{ file.size ? formatBytes(file.size) : '-' }}</span>
-              <span class="ml-2 text-autonomi-blue">
-                {{ file.cost ? file.cost : `~${estimateCost(file.size)} ANT` }}
-              </span>
+              <span v-if="file.size" class="text-autonomi-muted">{{ formatBytes(file.size) }}</span>
+              <span v-if="file.cost" class="ml-2 text-autonomi-blue">{{ file.cost }}</span>
               <span v-if="file.gas_cost" class="ml-1 text-autonomi-muted">+ {{ file.gas_cost }} gas</span>
             </div>
           </div>
 
-          <div v-if="!hasRealCosts" class="border-t border-autonomi-border pt-3">
-            <div class="flex items-center justify-between text-sm font-medium">
-              <span>Total</span>
-              <div>
-                <span class="text-autonomi-muted">{{ totalSize ? formatBytes(totalSize) : '-' }}</span>
-                <span class="ml-2 text-autonomi-blue">~{{ estimateCost(totalSize) }} ANT</span>
-              </div>
-            </div>
-          </div>
-
           <p class="text-xs text-autonomi-muted">
-            {{ hasRealCosts ? 'Costs queried from the Autonomi network.' : 'Estimates are approximate and may vary based on network conditions.' }}
-            Gas fees (ETH) apply on top of storage costs.
+            Costs queried from the Autonomi network. Gas fees (ETH) apply on top of storage costs.
           </p>
         </div>
 
@@ -64,20 +51,11 @@
 <script setup lang="ts">
 import { formatBytes } from '~/utils/formatters'
 
-const props = defineProps<{
+defineProps<{
   open: boolean
   files: { name: string; size: number; cost?: string; gas_cost?: string }[]
   loading: boolean
 }>()
 
 defineEmits<{ close: [] }>()
-
-const totalSize = computed(() => props.files.reduce((sum, f) => sum + f.size, 0))
-const hasRealCosts = computed(() => props.files.some(f => f.cost))
-
-/** Rough client-side estimate — real cost is determined by network quotes during upload. */
-function estimateCost(bytes: number) {
-  return (bytes / 1_048_576 * 0.05).toFixed(4)
-}
-
 </script>
