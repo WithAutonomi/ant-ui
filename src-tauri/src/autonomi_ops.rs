@@ -716,7 +716,7 @@ async fn download_with_datamap(
     dest_path: &str,
     app: &AppHandle,
 ) -> Result<u64, String> {
-    let dest = PathBuf::from(dest_path);
+    let dest = expand_tilde(dest_path);
 
     if let Some(parent) = dest.parent() {
         tokio::fs::create_dir_all(parent)
@@ -740,13 +740,29 @@ async fn download_with_datamap(
     app.emit(
         "download-complete",
         serde_json::json!({
-            "dest_path": dest_path,
+            "dest_path": dest.to_string_lossy(),
             "bytes_written": bytes_written,
         }),
     )
     .ok();
 
     Ok(bytes_written)
+}
+
+/// Expand a leading `~` or `~/` to the user's home directory. A literal
+/// tilde in `PathBuf::from` is otherwise treated as a directory named `~`
+/// in the current working directory — in dev mode that's `src-tauri/`,
+/// which the Tauri watcher monitors and reacts to by restarting the app.
+fn expand_tilde(path: &str) -> PathBuf {
+    if path == "~" {
+        return dirs::home_dir().unwrap_or_else(|| PathBuf::from(path));
+    }
+    if let Some(rest) = path.strip_prefix("~/") {
+        if let Some(home) = dirs::home_dir() {
+            return home.join(rest);
+        }
+    }
+    PathBuf::from(path)
 }
 
 /// Read a persisted DataMap file from disk and return its JSON contents.

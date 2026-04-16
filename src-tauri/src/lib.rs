@@ -478,6 +478,18 @@ fn get_node_data_dir(node_id: u32) -> Result<String, String> {
     Ok(base.to_string_lossy().into_owned())
 }
 
+/// Return the OS-appropriate default downloads directory. Used as the
+/// fallback destination when the user hasn't configured a custom one in
+/// settings. Resolves to `~/Downloads` on macOS/Linux and
+/// `C:\Users\<name>\Downloads` on Windows.
+#[tauri::command]
+fn get_default_download_dir() -> Result<String, String> {
+    dirs::download_dir()
+        .or_else(|| dirs::home_dir().map(|h| h.join("Downloads")))
+        .map(|p| p.to_string_lossy().into_owned())
+        .ok_or_else(|| "Could not determine default download directory".to_string())
+}
+
 /// Get the size of a single file in bytes.
 #[tauri::command]
 fn get_file_size(path: String) -> Result<u64, String> {
@@ -589,6 +601,7 @@ pub fn run() {
             get_file_size,
             get_dir_size,
             get_node_data_dir,
+            get_default_download_dir,
             read_file_bytes,
             load_upload_history,
             save_upload_history,
