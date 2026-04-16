@@ -514,6 +514,12 @@ export const useFilesStore = defineStore('files', {
         // Local datamap takes priority — it's fast and doesn't require the
         // DataMap chunk to exist on-network. Fall back to a public fetch by
         // address when we have neither JSON nor a local file.
+        //
+        // No frontend timeout: large downloads can legitimately take many
+        // minutes, and the backend has no timeout either. A UI-side timeout
+        // marks the row Failed while the Rust download keeps running and
+        // writes the file successfully. Backend errors still surface through
+        // invoke's rejection.
         const request = entry.data_map_json
           ? invoke('download_file', {
               dataMapJson: entry.data_map_json,
@@ -524,7 +530,7 @@ export const useFilesStore = defineStore('files', {
               destPath: entry.dest_path,
             })
 
-        await withTimeout(request, 300_000, 'Download timed out')
+        await request
 
         const duration = entry.transferStartedAt
           ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
