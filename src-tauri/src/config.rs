@@ -35,10 +35,15 @@ pub struct FileMetaResult {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UploadHistoryEntry {
+    #[serde(default)]
     pub name: String,
+    #[serde(default)]
     pub size_bytes: u64,
+    #[serde(default)]
     pub address: String,
+    #[serde(default)]
     pub cost: Option<String>,
+    #[serde(default)]
     pub uploaded_at: String,
     /// Absolute path to the serialized DataMap JSON file persisted alongside
     /// this history entry. `None` for legacy entries written before datamap
