@@ -38,6 +38,10 @@ export type FileStatus =
 export interface FileEntry {
   /** Unique ID for reactive tracking */
   id: number
+  /** Whether this row represents an upload or a download. Uploads persist
+   *  across restarts; downloads are in-memory only and a fresh session
+   *  always starts with an empty downloads table. */
+  kind: 'upload' | 'download'
   /** Display name */
   name: string
   /** Local file path (for uploads) */
@@ -48,6 +52,10 @@ export interface FileEntry {
   address?: string
   /** Serialized DataMap JSON — needed for download from network */
   data_map_json?: string
+  /** Absolute path to the persisted DataMap file on disk. Set for private
+   *  uploads performed by this app; `undefined` for legacy entries or for
+   *  rows that represent a pure download-by-address with no local datamap. */
+  data_map_file?: string
   /** Upload cost (ANT) */
   cost?: string
   /** Gas cost (ETH) */
@@ -66,9 +74,10 @@ export interface FileEntry {
   duration?: number
   /** Error message if failed */
   error?: string
-  /** Whether this entry existed in history before a download (vs downloaded-by-address) */
-  existedBeforeDownload?: boolean
 }
+
+const ACTIVE_STATUSES: FileStatus[] = ['quoting', 'paying', 'uploading', 'downloading', 'downloaded']
+const IN_FLIGHT_STATUSES: FileStatus[] = ['quoting', 'paying', 'uploading', 'downloading']
 
 /** Shape persisted to upload_history.json (kept for backwards compat) */
 export interface UploadHistoryEntry {
@@ -77,6 +86,9 @@ export interface UploadHistoryEntry {
   address: string
   cost: string | null
   uploaded_at: string
+  /** Absolute path to the persisted DataMap file; `null`/absent for legacy
+   *  entries written before datamap persistence was added. */
+  data_map_file?: string | null
 }
 
 export const useFilesStore = defineStore('files', {
@@ -87,22 +99,32 @@ export const useFilesStore = defineStore('files', {
   }),
 
   getters: {
-    /** Rows that are actively transferring (pinned to top) */
-    pinnedFiles: (state) =>
-      state.files.filter(f =>
-        ['quoting', 'paying', 'uploading', 'downloading', 'downloaded'].includes(f.status),
-      ),
+    uploads: (state) => state.files.filter(f => f.kind === 'upload'),
+    downloads: (state) => state.files.filter(f => f.kind === 'download'),
+
+    /** Rows that are actively transferring (pinned to top of their table) */
+    pinnedUploads(): FileEntry[] {
+      return this.uploads.filter(f => ACTIVE_STATUSES.includes(f.status))
+    },
+    pinnedDownloads(): FileEntry[] {
+      return this.downloads.filter(f => ACTIVE_STATUSES.includes(f.status))
+    },
 
     /** Rows that are not active transfers (sorted normally) */
-    settledFiles: (state) =>
-      state.files.filter(f =>
-        !['quoting', 'paying', 'uploading', 'downloading', 'downloaded'].includes(f.status),
-      ),
+    settledUploads(): FileEntry[] {
+      return this.uploads.filter(f => !ACTIVE_STATUSES.includes(f.status))
+    },
+    settledDownloads(): FileEntry[] {
+      return this.downloads.filter(f => !ACTIVE_STATUSES.includes(f.status))
+    },
+
+    /** Any row in any table currently mid-transfer. Used by the header. */
+    pinnedFiles(): FileEntry[] {
+      return this.files.filter(f => ACTIVE_STATUSES.includes(f.status))
+    },
 
     hasActiveTransfers: (state) =>
-      state.files.some(f =>
-        ['quoting', 'paying', 'uploading', 'downloading'].includes(f.status),
-      ),
+      state.files.some(f => IN_FLIGHT_STATUSES.includes(f.status)),
   },
 
   actions: {
@@ -111,16 +133,18 @@ export const useFilesStore = defineStore('files', {
     async loadHistory() {
       try {
         const entries = await invoke<UploadHistoryEntry[]>('load_upload_history')
-        // Convert legacy history entries to unified FileEntry
         for (const e of entries) {
-          // Skip if we already have this address
-          if (this.files.some(f => f.address === e.address)) continue
+          // Skip if we already have this address in the uploads table — guards
+          // against double-loading on HMR without adding duplicates.
+          if (this.files.some(f => f.kind === 'upload' && f.address === e.address)) continue
           this.files.push({
             id: this.nextId++,
+            kind: 'upload',
             name: e.name,
             size_bytes: e.size_bytes,
             address: e.address,
             cost: e.cost ?? undefined,
+            data_map_file: e.data_map_file ?? undefined,
             status: 'complete',
             date: e.uploaded_at,
           })
@@ -133,15 +157,17 @@ export const useFilesStore = defineStore('files', {
     },
 
     async persistHistory() {
-      // Serialize settled complete entries back to legacy format
+      // Only uploads are persisted — downloads are intentionally in-memory
+      // so the table starts fresh each session.
       const entries: UploadHistoryEntry[] = this.files
-        .filter(f => f.status === 'complete' && f.address)
+        .filter(f => f.kind === 'upload' && f.status === 'complete' && f.address)
         .map(f => ({
           name: f.name,
           size_bytes: f.size_bytes,
           address: f.address!,
           cost: f.cost ?? null,
           uploaded_at: f.date,
+          data_map_file: f.data_map_file ?? null,
         }))
 
       try {
@@ -157,11 +183,6 @@ export const useFilesStore = defineStore('files', {
       return this.files.find(f => f.id === id)
     },
 
-    findByAddress(address: string): FileEntry | undefined {
-      const norm = address.toLowerCase().replace(/^0x/, '')
-      return this.files.find(f => f.address?.toLowerCase().replace(/^0x/, '') === norm)
-    },
-
     updateEntry(id: number, updates: Partial<FileEntry>) {
       const entry = this.files.find(f => f.id === id)
       if (entry) Object.assign(entry, updates)
@@ -169,15 +190,25 @@ export const useFilesStore = defineStore('files', {
 
     removeEntry(id: number) {
       const idx = this.files.findIndex(f => f.id === id)
-      if (idx !== -1) {
-        this.files.splice(idx, 1)
-        this.persistHistory()
-      }
+      if (idx === -1) return
+      const wasUpload = this.files[idx].kind === 'upload'
+      this.files.splice(idx, 1)
+      if (wasUpload) this.persistHistory()
     },
 
-    clearCompleted() {
-      this.files = this.files.filter(f => f.status !== 'complete' && f.status !== 'failed')
+    /** Remove every upload row in a settled state. Persists. */
+    clearUploadHistory() {
+      this.files = this.files.filter(f =>
+        !(f.kind === 'upload' && (f.status === 'complete' || f.status === 'failed')),
+      )
       this.persistHistory()
+    },
+
+    /** Drop every download row that isn't mid-transfer. Memory-only, no persist. */
+    clearDownloads() {
+      this.files = this.files.filter(f =>
+        !(f.kind === 'download' && !IN_FLIGHT_STATUSES.includes(f.status)),
+      )
     },
 
     // ── Upload flow ──
@@ -186,6 +217,7 @@ export const useFilesStore = defineStore('files', {
       const id = this.nextId++
       this.files.unshift({
         id,
+        kind: 'upload',
         name,
         path,
         size_bytes,
@@ -200,36 +232,31 @@ export const useFilesStore = defineStore('files', {
     async getUploadQuote(path: string): Promise<UploadQuote | null> {
       const uploadId = `quote-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
-      // Deferred so we can resolve/reject from the listener and the timeout
-      // independently of where the Promise is awaited.
+      // Deferred so the listener can resolve independently of where the
+      // Promise is awaited.
       let resolveQuote: (value: any) => void = () => {}
-      let rejectQuote: (err: Error) => void = () => {}
-      const quotePromise = new Promise<any>((resolve, reject) => {
+      const quotePromise = new Promise<any>((resolve) => {
         resolveQuote = resolve
-        rejectQuote = reject
       })
 
       let unlisten: (() => void) | null = null
-      // The 120s timeout is registered AFTER listen() is awaited below — see
-      // explanation there. Holding the handle here so finally{} can clear it.
-      let timeoutId: ReturnType<typeof setTimeout> | null = null
 
       try {
-        // Register the listener BEFORE invoking start_upload. The previous
-        // implementation called listen() inside a `new Promise(...)` executor
-        // without awaiting it, then immediately did `await invoke(...)`. The
-        // backend can emit `upload-quote` before listen() finishes registering,
-        // in which case the event is missed and the 120s timeout eventually
-        // fires — visible in the dev console as "Uncaught (in promise) Error:
-        // Quote timeout". Awaiting listen() first eliminates the race and
-        // capturing `unlisten` lets us clean up so listeners do not pile up.
+        // Backend contract: `start_upload` emits `upload-quote` before it
+        // returns Ok. So `invoke` itself is our timing signal — when it
+        // resolves, the event has been dispatched. No separate timeout on
+        // the listener: on slow networks quote collection can legitimately
+        // take minutes, and an independent timeout just discards the
+        // result after the fact. Errors from the backend come through
+        // `invoke`'s rejection.
+        //
+        // Listener is awaited BEFORE invoke so the event cannot be emitted
+        // before we're listening.
         unlisten = await listen<any>('upload-quote', (event) => {
           if (event.payload.upload_id === uploadId) {
             resolveQuote(event.payload)
           }
         })
-
-        timeoutId = setTimeout(() => rejectQuote(new Error('Quote timeout')), 120_000)
 
         await invoke('start_upload', {
           request: { files: [path], upload_id: uploadId },
@@ -247,15 +274,9 @@ export const useFilesStore = defineStore('files', {
           merkle_pool_commitments: quote.merkle_pool_commitments,
           merkle_timestamp: quote.merkle_timestamp,
         }
-      } catch (err) {
-        // Settle the deferred so any later listener firing does not surface
-        // as an unhandled rejection; we already returned null to the caller.
-        rejectQuote(err instanceof Error ? err : new Error(String(err)))
-        // Swallow our own rejection so the deferred has a handler.
-        quotePromise.catch(() => {})
+      } catch {
         return null
       } finally {
-        if (timeoutId) clearTimeout(timeoutId)
         if (unlisten) unlisten()
       }
     },
@@ -280,39 +301,14 @@ export const useFilesStore = defineStore('files', {
           quote = preQuote
           this.updateEntry(id, { cost: preQuote.total_cost_display })
         } else {
-          // Get fresh quote from network
-          uploadId = `upload-${id}-${Date.now()}`
+          // Get fresh quote from network. Delegates to getUploadQuote so
+          // there is a single implementation of the listen+invoke dance.
+          if (!entry.path) throw new Error('Upload entry has no file path')
           this.updateEntry(id, { status: 'quoting' })
-
-          const quotePromise = new Promise<any>((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Quote timeout')), 120_000)
-            listen<any>('upload-quote', (event) => {
-              if (event.payload.upload_id === uploadId) {
-                clearTimeout(timeout)
-                resolve(event.payload)
-              }
-            })
-          })
-
-          await invoke('start_upload', {
-            request: {
-              files: [entry.path],
-              upload_id: uploadId,
-            },
-          })
-
-          const raw = await quotePromise
-          quote = {
-            upload_id: uploadId,
-            payment_mode: raw.payment_mode,
-            payments: raw.payments ?? [],
-            total_cost: raw.total_cost,
-            total_cost_display: raw.payment_mode === 'merkle' ? 'Determined on-chain' : formatNanoTokens(raw.total_cost),
-            payment_required: raw.payment_required,
-            merkle_depth: raw.merkle_depth,
-            merkle_pool_commitments: raw.merkle_pool_commitments,
-            merkle_timestamp: raw.merkle_timestamp,
-          }
+          const fresh = await this.getUploadQuote(entry.path)
+          if (!fresh) throw new Error('Failed to get quote from network')
+          uploadId = fresh.upload_id
+          quote = fresh
           this.updateEntry(id, { cost: quote.total_cost_display })
         }
 
@@ -339,14 +335,14 @@ export const useFilesStore = defineStore('files', {
               gas_cost: formatGasCost(payResult.gasSpent.toString()),
             })
 
-            const result = await withTimeout(
-              invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number }>('confirm_upload_merkle', {
-                uploadId,
-                winnerPoolHash: payResult.winnerPoolHash,
-              }),
-              120_000,
-              'Upload timed out',
-            )
+            // No frontend timeout: the backend drives chunk storage, which
+            // can legitimately take many minutes for larger files. The CLI
+            // (which works) also has no timeout here. Backend errors still
+            // surface through invoke's rejection.
+            const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number; data_map_file: string }>('confirm_upload_merkle', {
+              uploadId,
+              winnerPoolHash: payResult.winnerPoolHash,
+            })
 
             const duration = entry.transferStartedAt
               ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
@@ -356,6 +352,7 @@ export const useFilesStore = defineStore('files', {
               progress: 100,
               address: result.address,
               data_map_json: result.data_map_json,
+              data_map_file: result.data_map_file,
               duration,
               transferStartedAt: undefined,
             })
@@ -385,14 +382,11 @@ export const useFilesStore = defineStore('files', {
 
           this.updateEntry(id, { status: 'uploading', progress: 0 })
 
-          const result = await withTimeout(
-            invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number }>('confirm_upload', {
-              uploadId,
-              txHashes,
-            }),
-            120_000,
-            'Upload timed out',
-          )
+          // No frontend timeout — see confirm_upload_merkle above for rationale.
+          const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number; data_map_file: string }>('confirm_upload', {
+            uploadId,
+            txHashes,
+          })
 
           const duration = entry.transferStartedAt
             ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
@@ -402,6 +396,7 @@ export const useFilesStore = defineStore('files', {
             progress: 100,
             address: result.address,
             data_map_json: result.data_map_json,
+            data_map_file: result.data_map_file,
             duration,
             transferStartedAt: undefined,
           })
@@ -456,38 +451,41 @@ export const useFilesStore = defineStore('files', {
     // ── Download flow ──
 
     /**
-     * Start a download. If the address already exists in the table,
-     * pin that row; otherwise create a new entry.
+     * Start a download row. Always creates a fresh entry in the downloads
+     * table — uploads are never mutated in place, so the upload history
+     * stays stable across download attempts.
+     *
+     * If the address matches a prior upload by this app, the new download
+     * inherits its datamap (JSON or file path). The "address" is a local
+     * SHA256 of the serialized DataMap, so without that lookup a pasted
+     * address has no way to resolve to a DataMap — the network can't be
+     * queried by this synthetic address.
      */
     startDownload(address: string, filename: string, dest_path: string): number {
-      const existing = this.findByAddress(address)
-      if (existing) {
-        // Re-downloading an existing upload — pin it to top
-        this.updateEntry(existing.id, {
-          status: 'downloading',
-          dest_path,
-          progress: 0,
-          transferStartedAt: Date.now(),
-          existedBeforeDownload: true,
-        })
-        return existing.id
-      }
-
-      // New download by address
       const id = this.nextId++
+      const match = this.findUploadByAddress(address)
       this.files.unshift({
         id,
+        kind: 'download',
         name: filename,
         size_bytes: 0,
         address,
+        data_map_json: match?.data_map_json,
+        data_map_file: match?.data_map_file,
         status: 'downloading',
         dest_path,
         progress: 0,
         date: new Date().toISOString(),
         transferStartedAt: Date.now(),
-        existedBeforeDownload: false,
       })
       return id
+    },
+
+    findUploadByAddress(address: string): FileEntry | undefined {
+      const needle = normalizeAddress(address)
+      return this.files.find(
+        f => f.kind === 'upload' && f.address && normalizeAddress(f.address) === needle,
+      )
     },
 
     async startRealDownload(id: number) {
@@ -495,23 +493,38 @@ export const useFilesStore = defineStore('files', {
       const entry = this.findById(id)
       if (!entry) return
 
-      if (!entry.data_map_json) {
-        this.updateEntry(id, { status: 'failed', error: 'No data map available — file must be uploaded first' })
-        toasts.add('Cannot download: no data map for this address', 'error')
-        return
+      // Lazy-load the serialized DataMap from disk if only its path is known —
+      // e.g. after restarting the app, history entries carry `data_map_file`
+      // but not the JSON itself. Without this, re-downloads fail even though
+      // we persisted everything we need.
+      if (!entry.data_map_json && entry.data_map_file) {
+        try {
+          const json = await invoke<string>('read_datamap_file', { path: entry.data_map_file })
+          this.updateEntry(id, { data_map_json: json })
+        } catch (e: any) {
+          this.updateEntry(id, { status: 'failed', error: `Failed to read datamap: ${e.message ?? e}` })
+          toasts.add('Cannot download: datamap file missing or unreadable', 'error')
+          return
+        }
       }
 
       try {
         this.updateEntry(id, { status: 'downloading', progress: 0 })
 
-        await withTimeout(
-          invoke('download_file', {
-            dataMapJson: entry.data_map_json,
-            destPath: entry.dest_path,
-          }),
-          300_000,
-          'Download timed out',
-        )
+        // Local datamap takes priority — it's fast and doesn't require the
+        // DataMap chunk to exist on-network. Fall back to a public fetch by
+        // address when we have neither JSON nor a local file.
+        const request = entry.data_map_json
+          ? invoke('download_file', {
+              dataMapJson: entry.data_map_json,
+              destPath: entry.dest_path,
+            })
+          : invoke('download_public', {
+              address: entry.address,
+              destPath: entry.dest_path,
+            })
+
+        await withTimeout(request, 300_000, 'Download timed out')
 
         const duration = entry.transferStartedAt
           ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
@@ -529,38 +542,87 @@ export const useFilesStore = defineStore('files', {
     },
 
     /**
-     * Called when user clicks on a downloaded row to open the folder.
-     * Unpins the row and returns it to normal sort order.
+     * Called when the user clicks on a downloaded row to open the folder.
+     * Unpins the row and returns it to normal sort order. Downloads are
+     * memory-only, so there's nothing to persist.
      */
     acknowledgeDownload(id: number) {
       const entry = this.findById(id)
       if (!entry || entry.status !== 'downloaded') return
-
-      if (entry.existedBeforeDownload) {
-        // Was already in table — just unpin, return to complete
-        this.updateEntry(id, {
-          status: 'complete',
-          dest_path: undefined,
-          transferStartedAt: undefined,
-          existedBeforeDownload: undefined,
-        })
-      } else {
-        // Downloaded by address — keep as a complete entry
-        this.updateEntry(id, {
-          status: 'complete',
-          transferStartedAt: undefined,
-          existedBeforeDownload: undefined,
-        })
-        this.persistHistory()
-      }
+      this.updateEntry(id, {
+        status: 'complete',
+        transferStartedAt: undefined,
+      })
     },
 
     getDownloadDir(): string {
       const settings = useSettingsStore()
-      return settings.downloadDir ?? '~/Downloads'
+      return settings.downloadDir ?? ''
+    },
+
+    /**
+     * Download from a user-picked `.datamap` file on disk. Reads the JSON
+     * and creates a fresh download row. The matching upload row (if any)
+     * is left untouched so the uploads table stays stable.
+     *
+     * `filename` controls how the downloaded file is saved; if omitted it
+     * falls back to the datamap's basename with `.datamap` stripped.
+     */
+    async downloadFromDatamapFile(
+      datamapPath: string,
+      filename?: string,
+    ): Promise<number | null> {
+      const toasts = useToastStore()
+
+      let json: string
+      try {
+        json = await invoke<string>('read_datamap_file', { path: datamapPath })
+      } catch (e: any) {
+        toasts.add(`Could not read datamap: ${e.message ?? e}`, 'error')
+        return null
+      }
+
+      const basename = datamapPath.split(/[\\/]/).pop() ?? 'download'
+      const fallback = basename.replace(/\.datamap$/i, '') || basename
+      const finalName = filename?.trim() || fallback
+      const address = await sha256Hex(json)
+      const destPath = `${this.getDownloadDir()}/${finalName}`
+
+      const id = this.nextId++
+      this.files.unshift({
+        id,
+        kind: 'download',
+        name: finalName,
+        size_bytes: 0,
+        address,
+        data_map_json: json,
+        data_map_file: datamapPath,
+        status: 'downloading',
+        dest_path: destPath,
+        progress: 0,
+        date: new Date().toISOString(),
+        transferStartedAt: Date.now(),
+      })
+      return id
     },
   },
 })
+
+/** Compute `sha256(text)` as a `0x`-prefixed lowercase hex string. Matches
+ *  the address derivation in `src-tauri/src/autonomi_ops.rs` so the frontend
+ *  can recognise re-downloads of known uploads without a round-trip. */
+async function sha256Hex(text: string): Promise<string> {
+  const bytes = new TextEncoder().encode(text)
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
+  const hex = Array.from(new Uint8Array(digest))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+  return `0x${hex}`
+}
+
+function normalizeAddress(address: string): string {
+  return address.trim().toLowerCase().replace(/^0x/, '')
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return new Promise((resolve, reject) => {

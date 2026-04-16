@@ -96,7 +96,17 @@ fn find_daemon_binary() -> Option<PathBuf> {
 
 #[tauri::command]
 fn load_config() -> Result<AppConfig, String> {
-    AppConfig::load().map_err(|e| e.to_string())
+    let mut config = AppConfig::load().map_err(|e| e.to_string())?;
+    // Persist the platform's default downloads directory on first launch so
+    // it's visible in settings and used by downloads without a separate
+    // runtime fallback.
+    if config.download_dir.is_none() {
+        if let Some(default) = config::platform_default_download_dir() {
+            config.download_dir = Some(default.to_string_lossy().into_owned());
+            config.save().map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(config)
 }
 
 #[tauri::command]
@@ -478,6 +488,16 @@ fn get_node_data_dir(node_id: u32) -> Result<String, String> {
     Ok(base.to_string_lossy().into_owned())
 }
 
+/// Return the OS-appropriate default downloads directory. The frontend
+/// uses this to offer a "reset to default" affordance; on first launch
+/// `load_config` already persists this value into the config.
+#[tauri::command]
+fn get_default_download_dir() -> Result<String, String> {
+    config::platform_default_download_dir()
+        .map(|p| p.to_string_lossy().into_owned())
+        .ok_or_else(|| "Could not determine default download directory".to_string())
+}
+
 /// Get the size of a single file in bytes.
 #[tauri::command]
 fn get_file_size(path: String) -> Result<u64, String> {
@@ -589,6 +609,7 @@ pub fn run() {
             get_file_size,
             get_dir_size,
             get_node_data_dir,
+            get_default_download_dir,
             read_file_bytes,
             load_upload_history,
             save_upload_history,
@@ -601,6 +622,8 @@ pub fn run() {
             autonomi_ops::confirm_upload,
             autonomi_ops::confirm_upload_merkle,
             autonomi_ops::download_file,
+            autonomi_ops::download_public,
+            autonomi_ops::read_datamap_file,
             autonomi_ops::is_autonomi_connected,
             autonomi_ops::retry_autonomi_client,
             autonomi_ops::get_connection_status,

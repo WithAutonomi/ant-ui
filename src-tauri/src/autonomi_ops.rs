@@ -57,16 +57,16 @@ pub enum ConnectionStatus {
     /// No connect attempt has run yet (initial state on app start).
     Idle,
     /// A connect attempt is in flight.
-    Connecting { attempt: u32, of: u32 },
+    Connecting,
     /// Successfully connected to the network.
     Connected,
-    /// All retries exhausted. `reason` is the error from the last attempt.
-    Failed { reason: String, attempts: u32 },
+    /// Connect failed. `reason` is the error from the backend.
+    Failed { reason: String },
 }
 
 pub struct AutonomiState {
     pub client: RwLock<Option<Client>>,
-    pub pending_uploads: RwLock<HashMap<String, (PreparedUpload, std::time::Instant)>>,
+    pub pending_uploads: RwLock<HashMap<String, PendingUpload>>,
     pub connection_status: RwLock<ConnectionStatus>,
     /// Holds the last set of args used for `init_autonomi_client`, so a manual
     /// `retry_autonomi_client` can re-run with the same configuration.
@@ -82,30 +82,18 @@ pub struct InitArgs {
     pub evm_vault_address: Option<String>,
 }
 
-/// Per-attempt timeout for building + starting the embedded P2P node.
-///
-/// `P2PNode::start()` blocks until the saorsa-core bootstrap loop has
-/// processed every configured peer. That loop is sequential (one `.await`
-/// per peer — see saorsa-core `network.rs` ~line 2022), with a 15s
-/// identity-exchange timeout per unresponsive peer. With 7 bundled
-/// bootstrap peers and realistic network conditions (2-3 unresponsive or
-/// firewalled at any given time) the loop commonly takes 90-180s on a
-/// cold start. `ant-cli` has no timeout on this phase and relies on its
-/// spinner for progress; we give ourselves 240s, which covers the worst
-/// case we've observed without letting a genuine failure wedge the UI.
-const CONNECT_ATTEMPT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(240);
-/// Maximum number of connect attempts before giving up.
-///
-/// Two attempts is enough in practice: if a 4-minute attempt fails, the
-/// bootstrap peer list or the local network is actually broken, not
-/// transiently slow. A second attempt is a cheap hedge; a third just
-/// keeps the user staring at a spinner.
-const CONNECT_MAX_ATTEMPTS: u32 = 2;
-/// Backoff schedule between attempts (length must be ≥ CONNECT_MAX_ATTEMPTS - 1).
-const CONNECT_BACKOFFS: [std::time::Duration; 1] = [std::time::Duration::from_secs(5)];
-
 /// Pending uploads older than this are garbage-collected.
 const PENDING_UPLOAD_TTL: std::time::Duration = std::time::Duration::from_secs(30 * 60);
+
+/// An upload that's been prepared (encrypted + quoted) and is waiting for the
+/// frontend to complete its payment step before chunks are stored on the
+/// network. `file_name` is the basename of the original file — captured here
+/// so `confirm_upload` can name the persisted datamap after it.
+pub struct PendingUpload {
+    pub prepared: PreparedUpload,
+    pub created_at: std::time::Instant,
+    pub file_name: String,
+}
 
 impl AutonomiState {
     pub fn new() -> Self {
@@ -123,7 +111,7 @@ impl AutonomiState {
         self.pending_uploads
             .write()
             .await
-            .retain(|_, (_, created_at)| *created_at > cutoff);
+            .retain(|_, pending| pending.created_at > cutoff);
     }
 }
 
@@ -169,6 +157,10 @@ pub struct UploadResult {
     /// Hex address derived from the DataMap (for display/sharing).
     pub address: String,
     pub chunks_stored: usize,
+    /// Absolute path to the persisted DataMap file on the local filesystem.
+    /// This is the user-visible handle for private uploads — without it, the
+    /// data is unreachable after the app restarts.
+    pub data_map_file: String,
 }
 
 #[derive(Deserialize)]
@@ -190,10 +182,14 @@ async fn set_connection_status(app: &AppHandle, new_status: ConnectionStatus) {
     }
 }
 
-/// Background task: try `Client::connect` up to `CONNECT_MAX_ATTEMPTS` times
-/// with a per-attempt timeout and backoff between attempts. Each transition is
-/// emitted to the frontend via `set_connection_status`. Returns silently — the
-/// frontend learns the outcome through events / `get_connection_status`.
+/// Background task: run a single `Client::connect` and emit status
+/// transitions via `set_connection_status`. Matches `ant-cli`'s behavior —
+/// no per-attempt timeout and no retry loop. The saorsa-core bootstrap
+/// loop inside `Client::connect` walks peers sequentially (one `.await`
+/// per peer with a 15s identity-exchange timeout each), so cold start
+/// can take 1-4 minutes on a fresh connect. If it genuinely wedges, the
+/// user can hit Retry (which calls `retry_autonomi_client`) or restart
+/// the app.
 async fn run_connection_loop(app: AppHandle, args: InitArgs) {
     let peers: Vec<std::net::SocketAddr> = match &args.bootstrap_peers {
         Some(list) if !list.is_empty() => list.iter().filter_map(|s| s.parse().ok()).collect(),
@@ -204,7 +200,6 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
                     &app,
                     ConnectionStatus::Failed {
                         reason: format!("Could not load bootstrap peers: {e}"),
-                        attempts: 0,
                     },
                 )
                 .await;
@@ -218,7 +213,6 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
             &app,
             ConnectionStatus::Failed {
                 reason: "No bootstrap peers available".into(),
-                attempts: 0,
             },
         )
         .await;
@@ -231,7 +225,6 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
                 &app,
                 ConnectionStatus::Failed {
                     reason: "evm_token_address required with evm_rpc_url".into(),
-                    attempts: 0,
                 },
             )
             .await;
@@ -242,7 +235,6 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
                 &app,
                 ConnectionStatus::Failed {
                     reason: "evm_vault_address required with evm_rpc_url".into(),
-                    attempts: 0,
                 },
             )
             .await;
@@ -260,60 +252,27 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
     // ant-cli (see WithAutonomi/ant-client#40).
     let allow_loopback = args.evm_rpc_url.is_some();
 
-    let mut last_error = String::new();
-    for attempt in 1..=CONNECT_MAX_ATTEMPTS {
-        set_connection_status(
-            &app,
-            ConnectionStatus::Connecting {
-                attempt,
-                of: CONNECT_MAX_ATTEMPTS,
-            },
-        )
-        .await;
+    set_connection_status(&app, ConnectionStatus::Connecting).await;
 
-        let config = ClientConfig {
-            allow_loopback,
-            ..ClientConfig::default()
-        };
-        match tokio::time::timeout(CONNECT_ATTEMPT_TIMEOUT, Client::connect(&peers, config)).await {
-            Ok(Ok(client)) => {
-                let peer_count = client.network().connected_peers().await.len();
-                let client = client.with_evm_network(evm_network.clone());
-                *app.state::<AutonomiState>().client.write().await = Some(client);
-                eprintln!("Autonomi connect attempt {attempt} succeeded ({peer_count} peers)");
-                set_connection_status(&app, ConnectionStatus::Connected).await;
-                return;
-            }
-            Ok(Err(e)) => {
-                last_error = format!("connect failed: {e}");
-                eprintln!("Autonomi connect attempt {attempt} failed: {e}");
-            }
-            Err(_) => {
-                last_error = format!(
-                    "connect timed out after {}s",
-                    CONNECT_ATTEMPT_TIMEOUT.as_secs()
-                );
-                eprintln!("Autonomi connect attempt {attempt} timed out");
-            }
+    let client_config = ClientConfig {
+        allow_loopback,
+        ..ClientConfig::default()
+    };
+
+    match Client::connect(&peers, client_config).await {
+        Ok(client) => {
+            let peer_count = client.network().connected_peers().await.len();
+            let client = client.with_evm_network(evm_network);
+            *app.state::<AutonomiState>().client.write().await = Some(client);
+            eprintln!("Autonomi connect succeeded ({peer_count} peers)");
+            set_connection_status(&app, ConnectionStatus::Connected).await;
         }
-
-        if attempt < CONNECT_MAX_ATTEMPTS {
-            let backoff = CONNECT_BACKOFFS
-                .get((attempt - 1) as usize)
-                .copied()
-                .unwrap_or(std::time::Duration::from_secs(20));
-            tokio::time::sleep(backoff).await;
+        Err(e) => {
+            let reason = format!("connect failed: {e}");
+            eprintln!("Autonomi connect: {reason}");
+            set_connection_status(&app, ConnectionStatus::Failed { reason }).await;
         }
     }
-
-    set_connection_status(
-        &app,
-        ConnectionStatus::Failed {
-            reason: last_error,
-            attempts: CONNECT_MAX_ATTEMPTS,
-        },
-    )
-    .await;
 }
 
 /// Spawn the connection loop if no client is already set. Returns immediately —
@@ -338,7 +297,7 @@ pub async fn init_autonomi_client(
     // Don't start a second loop if one is already in flight.
     if matches!(
         *state.connection_status.read().await,
-        ConnectionStatus::Connecting { .. }
+        ConnectionStatus::Connecting
     ) {
         return Ok(false);
     }
@@ -370,7 +329,7 @@ pub async fn retry_autonomi_client(
     }
     if matches!(
         *state.connection_status.read().await,
-        ConnectionStatus::Connecting { .. }
+        ConnectionStatus::Connecting
     ) {
         return Ok(());
     }
@@ -500,12 +459,22 @@ pub async fn start_upload(
     app.emit("upload-quote", &quote_event)
         .map_err(|e| format!("Failed to emit quote event: {e}"))?;
 
+    // Capture the basename so confirm_upload can name the persisted datamap
+    // after the original file.
+    let file_name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "upload".to_string());
+
     // Store prepared upload with timestamp for TTL cleanup
-    state
-        .pending_uploads
-        .write()
-        .await
-        .insert(request.upload_id, (prepared, std::time::Instant::now()));
+    state.pending_uploads.write().await.insert(
+        request.upload_id,
+        PendingUpload {
+            prepared,
+            created_at: std::time::Instant::now(),
+            file_name,
+        },
+    );
 
     Ok(())
 }
@@ -524,7 +493,11 @@ pub async fn confirm_upload(
         .as_ref()
         .ok_or("Autonomi client not initialized")?;
 
-    let (prepared, _created_at) = state
+    let PendingUpload {
+        prepared,
+        file_name,
+        ..
+    } = state
         .pending_uploads
         .write()
         .await
@@ -564,6 +537,9 @@ pub async fn confirm_upload(
     let data_map_json = serde_json::to_string(&result.data_map)
         .map_err(|e| format!("Failed to serialize DataMap: {e}"))?;
     let address = format!("0x{:x}", Sha256::digest(data_map_json.as_bytes()));
+    let data_map_file = crate::config::write_datamap_for(&file_name, &data_map_json)?
+        .to_string_lossy()
+        .into_owned();
 
     app.emit(
         "upload-progress",
@@ -580,6 +556,7 @@ pub async fn confirm_upload(
         data_map_json,
         address,
         chunks_stored: result.chunks_stored,
+        data_map_file,
     })
 }
 
@@ -597,7 +574,11 @@ pub async fn confirm_upload_merkle(
         .as_ref()
         .ok_or("Autonomi client not initialized")?;
 
-    let (prepared, _created_at) = state
+    let PendingUpload {
+        prepared,
+        file_name,
+        ..
+    } = state
         .pending_uploads
         .write()
         .await
@@ -617,6 +598,9 @@ pub async fn confirm_upload_merkle(
     let data_map_json = serde_json::to_string(&result.data_map)
         .map_err(|e| format!("Failed to serialize DataMap: {e}"))?;
     let address = format!("0x{:x}", Sha256::digest(data_map_json.as_bytes()));
+    let data_map_file = crate::config::write_datamap_for(&file_name, &data_map_json)?
+        .to_string_lossy()
+        .into_owned();
 
     app.emit(
         "upload-progress",
@@ -633,6 +617,7 @@ pub async fn confirm_upload_merkle(
         data_map_json,
         address,
         chunks_stored: result.chunks_stored,
+        data_map_file,
     })
 }
 
@@ -652,7 +637,46 @@ pub async fn download_file(
     let data_map: DataMap =
         serde_json::from_str(&data_map_json).map_err(|e| format!("Invalid DataMap: {e}"))?;
 
-    let dest = PathBuf::from(&dest_path);
+    download_with_datamap(client, &data_map, &dest_path, &app).await
+}
+
+/// Fetch a DataMap from the network by its public chunk address, then
+/// download the referenced file. Used by "download by address" when no
+/// local datamap is known — the DataMap was stored publicly on the network
+/// at the given 32-byte chunk address.
+#[tauri::command]
+pub async fn download_public(
+    app: AppHandle,
+    state: tauri::State<'_, AutonomiState>,
+    address: String,
+    dest_path: String,
+) -> Result<u64, String> {
+    let client_lock = state.client.read().await;
+    let client = client_lock
+        .as_ref()
+        .ok_or("Autonomi client not initialized")?;
+
+    let bytes = hex::decode(address.trim().trim_start_matches("0x"))
+        .map_err(|e| format!("Invalid address hex: {e}"))?;
+    let addr: [u8; 32] = bytes
+        .try_into()
+        .map_err(|_| "Address must be exactly 32 bytes (64 hex chars)".to_string())?;
+
+    let data_map = client
+        .data_map_fetch(&addr)
+        .await
+        .map_err(|e| format!("No data map at that address: {e}"))?;
+
+    download_with_datamap(client, &data_map, &dest_path, &app).await
+}
+
+async fn download_with_datamap(
+    client: &Client,
+    data_map: &DataMap,
+    dest_path: &str,
+    app: &AppHandle,
+) -> Result<u64, String> {
+    let dest = expand_tilde(dest_path);
 
     if let Some(parent) = dest.parent() {
         tokio::fs::create_dir_all(parent)
@@ -669,20 +693,52 @@ pub async fn download_file(
     }
 
     let bytes_written = client
-        .file_download(&data_map, &dest)
+        .file_download(data_map, &dest)
         .await
         .map_err(|e| format!("Download failed: {e}"))?;
 
     app.emit(
         "download-complete",
         serde_json::json!({
-            "dest_path": dest_path,
+            "dest_path": dest.to_string_lossy(),
             "bytes_written": bytes_written,
         }),
     )
     .ok();
 
     Ok(bytes_written)
+}
+
+/// Expand a leading `~` or `~/` to the user's home directory. A literal
+/// tilde in `PathBuf::from` is otherwise treated as a directory named `~`
+/// in the current working directory — in dev mode that's `src-tauri/`,
+/// which the Tauri watcher monitors and reacts to by restarting the app.
+fn expand_tilde(path: &str) -> PathBuf {
+    if path == "~" {
+        return dirs::home_dir().unwrap_or_else(|| PathBuf::from(path));
+    }
+    if let Some(rest) = path.strip_prefix("~/") {
+        if let Some(home) = dirs::home_dir() {
+            return home.join(rest);
+        }
+    }
+    PathBuf::from(path)
+}
+
+/// Read a persisted DataMap file from disk and return its JSON contents.
+///
+/// Used by the "Download by datamap" flow: the user picks a `.datamap` file
+/// via the OS file dialog, and the frontend forwards the returned JSON to
+/// `download_file`. The path is trusted (chosen by the user through the
+/// native picker); we only validate that the file parses as UTF-8.
+#[tauri::command]
+pub fn read_datamap_file(path: String) -> Result<String, String> {
+    let canonical =
+        std::fs::canonicalize(&path).map_err(|e| format!("Invalid datamap path {path}: {e}"))?;
+    if !canonical.is_file() {
+        return Err(format!("Not a regular file: {path}"));
+    }
+    std::fs::read_to_string(&canonical).map_err(|e| format!("Failed to read {path}: {e}"))
 }
 
 /// Check if the data client is currently connected.

@@ -13,6 +13,12 @@ const GAS_QUOTE_BASE = 25_000n
 const GAS_MERKLE_BASE = 180_000n
 const GAS_MERKLE_PER_POOL = 25_000n
 
+// Arbitrum produces blocks every ~250ms; viem's default 4s polling is tuned
+// for L1. Dropping to 2s reduces the window where we might miss a newly-mined
+// block and surface TransactionReceiptNotFoundError for txs that have
+// actually landed. viem's built-in retry handles RPC propagation lag.
+const RECEIPT_POLL_INTERVAL_MS = 2_000
+
 export type RawPayment = [string, string, string] // [quoteHash, rewardsAddress, amount]
 
 export interface PaymentResult {
@@ -103,7 +109,11 @@ export async function payForQuotes(
       ...accountOpt(),
     })
 
-    const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: getActiveChainId() })
+    const receipt = await waitForTransactionReceipt(wagmiConfig, {
+      hash,
+      chainId: getActiveChainId(),
+      pollingInterval: RECEIPT_POLL_INTERVAL_MS,
+    })
     gasSpent += receiptGasCost(receipt)
 
     for (const [quoteHash] of batch) {
@@ -148,7 +158,11 @@ export async function payForMerkleTree(
     ...accountOpt(),
   })
 
-  const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: getActiveChainId() })
+  const receipt = await waitForTransactionReceipt(wagmiConfig, {
+    hash,
+    chainId: getActiveChainId(),
+    pollingInterval: RECEIPT_POLL_INTERVAL_MS,
+  })
   gasSpent += receiptGasCost(receipt)
 
   // Extract winnerPoolHash from MerklePaymentMade event
@@ -201,7 +215,11 @@ async function ensureAllowance(wagmiConfig: any, needed: bigint): Promise<bigint
     ...accountOpt(),
   })
 
-  const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: getActiveChainId() })
+  const receipt = await waitForTransactionReceipt(wagmiConfig, {
+    hash,
+    chainId: getActiveChainId(),
+    pollingInterval: RECEIPT_POLL_INTERVAL_MS,
+  })
   return receiptGasCost(receipt)
 }
 

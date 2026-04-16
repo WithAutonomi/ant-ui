@@ -13,6 +13,33 @@
         </span>
       </div>
 
+      <!-- Network connection indicator -->
+      <div
+        v-if="connectionStore.isConnecting"
+        class="flex items-center gap-2 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted"
+        title="Connecting to the Autonomi network"
+      >
+        <div class="h-2.5 w-2.5 animate-spin rounded-full border-2 border-yellow-500 border-t-transparent" />
+        <span>Connecting</span>
+      </div>
+      <div
+        v-else-if="connectionStore.isConnected"
+        class="flex items-center gap-2 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-text"
+        title="Connected to the Autonomi network"
+      >
+        <span class="text-autonomi-success">●</span>
+        <span>Network</span>
+      </div>
+      <button
+        v-else-if="connectionStore.hasFailed"
+        class="flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/5 px-2.5 py-1 text-xs text-red-400 hover:bg-red-500/10"
+        title="Connection failed — click to retry"
+        @click="connectionStore.retry()"
+      >
+        <span>●</span>
+        <span>Offline · Retry</span>
+      </button>
+
       <!-- Indelible indicator (replaces wallet when connected) -->
       <div
         v-if="settingsStore.indelibleConnected"
@@ -50,12 +77,14 @@ import { useNodesStore } from '~/stores/nodes'
 import { useFilesStore } from '~/stores/files'
 import { useWalletStore } from '~/stores/wallet'
 import { useSettingsStore } from '~/stores/settings'
+import { useConnectionStore } from '~/stores/connection'
 
 const route = useRoute()
 const nodesStore = useNodesStore()
 const filesStore = useFilesStore()
 const walletStore = useWalletStore()
 const settingsStore = useSettingsStore()
+const connectionStore = useConnectionStore()
 const { $appkit, $appkitReady } = useNuxtApp()
 
 function openModal() {
