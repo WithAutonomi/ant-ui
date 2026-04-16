@@ -20,7 +20,6 @@ export const useSettingsStore = defineStore('settings', {
   state: () => ({
     storageDir: null as string | null,
     downloadDir: null as string | null,
-    defaultDownloadDir: null as string | null,
     daemonUrl: 'http://127.0.0.1:12500',
     bellOnCritical: false,
     earningsAddress: null as string | null,
@@ -56,12 +55,6 @@ export const useSettingsStore = defineStore('settings', {
         this.loaded = true
       } catch (e) {
         console.error('Failed to load config:', e)
-      }
-
-      try {
-        this.defaultDownloadDir = await invoke<string>('get_default_download_dir')
-      } catch (e) {
-        console.error('Failed to resolve default download dir:', e)
       }
     },
 

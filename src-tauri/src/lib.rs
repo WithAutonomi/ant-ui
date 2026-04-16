@@ -96,7 +96,17 @@ fn find_daemon_binary() -> Option<PathBuf> {
 
 #[tauri::command]
 fn load_config() -> Result<AppConfig, String> {
-    AppConfig::load().map_err(|e| e.to_string())
+    let mut config = AppConfig::load().map_err(|e| e.to_string())?;
+    // Persist the platform's default downloads directory on first launch so
+    // it's visible in settings and used by downloads without a separate
+    // runtime fallback.
+    if config.download_dir.is_none() {
+        if let Some(default) = config::platform_default_download_dir() {
+            config.download_dir = Some(default.to_string_lossy().into_owned());
+            config.save().map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(config)
 }
 
 #[tauri::command]
@@ -478,14 +488,12 @@ fn get_node_data_dir(node_id: u32) -> Result<String, String> {
     Ok(base.to_string_lossy().into_owned())
 }
 
-/// Return the OS-appropriate default downloads directory. Used as the
-/// fallback destination when the user hasn't configured a custom one in
-/// settings. Resolves to `~/Downloads` on macOS/Linux and
-/// `C:\Users\<name>\Downloads` on Windows.
+/// Return the OS-appropriate default downloads directory. The frontend
+/// uses this to offer a "reset to default" affordance; on first launch
+/// `load_config` already persists this value into the config.
 #[tauri::command]
 fn get_default_download_dir() -> Result<String, String> {
-    dirs::download_dir()
-        .or_else(|| dirs::home_dir().map(|h| h.join("Downloads")))
+    config::platform_default_download_dir()
         .map(|p| p.to_string_lossy().into_owned())
         .ok_or_else(|| "Could not determine default download directory".to_string())
 }

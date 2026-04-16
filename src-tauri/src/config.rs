@@ -105,6 +105,13 @@ pub(crate) fn config_path() -> PathBuf {
         .join("ant-gui")
 }
 
+/// Resolve the OS-appropriate default downloads directory. Returns
+/// `~/Downloads` on macOS/Linux and `C:\Users\<name>\Downloads` on Windows,
+/// falling back to `<home>/Downloads` if the platform-specific lookup fails.
+pub fn platform_default_download_dir() -> Option<PathBuf> {
+    dirs::download_dir().or_else(|| dirs::home_dir().map(|h| h.join("Downloads")))
+}
+
 impl AppConfig {
     fn config_file() -> PathBuf {
         config_path().join("config.toml")

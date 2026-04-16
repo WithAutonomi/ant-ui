@@ -557,7 +557,7 @@ export const useFilesStore = defineStore('files', {
 
     getDownloadDir(): string {
       const settings = useSettingsStore()
-      return settings.downloadDir ?? settings.defaultDownloadDir ?? ''
+      return settings.downloadDir ?? ''
     },
 
     /**
