@@ -677,7 +677,46 @@ pub async fn download_file(
     let data_map: DataMap =
         serde_json::from_str(&data_map_json).map_err(|e| format!("Invalid DataMap: {e}"))?;
 
-    let dest = PathBuf::from(&dest_path);
+    download_with_datamap(client, &data_map, &dest_path, &app).await
+}
+
+/// Fetch a DataMap from the network by its public chunk address, then
+/// download the referenced file. Used by "download by address" when no
+/// local datamap is known — the DataMap was stored publicly on the network
+/// at the given 32-byte chunk address.
+#[tauri::command]
+pub async fn download_public(
+    app: AppHandle,
+    state: tauri::State<'_, AutonomiState>,
+    address: String,
+    dest_path: String,
+) -> Result<u64, String> {
+    let client_lock = state.client.read().await;
+    let client = client_lock
+        .as_ref()
+        .ok_or("Autonomi client not initialized")?;
+
+    let bytes = hex::decode(address.trim().trim_start_matches("0x"))
+        .map_err(|e| format!("Invalid address hex: {e}"))?;
+    let addr: [u8; 32] = bytes
+        .try_into()
+        .map_err(|_| "Address must be exactly 32 bytes (64 hex chars)".to_string())?;
+
+    let data_map = client
+        .data_map_fetch(&addr)
+        .await
+        .map_err(|e| format!("No data map at that address: {e}"))?;
+
+    download_with_datamap(client, &data_map, &dest_path, &app).await
+}
+
+async fn download_with_datamap(
+    client: &Client,
+    data_map: &DataMap,
+    dest_path: &str,
+    app: &AppHandle,
+) -> Result<u64, String> {
+    let dest = PathBuf::from(dest_path);
 
     if let Some(parent) = dest.parent() {
         tokio::fs::create_dir_all(parent)
@@ -694,7 +733,7 @@ pub async fn download_file(
     }
 
     let bytes_written = client
-        .file_download(&data_map, &dest)
+        .file_download(data_map, &dest)
         .await
         .map_err(|e| format!("Download failed: {e}"))?;
 

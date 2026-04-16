@@ -454,15 +454,24 @@ export const useFilesStore = defineStore('files', {
      * Start a download row. Always creates a fresh entry in the downloads
      * table — uploads are never mutated in place, so the upload history
      * stays stable across download attempts.
+     *
+     * If the address matches a prior upload by this app, the new download
+     * inherits its datamap (JSON or file path). The "address" is a local
+     * SHA256 of the serialized DataMap, so without that lookup a pasted
+     * address has no way to resolve to a DataMap — the network can't be
+     * queried by this synthetic address.
      */
     startDownload(address: string, filename: string, dest_path: string): number {
       const id = this.nextId++
+      const match = this.findUploadByAddress(address)
       this.files.unshift({
         id,
         kind: 'download',
         name: filename,
         size_bytes: 0,
         address,
+        data_map_json: match?.data_map_json,
+        data_map_file: match?.data_map_file,
         status: 'downloading',
         dest_path,
         progress: 0,
@@ -470,6 +479,13 @@ export const useFilesStore = defineStore('files', {
         transferStartedAt: Date.now(),
       })
       return id
+    },
+
+    findUploadByAddress(address: string): FileEntry | undefined {
+      const needle = normalizeAddress(address)
+      return this.files.find(
+        f => f.kind === 'upload' && f.address && normalizeAddress(f.address) === needle,
+      )
     },
 
     async startRealDownload(id: number) {
@@ -492,23 +508,23 @@ export const useFilesStore = defineStore('files', {
         }
       }
 
-      if (!entry.data_map_json) {
-        this.updateEntry(id, { status: 'failed', error: 'No data map available — file must be uploaded first' })
-        toasts.add('Cannot download: no data map for this address', 'error')
-        return
-      }
-
       try {
         this.updateEntry(id, { status: 'downloading', progress: 0 })
 
-        await withTimeout(
-          invoke('download_file', {
-            dataMapJson: entry.data_map_json,
-            destPath: entry.dest_path,
-          }),
-          300_000,
-          'Download timed out',
-        )
+        // Local datamap takes priority — it's fast and doesn't require the
+        // DataMap chunk to exist on-network. Fall back to a public fetch by
+        // address when we have neither JSON nor a local file.
+        const request = entry.data_map_json
+          ? invoke('download_file', {
+              dataMapJson: entry.data_map_json,
+              destPath: entry.dest_path,
+            })
+          : invoke('download_public', {
+              address: entry.address,
+              destPath: entry.dest_path,
+            })
+
+        await withTimeout(request, 300_000, 'Download timed out')
 
         const duration = entry.transferStartedAt
           ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
@@ -602,6 +618,10 @@ async function sha256Hex(text: string): Promise<string> {
     .map(b => b.toString(16).padStart(2, '0'))
     .join('')
   return `0x${hex}`
+}
+
+function normalizeAddress(address: string): string {
+  return address.trim().toLowerCase().replace(/^0x/, '')
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
