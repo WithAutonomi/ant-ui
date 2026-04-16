@@ -17,7 +17,7 @@
               v-for="c in candidates"
               :key="c.data_map_file"
               class="flex cursor-pointer items-center justify-between px-3 py-2 text-sm hover:bg-autonomi-surface/70"
-              @click="select(c.data_map_file)"
+              @click="select(c.data_map_file, c.name)"
             >
               <div class="min-w-0">
                 <div class="truncate text-autonomi-text">{{ c.name }}</div>
@@ -71,11 +71,11 @@ defineProps<{
 const emit = defineEmits<{
   close: []
   browse: []
-  select: [dataMapPath: string]
+  select: [dataMapPath: string, suggestedName: string]
 }>()
 
-function select(path: string) {
-  emit('select', path)
+function select(path: string, suggestedName: string) {
+  emit('select', path, suggestedName)
   emit('close')
 }
 

@@ -218,7 +218,14 @@
       :candidates="datamapCandidates"
       @close="showDatamapDialog = false"
       @browse="browseForDatamap"
-      @select="startDatamapDownload"
+      @select="onDatamapPicked"
+    />
+
+    <FilesDatamapSaveAsDialog
+      :open="showDatamapSaveAs"
+      :default-name="pendingDatamap?.defaultName ?? ''"
+      @close="cancelDatamapSaveAs"
+      @confirm="startDatamapDownload"
     />
 
     <FilesUploadConfirmDialog
@@ -606,12 +613,17 @@ function waitForConnection(): Promise<boolean> {
 }
 
 const showDatamapDialog = ref(false)
+const showDatamapSaveAs = ref(false)
+
+/** Set between phase 1 (picker) and phase 2 (Save As) of the download-by-
+ *  datamap flow. Cleared once a download starts or the user cancels. */
+const pendingDatamap = ref<{ path: string; defaultName: string } | null>(null)
 
 /** Previously uploaded files for which we still hold a local datamap — the
  *  set the user can re-download from without picking a file from disk. */
 const datamapCandidates = computed(() =>
   filesStore.files
-    .filter(f => f.status === 'complete' && f.data_map_file)
+    .filter(f => f.kind === 'upload' && f.status === 'complete' && f.data_map_file)
     .map(f => ({
       name: f.name,
       data_map_file: f.data_map_file!,
@@ -622,6 +634,11 @@ const datamapCandidates = computed(() =>
 
 function openDownloadByDatamap() {
   showDatamapDialog.value = true
+}
+
+function onDatamapPicked(path: string, suggestedName: string) {
+  pendingDatamap.value = { path, defaultName: suggestedName }
+  showDatamapSaveAs.value = true
 }
 
 async function browseForDatamap() {
@@ -639,11 +656,24 @@ async function browseForDatamap() {
   }
   if (!selected) return
   const datamapPath = String(Array.isArray(selected) ? selected[0] : selected)
-  await startDatamapDownload(datamapPath)
+  const basename = datamapPath.split(/[\\/]/).pop() ?? 'download'
+  const defaultName = basename.replace(/\.datamap$/i, '') || basename
+  pendingDatamap.value = { path: datamapPath, defaultName }
+  showDatamapSaveAs.value = true
 }
 
-async function startDatamapDownload(datamapPath: string) {
-  const id = await filesStore.downloadFromDatamapFile(datamapPath)
+function cancelDatamapSaveAs() {
+  showDatamapSaveAs.value = false
+  pendingDatamap.value = null
+}
+
+async function startDatamapDownload(filename: string) {
+  const pending = pendingDatamap.value
+  if (!pending) return
+  showDatamapSaveAs.value = false
+  pendingDatamap.value = null
+
+  const id = await filesStore.downloadFromDatamapFile(pending.path, filename)
   if (id === null) return
 
   if (!autonomiConnected.value) {

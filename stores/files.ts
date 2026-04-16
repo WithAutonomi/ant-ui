@@ -549,11 +549,13 @@ export const useFilesStore = defineStore('files', {
      * and creates a fresh download row. The matching upload row (if any)
      * is left untouched so the uploads table stays stable.
      *
-     * The output filename is derived from the datamap's basename with the
-     * `.datamap` extension stripped — not a perfect round-trip (we don't
-     * know the original file type), but good enough as a starting name.
+     * `filename` controls how the downloaded file is saved; if omitted it
+     * falls back to the datamap's basename with `.datamap` stripped.
      */
-    async downloadFromDatamapFile(datamapPath: string): Promise<number | null> {
+    async downloadFromDatamapFile(
+      datamapPath: string,
+      filename?: string,
+    ): Promise<number | null> {
       const toasts = useToastStore()
 
       let json: string
@@ -565,15 +567,16 @@ export const useFilesStore = defineStore('files', {
       }
 
       const basename = datamapPath.split(/[\\/]/).pop() ?? 'download'
-      const filename = basename.replace(/\.datamap$/i, '') || basename
+      const fallback = basename.replace(/\.datamap$/i, '') || basename
+      const finalName = filename?.trim() || fallback
       const address = await sha256Hex(json)
-      const destPath = `${this.getDownloadDir()}/${filename}`
+      const destPath = `${this.getDownloadDir()}/${finalName}`
 
       const id = this.nextId++
       this.files.unshift({
         id,
         kind: 'download',
-        name: filename,
+        name: finalName,
         size_bytes: 0,
         address,
         data_map_json: json,
