@@ -352,9 +352,34 @@ jobs:
         shell: pwsh
         run: |
           $signCmd = (Resolve-Path "sign.cmd").Path -replace '\\', '/'
-          # Tauri replaces %1 in signCommand with the file path, then executes the
-          # result as a shell command. sign.cmd receives that path as its first arg (%1).
-          npx tauri build --bundles msi,updater --config "{`"bundle`":{`"windows`":{`"signCommand`":`"$signCmd %1`"}}}"
+
+          # Windows MSI versioning rejects non-numeric pre-release identifiers
+          # (e.g. `0.6.5-rc.1`), because the MSI format inherits the 4-part
+          # numeric PE resource version. Tauri errors with: "optional pre-release
+          # identifier in app version must be numeric-only". Override wix.version
+          # with just the `major.minor.patch` portion so `rc.N` / `beta.N` tags
+          # can still ship an MSI. The app's self-reported version (CARGO_PKG_VERSION
+          # / tauri.conf.json) keeps the full semver — the override only affects
+          # MSI metadata (what Windows' Add/Remove Programs displays).
+          $conf = Get-Content src-tauri\tauri.conf.json | ConvertFrom-Json
+          $msiVersion = ($conf.version -split '-')[0]
+          Write-Host "MSI wix.version override: $msiVersion (from tauri.conf.json '$($conf.version)')"
+
+          $overrideJson = @{
+            bundle = @{
+              windows = @{
+                signCommand = "$signCmd %1"
+                wix = @{
+                  version = $msiVersion
+                }
+              }
+            }
+          } | ConvertTo-Json -Depth 5 -Compress
+
+          # Tauri replaces %1 in signCommand with the file path, then executes
+          # the result as a shell command. sign.cmd receives that path as its
+          # first arg (%1).
+          npx tauri build --bundles msi,updater --config $overrideJson
           Remove-Item -Path "sign.cmd" -ErrorAction SilentlyContinue
 
       - name: verify MSI signature
