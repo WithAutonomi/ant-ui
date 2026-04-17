@@ -8,10 +8,13 @@ export interface CheckResult {
 }
 
 function humaniseUpdateError(raw: string): string {
-  if (/did not respond with a successful status code|404|not found/i.test(raw)) {
+  // tauri-plugin-updater surfaces `ReleaseNotFound` for any non-success HTTP
+  // response (404, 403, 500, …) with this exact string, so pin to it. The
+  // other phrases catch older plugin versions and direct log messages.
+  if (/could not fetch a valid release json|release not found|did not respond with a successful status code|\b404\b|\bnot found\b/i.test(raw)) {
     return 'Cannot find latest version'
   }
-  if (/network|fetch|connect|dns|timeout/i.test(raw)) {
+  if (/network|connect|dns|timeout|tcp|tls|unreachable/i.test(raw)) {
     return 'Could not reach update server'
   }
   if (/signature|invalid key|verify/i.test(raw)) {
