@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { useErrorLogStore } from './errorlog'
 
-export type ToastLevel = 'info' | 'warning' | 'error'
+export type ToastLevel = 'info' | 'success' | 'warning' | 'error'
 
 export interface Toast {
   id: number
@@ -13,6 +13,7 @@ let nextId = 0
 
 const DURATIONS: Record<ToastLevel, number> = {
   info: 3000,
+  success: 3000,
   warning: 5000,
   error: 8000,
 }

@@ -7,6 +7,19 @@ export interface CheckResult {
   error?: string
 }
 
+function humaniseUpdateError(raw: string): string {
+  if (/did not respond with a successful status code|404|not found/i.test(raw)) {
+    return 'Cannot find latest version'
+  }
+  if (/network|fetch|connect|dns|timeout/i.test(raw)) {
+    return 'Could not reach update server'
+  }
+  if (/signature|invalid key|verify/i.test(raw)) {
+    return 'Update manifest failed signature check — please report'
+  }
+  return `Update check failed: ${raw}`
+}
+
 export const useUpdaterStore = defineStore('updater', {
   state: () => ({
     available: false,
@@ -45,7 +58,8 @@ export const useUpdaterStore = defineStore('updater', {
         return { ok: true, available: false }
       } catch (e: any) {
         console.error('Update check failed:', e)
-        return { ok: false, available: false, error: e?.message ?? String(e) }
+        const raw = e?.message ?? String(e)
+        return { ok: false, available: false, error: humaniseUpdateError(raw) }
       } finally {
         this.checking = false
       }
