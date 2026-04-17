@@ -429,7 +429,7 @@ async function checkForUpdates() {
     toasts.add(`Update available: v${updaterStore.version}`, 'info')
     updaterStore.showDialog = true
   } else {
-    toasts.add(`You're on the latest version (v${appVersion.value})`, 'info')
+    toasts.add(`You're on the latest version (v${appVersion.value})`, 'success')
   }
 }
 const nodeVersion = computed(() => {

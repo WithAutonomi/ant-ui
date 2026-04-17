@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { useErrorLogStore } from './errorlog'
 
-export type ToastLevel = 'info' | 'warning' | 'error'
+export type ToastLevel = 'info' | 'success' | 'warning' | 'error'
 
 export interface Toast {
   id: number
@@ -13,6 +13,7 @@ let nextId = 0
 
 const DURATIONS: Record<ToastLevel, number> = {
   info: 3000,
+  success: 3000,
   warning: 5000,
   error: 8000,
 }
@@ -27,9 +28,10 @@ export const useToastStore = defineStore('toasts', {
       const id = nextId++
       this.toasts.push({ id, message, level })
 
-      // Also log to persistent error log
+      // Also log to persistent error log. 'success' isn't a diagnostic
+      // level — downgrade it to 'info' for the log.
       const errorLog = useErrorLogStore()
-      errorLog.log(level, 'toast', message)
+      errorLog.log(level === 'success' ? 'info' : level, 'toast', message)
 
       // Keep max 5
       if (this.toasts.length > 5) {

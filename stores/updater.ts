@@ -7,6 +7,22 @@ export interface CheckResult {
   error?: string
 }
 
+function humaniseUpdateError(raw: string): string {
+  // tauri-plugin-updater surfaces `ReleaseNotFound` for any non-success HTTP
+  // response (404, 403, 500, …) with this exact string, so pin to it. The
+  // other phrases catch older plugin versions and direct log messages.
+  if (/could not fetch a valid release json|release not found|did not respond with a successful status code|\b404\b|\bnot found\b/i.test(raw)) {
+    return 'Cannot find latest version'
+  }
+  if (/network|connect|dns|timeout|tcp|tls|unreachable/i.test(raw)) {
+    return 'Could not reach update server'
+  }
+  if (/signature|invalid key|verify/i.test(raw)) {
+    return 'Update manifest failed signature check — please report'
+  }
+  return `Update check failed: ${raw}`
+}
+
 export const useUpdaterStore = defineStore('updater', {
   state: () => ({
     available: false,
@@ -45,7 +61,8 @@ export const useUpdaterStore = defineStore('updater', {
         return { ok: true, available: false }
       } catch (e: any) {
         console.error('Update check failed:', e)
-        return { ok: false, available: false, error: e?.message ?? String(e) }
+        const raw = e?.message ?? String(e)
+        return { ok: false, available: false, error: humaniseUpdateError(raw) }
       } finally {
         this.checking = false
       }

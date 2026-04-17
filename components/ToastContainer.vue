@@ -27,6 +27,7 @@ function toastClass(level: string) {
   switch (level) {
     case 'error': return 'border-autonomi-error bg-red-950 text-autonomi-error'
     case 'warning': return 'border-autonomi-warning bg-yellow-950 text-autonomi-warning'
+    case 'success': return 'border-green-500/40 bg-green-950 text-green-400'
     default: return 'border-autonomi-blue bg-blue-950 text-autonomi-blue'
   }
 }
@@ -35,6 +36,7 @@ function toastIcon(level: string) {
   switch (level) {
     case 'error': return '✖'
     case 'warning': return '⚠'
+    case 'success': return '✓'
     default: return 'ℹ'
   }
 }
