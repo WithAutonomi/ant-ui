@@ -28,9 +28,10 @@ export const useToastStore = defineStore('toasts', {
       const id = nextId++
       this.toasts.push({ id, message, level })
 
-      // Also log to persistent error log
+      // Also log to persistent error log. 'success' isn't a diagnostic
+      // level — downgrade it to 'info' for the log.
       const errorLog = useErrorLogStore()
-      errorLog.log(level, 'toast', message)
+      errorLog.log(level === 'success' ? 'info' : level, 'toast', message)
 
       // Keep max 5
       if (this.toasts.length > 5) {
