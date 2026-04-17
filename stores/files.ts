@@ -50,6 +50,10 @@ export interface FileEntry {
   size_bytes: number
   /** Network address (hex) — for display / sharing */
   address?: string
+  /** On-network chunk address of the published DataMap, set for public
+   *  uploads. This is the single shareable handle — anyone with it can
+   *  fetch the DataMap via `download_public` and decrypt the file. */
+  public_address?: string
   /** Serialized DataMap JSON — needed for download from network */
   data_map_json?: string
   /** Absolute path to the persisted DataMap file on disk. Set for private
@@ -89,6 +93,9 @@ export interface UploadHistoryEntry {
   /** Absolute path to the persisted DataMap file; `null`/absent for legacy
    *  entries written before datamap persistence was added. */
   data_map_file?: string | null
+  /** On-network chunk address of the published DataMap for public uploads.
+   *  `null`/absent for private uploads and for legacy entries. */
+  public_address?: string | null
 }
 
 export const useFilesStore = defineStore('files', {
@@ -143,6 +150,7 @@ export const useFilesStore = defineStore('files', {
             name: e.name,
             size_bytes: e.size_bytes,
             address: e.address,
+            public_address: e.public_address ?? undefined,
             cost: e.cost ?? undefined,
             data_map_file: e.data_map_file ?? undefined,
             status: 'complete',
@@ -168,6 +176,7 @@ export const useFilesStore = defineStore('files', {
           cost: f.cost ?? null,
           uploaded_at: f.date,
           data_map_file: f.data_map_file ?? null,
+          public_address: f.public_address ?? null,
         }))
 
       try {
@@ -228,8 +237,18 @@ export const useFilesStore = defineStore('files', {
       return id
     },
 
-    /** Get a real network quote for a file. Used by the upload dialog to show real costs. */
-    async getUploadQuote(path: string): Promise<UploadQuote | null> {
+    /**
+     * Get a real network quote for a file. Used by the upload dialog to show
+     * real costs.
+     *
+     * `visibility` controls whether ant-core bundles the serialized DataMap
+     * into the payment batch. Public quotes cost slightly more than private
+     * ones because the DataMap is billed as one extra chunk. A quote obtained
+     * with one visibility must be finalized with the same visibility — the
+     * prepared chunks on the backend differ — so callers re-quote if the
+     * user changes their selection.
+     */
+    async getUploadQuote(path: string, visibility: 'private' | 'public' = 'private'): Promise<UploadQuote | null> {
       const uploadId = `quote-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
       // Deferred so the listener can resolve independently of where the
@@ -259,7 +278,7 @@ export const useFilesStore = defineStore('files', {
         })
 
         await invoke('start_upload', {
-          request: { files: [path], upload_id: uploadId },
+          request: { files: [path], upload_id: uploadId, visibility },
         })
 
         const quote = await quotePromise
@@ -296,7 +315,10 @@ export const useFilesStore = defineStore('files', {
         let quote: UploadQuote
 
         if (preQuote) {
-          // Use pre-obtained quote (from dialog phase)
+          // Use pre-obtained quote (from dialog phase). The caller is
+          // responsible for ensuring its visibility matches `options.visibility`
+          // — `pages/files.vue` drops the pre-quote when the user changes
+          // visibility so we always re-quote with the matching batch.
           uploadId = preQuote.upload_id
           quote = preQuote
           this.updateEntry(id, { cost: preQuote.total_cost_display })
@@ -305,7 +327,7 @@ export const useFilesStore = defineStore('files', {
           // there is a single implementation of the listen+invoke dance.
           if (!entry.path) throw new Error('Upload entry has no file path')
           this.updateEntry(id, { status: 'quoting' })
-          const fresh = await this.getUploadQuote(entry.path)
+          const fresh = await this.getUploadQuote(entry.path, options.visibility)
           if (!fresh) throw new Error('Failed to get quote from network')
           uploadId = fresh.upload_id
           quote = fresh
@@ -339,7 +361,7 @@ export const useFilesStore = defineStore('files', {
             // can legitimately take many minutes for larger files. The CLI
             // (which works) also has no timeout here. Backend errors still
             // surface through invoke's rejection.
-            const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number; data_map_file: string }>('confirm_upload_merkle', {
+            const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number; data_map_file: string; public_address: string | null }>('confirm_upload_merkle', {
               uploadId,
               winnerPoolHash: payResult.winnerPoolHash,
             })
@@ -351,6 +373,7 @@ export const useFilesStore = defineStore('files', {
               status: 'complete',
               progress: 100,
               address: result.address,
+              public_address: result.public_address ?? undefined,
               data_map_json: result.data_map_json,
               data_map_file: result.data_map_file,
               duration,
@@ -383,7 +406,7 @@ export const useFilesStore = defineStore('files', {
           this.updateEntry(id, { status: 'uploading', progress: 0 })
 
           // No frontend timeout — see confirm_upload_merkle above for rationale.
-          const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number; data_map_file: string }>('confirm_upload', {
+          const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number; data_map_file: string; public_address: string | null }>('confirm_upload', {
             uploadId,
             txHashes,
           })
@@ -395,6 +418,7 @@ export const useFilesStore = defineStore('files', {
             status: 'complete',
             progress: 100,
             address: result.address,
+            public_address: result.public_address ?? undefined,
             data_map_json: result.data_map_json,
             data_map_file: result.data_map_file,
             duration,

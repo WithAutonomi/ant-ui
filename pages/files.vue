@@ -121,7 +121,16 @@
                 </td>
                 <td class="px-4 py-2.5">
                   <span
-                    v-if="file.data_map_file"
+                    v-if="file.public_address"
+                    class="inline-flex cursor-pointer items-center gap-1.5 font-mono text-xs text-autonomi-blue hover:text-autonomi-blue/80"
+                    title="Public upload — click to copy the shareable network address"
+                    @click.stop="copyPublicAddress(file.public_address)"
+                  >
+                    <span class="rounded bg-autonomi-blue/15 px-1 py-px text-[9px] font-sans uppercase tracking-wider">Public</span>
+                    {{ truncateAddress(file.public_address, 8, 6) }}
+                  </span>
+                  <span
+                    v-else-if="file.data_map_file"
                     class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue"
                     :title="`Reveal ${datamapBasename(file.data_map_file)} in its folder`"
                     @click.stop="openFolder(file.data_map_file)"
@@ -239,6 +248,7 @@
       :network-connected="autonomiConnected"
       @confirm="confirmUpload"
       @cancel="cancelUpload"
+      @visibility-change="onVisibilityChange"
     />
 
     <FilesCostEstimateDialog
@@ -432,6 +442,11 @@ const quotedCostDisplay = ref<string | null>(null)
 const quotedGasEstimate = ref<string | null>(null)
 const quotedPaymentMode = ref<'wave-batch' | 'merkle' | null>(null)
 const pendingQuotes = ref<Map<string, UploadQuote>>(new Map())
+/** Visibility the currently-pinned quotes were collected under. Re-quoting
+ *  is required when the user flips Private/Public because ant-core bundles
+ *  the data map chunk into the payment batch for public uploads, so the
+ *  prepared chunks and the total cost both change. */
+const quotedVisibility = ref<'private' | 'public'>('private')
 
 async function getFileMetas(paths: string[]): Promise<FileMeta[]> {
   try {
@@ -468,6 +483,7 @@ async function showUploadConfirmForPaths(paths: string[]) {
   quotedGasEstimate.value = null
   quotedPaymentMode.value = null
   pendingQuotes.value = new Map()
+  quotedVisibility.value = 'private'
   showUploadConfirm.value = true
 
   const metas = await getFileMetas(paths)
@@ -505,13 +521,14 @@ watch(
   },
 )
 
-async function startQuoting(metas: FileMeta[]) {
+async function startQuoting(metas: FileMeta[], visibility: 'private' | 'public' = quotedVisibility.value) {
   isQuoting.value = true
+  quotedVisibility.value = visibility
   try {
     // Quote each file (sequentially to avoid overwhelming the network)
     const quotes = new Map<string, UploadQuote>()
     for (const meta of metas) {
-      const quote = await filesStore.getUploadQuote(meta.path)
+      const quote = await filesStore.getUploadQuote(meta.path, visibility)
       if (quote) {
         quotes.set(meta.path, quote)
       }
@@ -558,9 +575,15 @@ function confirmUpload(options: { visibility: 'private' | 'public'; paymentMode:
   showUploadConfirm.value = false
   const wagmiConfig = getWagmiConfig()
 
+  // The pre-quote's prepared batch is tied to its visibility (public bundles
+  // the data map chunk). If the user toggled visibility after the quote came
+  // back and we haven't finished re-quoting, drop the pre-quote so the store
+  // re-quotes with the matching visibility instead of reusing a stale one.
+  const preQuoteUsable = quotedVisibility.value === options.visibility
+
   for (const file of pendingUploadFiles.value) {
     const id = filesStore.addUpload(file.name, file.path, file.size)
-    const preQuote = pendingQuotes.value.get(file.path)
+    const preQuote = preQuoteUsable ? pendingQuotes.value.get(file.path) : undefined
 
     if (settingsStore.indelibleConnected && !settingsStore.devnetActive) {
       filesStore.startIndelibleUpload(id)
@@ -582,6 +605,24 @@ function cancelUpload() {
   pendingQuotes.value = new Map()
   quotedCostDisplay.value = null
   isQuoting.value = false
+}
+
+/**
+ * Re-quote when the user flips Private/Public in the dialog. Public uploads
+ * pay for one extra chunk (the published data map), so both the total cost
+ * and the underlying prepared batch differ from the initial private quote.
+ * The confirm handler also refuses to reuse a quote whose visibility no
+ * longer matches the user's choice.
+ */
+function onVisibilityChange(next: 'private' | 'public') {
+  if (next === quotedVisibility.value) return
+  quotedVisibility.value = next
+  if (pendingMetas.value.length === 0) return
+  if (!autonomiConnected.value && !settingsStore.devnetActive) return
+  if (settingsStore.indelibleConnected) return
+  quotedCostDisplay.value = null
+  quotedGasEstimate.value = null
+  startQuoting(pendingMetas.value, next)
 }
 
 // ── Download flow ──
@@ -808,6 +849,11 @@ async function openFolder(path: string) {
 function copyAddress(addr: string) {
   navigator.clipboard.writeText(addr)
   toastStore.add('Address copied to clipboard', 'info')
+}
+
+function copyPublicAddress(addr: string) {
+  navigator.clipboard.writeText(addr)
+  toastStore.add('Public address copied — share to let others download this file', 'info')
 }
 
 function datamapBasename(path: string): string {
