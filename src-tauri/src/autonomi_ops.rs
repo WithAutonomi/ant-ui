@@ -1,5 +1,6 @@
 use ant_core::data::{
     Client, ClientConfig, CustomNetwork, DataMap, EvmNetwork, ExternalPaymentInfo, PreparedUpload,
+    Visibility,
 };
 use evmlib::common::{QuoteHash, TxHash};
 use serde::{Deserialize, Serialize};
@@ -161,12 +162,21 @@ pub struct UploadResult {
     /// This is the user-visible handle for private uploads — without it, the
     /// data is unreachable after the app restarts.
     pub data_map_file: String,
+    /// On-network chunk address of the published `DataMap`, set only for
+    /// public uploads. A shareable 32-byte hex string anyone can pass to
+    /// `download_public` to retrieve the file without a local datamap.
+    pub public_address: Option<String>,
 }
 
 #[derive(Deserialize)]
 pub struct StartUploadRequest {
     pub files: Vec<String>,
     pub upload_id: String,
+    /// Upload visibility — "private" (default) keeps the data map local,
+    /// "public" bundles the serialized data map into the payment batch so
+    /// a single on-network chunk address can be shared for retrieval.
+    #[serde(default)]
+    pub visibility: Option<String>,
 }
 
 // ── Tauri commands ──
@@ -385,9 +395,18 @@ pub async fn start_upload(
     }
     let path = canonical;
 
-    // Phase 1: Encrypt file and prepare chunks (gets quotes from network)
+    let visibility = match request.visibility.as_deref() {
+        Some("public") => Visibility::Public,
+        _ => Visibility::Private,
+    };
+
+    // Phase 1: Encrypt file and prepare chunks (gets quotes from network).
+    // For a public upload, ant-core bundles the serialized DataMap into the
+    // payment batch as one extra chunk so it's paid for and stored alongside
+    // the data chunks. The resulting chunk address is surfaced via
+    // `FileUploadResult.data_map_address` after finalize.
     let prepared = client
-        .file_prepare_upload(&path)
+        .file_prepare_upload_with_visibility(&path, visibility)
         .await
         .map_err(|e| format!("Failed to prepare upload: {e}"))?;
 
@@ -540,6 +559,9 @@ pub async fn confirm_upload(
     let data_map_file = crate::config::write_datamap_for(&file_name, &data_map_json)?
         .to_string_lossy()
         .into_owned();
+    let public_address = result
+        .data_map_address
+        .map(|addr| format!("0x{}", hex::encode(addr)));
 
     app.emit(
         "upload-progress",
@@ -557,6 +579,7 @@ pub async fn confirm_upload(
         address,
         chunks_stored: result.chunks_stored,
         data_map_file,
+        public_address,
     })
 }
 
@@ -601,6 +624,9 @@ pub async fn confirm_upload_merkle(
     let data_map_file = crate::config::write_datamap_for(&file_name, &data_map_json)?
         .to_string_lossy()
         .into_owned();
+    let public_address = result
+        .data_map_address
+        .map(|addr| format!("0x{}", hex::encode(addr)));
 
     app.emit(
         "upload-progress",
@@ -618,6 +644,7 @@ pub async fn confirm_upload_merkle(
         address,
         chunks_stored: result.chunks_stored,
         data_map_file,
+        public_address,
     })
 }
 

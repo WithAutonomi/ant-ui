@@ -50,6 +50,10 @@ pub struct UploadHistoryEntry {
     /// persistence existed.
     #[serde(default)]
     pub data_map_file: Option<String>,
+    /// On-network chunk address of the published `DataMap` for public
+    /// uploads. `None` for private uploads and for legacy entries.
+    #[serde(default)]
+    pub public_address: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
