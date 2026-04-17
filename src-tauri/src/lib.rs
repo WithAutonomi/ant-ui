@@ -505,6 +505,37 @@ fn get_file_size(path: String) -> Result<u64, String> {
     Ok(meta.len())
 }
 
+/// Report the actual on-disk bytes consumed by a file, not its logical size.
+///
+/// This matters for LMDB's `data.mdb`: when ant-node grows its store, the file
+/// may be sparse — a logical size equal to the configured `map_size` (dozens
+/// of MB to many GB) backed by only the pages that actually hold chunks.
+/// `get_file_size` returns the logical size, which would over-report storage
+/// used; this command returns the bytes the filesystem has actually allocated.
+///
+/// - **Unix (Linux / macOS):** `stat.st_blocks * 512`. Matches `du -B1`. Works
+///   on all UNIX filesystems, including APFS, ext4, btrfs, ZFS.
+/// - **Windows:** falls back to `metadata.len()` for now. NTFS doesn't flag
+///   LMDB `data.mdb` as sparse by default — LMDB extends the file as chunks
+///   are written, so logical == on-disk in practice. If that changes we'll
+///   need `GetCompressedFileSizeW` via `windows-sys` (tracked as upstream
+///   TODO: expose node storage via the daemon status endpoint instead).
+#[tauri::command]
+fn get_disk_usage(path: String) -> Result<u64, String> {
+    let meta = std::fs::metadata(&path).map_err(|e| format!("{e}"))?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        Ok(meta.blocks() * 512)
+    }
+
+    #[cfg(not(unix))]
+    {
+        Ok(meta.len())
+    }
+}
+
 #[tauri::command]
 fn get_file_sizes(paths: Vec<String>) -> Result<Vec<FileMetaResult>, String> {
     config::get_file_metas(&paths)
@@ -607,6 +638,7 @@ pub fn run() {
             daemon_request,
             get_file_sizes,
             get_file_size,
+            get_disk_usage,
             get_dir_size,
             get_node_data_dir,
             get_default_download_dir,
