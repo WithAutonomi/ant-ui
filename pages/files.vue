@@ -144,17 +144,33 @@
                     <span class="rounded bg-autonomi-blue/15 px-1 py-px text-[9px] font-sans uppercase tracking-wider">Public</span>
                     {{ truncateAddress(file.public_address, 8, 6) }}
                   </span>
-                  <span
+                  <div
                     v-else-if="file.data_map_file"
-                    class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue"
-                    :title="`Reveal ${datamapBasename(file.data_map_file)} in its folder`"
-                    @click.stop="openFolder(file.data_map_file)"
+                    class="flex items-center gap-1.5"
                   >
-                    {{ datamapBasename(file.data_map_file) }}
-                  </span>
+                    <span
+                      class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue hover:underline"
+                      title="Reveal datamap file in Finder/Explorer"
+                      @click.stop="openFolder(file.data_map_file)"
+                    >
+                      {{ datamapBasename(file.data_map_file) }}
+                    </span>
+                    <button
+                      type="button"
+                      class="rounded p-0.5 text-autonomi-muted/60 hover:text-autonomi-blue hover:bg-autonomi-surface"
+                      title="Copy datamap file path"
+                      @click.stop="copyDatamapPath(file.data_map_file!)"
+                    >
+                      <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
+                        <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z" />
+                      </svg>
+                    </button>
+                  </div>
                   <span
                     v-else-if="file.address"
                     class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue"
+                    title="Copy network address"
                     @click.stop="copyAddress(file.address)"
                   >
                     {{ truncateAddress(file.address, 8, 6) }}
@@ -1031,6 +1047,11 @@ function copyAddress(addr: string) {
 function copyPublicAddress(addr: string) {
   navigator.clipboard.writeText(addr)
   toastStore.add('Public address copied — share to let others download this file', 'info')
+}
+
+function copyDatamapPath(path: string) {
+  navigator.clipboard.writeText(path)
+  toastStore.add('Datamap path copied to clipboard', 'info')
 }
 
 function datamapBasename(path: string): string {
