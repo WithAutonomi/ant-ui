@@ -28,6 +28,7 @@
             type="text"
             placeholder="myfile.dat"
             class="w-full rounded-md border border-autonomi-border bg-autonomi-surface px-3 py-2 text-sm text-autonomi-text focus:border-autonomi-blue focus:outline-none"
+            @input="onFilenameInput"
             @keyup.enter="confirm"
           />
         </div>
@@ -53,15 +54,22 @@
 </template>
 
 <script setup lang="ts">
+import { useFilesStore } from '~/stores/files'
+
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{
   close: []
   download: [address: string, filename: string]
 }>()
 
+const filesStore = useFilesStore()
+
 const inputEl = ref<HTMLInputElement | null>(null)
 const address = ref('')
 const filename = ref('')
+/** Tracks whether the user has edited the filename since the last prefill,
+ *  so a subsequent address change doesn't clobber their typing. */
+const filenameDirty = ref(false)
 
 const valid = computed(() => {
   const addr = address.value.trim()
@@ -69,17 +77,61 @@ const valid = computed(() => {
   return isHex && filename.value.trim().length > 0
 })
 
+/** Prior upload that matches the currently-typed address, if any. Drives
+ *  both the filename prefill and the extension-append fallback on submit. */
+const matchedEntry = computed(() => {
+  const addr = address.value.trim()
+  if (!/^(0x)?[0-9a-fA-F]{8,}$/.test(addr)) return undefined
+  return filesStore.findUploadByAddress(addr)
+})
+
 watch(() => props.open, (val) => {
   if (val) {
     address.value = ''
     filename.value = ''
+    filenameDirty.value = false
     nextTick(() => inputEl.value?.focus())
   }
 })
 
+watch(matchedEntry, (match) => {
+  if (!match) return
+  if (filenameDirty.value) return
+  filename.value = match.name
+})
+
+function onFilenameInput() {
+  filenameDirty.value = true
+}
+
 function confirm() {
   if (!valid.value) return
-  emit('download', address.value.trim(), filename.value.trim())
+  const typed = filename.value.trim()
+  const final = appendExtensionIfNeeded(typed, matchedEntry.value?.name)
+  emit('download', address.value.trim(), final)
   emit('close')
+}
+
+/** If the user typed a filename without an extension and we know the
+ *  original extension from a history match, append it silently. Keeps
+ *  "screenshot" → "screenshot.png" without nagging, while leaving
+ *  deliberate unextensioned names alone when there's no match to copy from. */
+function appendExtensionIfNeeded(typed: string, originalName?: string): string {
+  if (!originalName) return typed
+  if (hasExtension(typed)) return typed
+  const origExt = extensionOf(originalName)
+  if (!origExt) return typed
+  return `${typed}.${origExt}`
+}
+
+function hasExtension(name: string): boolean {
+  const dot = name.lastIndexOf('.')
+  return dot > 0 && dot < name.length - 1
+}
+
+function extensionOf(name: string): string | null {
+  const dot = name.lastIndexOf('.')
+  if (dot <= 0 || dot === name.length - 1) return null
+  return name.slice(dot + 1)
 }
 </script>
