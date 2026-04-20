@@ -350,6 +350,7 @@ export const useNodesStore = defineStore('nodes', {
       const opts = {
         count,
         rewards_address: settings.earningsAddress ?? '',
+        data_dir_path: settings.storageDir ?? null,
         network_id: 1,
         binary_source: { type: 'latest' as const },
         bootstrap_peers: [],
@@ -361,6 +362,7 @@ export const useNodesStore = defineStore('nodes', {
         // Remove placeholders and add real nodes
         this.nodes = this.nodes.filter(n => !placeholderIds.includes(n.id))
         await this.fetchNodes()
+        this.enrichNodeDetails() // fire-and-forget — populates data_dir/ports without waiting for the detail poll
         toasts.add(`Added ${result.nodes_added.length} node(s)`, 'info')
       } catch (e: any) {
         // Remove placeholders on failure
