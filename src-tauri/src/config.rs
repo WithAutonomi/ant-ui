@@ -145,8 +145,7 @@ pub fn scan_orphan_datamaps(known_paths: &[String]) -> Result<Vec<OrphanDatamap>
         .filter_map(|p| std::fs::canonicalize(p).ok())
         .collect();
 
-    let entries = std::fs::read_dir(&dir)
-        .map_err(|e| format!("Failed to read config dir: {e}"))?;
+    let entries = std::fs::read_dir(&dir).map_err(|e| format!("Failed to read config dir: {e}"))?;
 
     let mut orphans = Vec::new();
     for entry in entries.flatten() {
@@ -194,7 +193,10 @@ pub fn scan_orphan_datamaps(known_paths: &[String]) -> Result<Vec<OrphanDatamap>
 /// Minimal ISO-8601 UTC formatter. Avoids a chrono dep just for a label.
 fn format_iso_utc(secs: i64, nanos: u32) -> String {
     let (y, mo, d, h, mi, s) = epoch_to_ymdhms(secs);
-    format!("{y:04}-{mo:02}-{d:02}T{h:02}:{mi:02}:{s:02}.{:03}Z", nanos / 1_000_000)
+    format!(
+        "{y:04}-{mo:02}-{d:02}T{h:02}:{mi:02}:{s:02}.{:03}Z",
+        nanos / 1_000_000
+    )
 }
 
 /// Convert unix epoch seconds to (year, month, day, hour, minute, second)
