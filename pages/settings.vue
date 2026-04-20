@@ -279,6 +279,60 @@
           </div>
         </div>
 
+        <!-- Rescue Datamaps -->
+        <div class="rounded-lg border border-autonomi-border p-4">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <h3 class="text-sm font-medium">Rescue Datamaps</h3>
+              <p class="text-xs text-autonomi-muted">
+                Re-import private-upload datamaps that exist on disk but are no longer in your upload history
+                (e.g. after clearing history or reinstalling the app).
+              </p>
+            </div>
+            <button
+              class="shrink-0 rounded-md border border-autonomi-border px-2.5 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text disabled:opacity-50"
+              :disabled="rescueScanning"
+              @click="scanOrphans"
+            >
+              {{ rescueScanning ? 'Scanning...' : 'Scan' }}
+            </button>
+          </div>
+
+          <div v-if="rescueScanned" class="mt-3">
+            <div v-if="orphanDatamaps.length === 0" class="rounded-md border border-dashed border-autonomi-border px-3 py-4 text-center text-xs text-autonomi-muted">
+              No orphaned datamaps found.
+            </div>
+            <div v-else class="space-y-2">
+              <div class="max-h-48 overflow-y-auto rounded-md border border-autonomi-border">
+                <ul class="divide-y divide-autonomi-border">
+                  <li
+                    v-for="orphan in orphanDatamaps"
+                    :key="orphan.path"
+                    class="flex items-center justify-between gap-2 px-3 py-2 text-xs"
+                  >
+                    <div class="min-w-0">
+                      <div class="truncate text-autonomi-text">{{ orphan.suggested_name }}</div>
+                      <div class="truncate font-mono text-[11px] text-autonomi-muted">
+                        {{ orphan.path }}
+                      </div>
+                    </div>
+                    <div class="shrink-0 text-right text-[11px] text-autonomi-muted">
+                      {{ formatShortDate(orphan.modified_at) }}
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <button
+                class="rounded-md bg-autonomi-blue px-2.5 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
+                :disabled="rescueImporting"
+                @click="importOrphans"
+              >
+                {{ rescueImporting ? 'Importing...' : `Import ${orphanDatamaps.length} datamap${orphanDatamaps.length === 1 ? '' : 's'}` }}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Diagnostics -->
         <div class="rounded-lg border border-autonomi-border p-4">
           <div class="flex items-center justify-between">
@@ -383,6 +437,7 @@ import { isValidEthAddress } from '~/utils/validators'
 import { useToastStore } from '~/stores/toasts'
 import { useErrorLogStore } from '~/stores/errorlog'
 import { useUpdaterStore } from '~/stores/updater'
+import { useFilesStore, type UploadHistoryEntry } from '~/stores/files'
 
 const settingsStore = useSettingsStore()
 const walletStore = useWalletStore()
@@ -390,6 +445,7 @@ const nodesStore = useNodesStore()
 const toasts = useToastStore()
 const errorLogStore = useErrorLogStore()
 const updaterStore = useUpdaterStore()
+const filesStore = useFilesStore()
 const showAdvanced = ref(false)
 const showLog = ref(false)
 const appVersion = ref('0.1.0')
@@ -619,5 +675,133 @@ function clearLog() {
   toasts.add('Log cleared', 'info')
 }
 
+// ── Rescue Datamaps (V2-195) ──
+
+interface OrphanDatamap {
+  path: string
+  suggested_name: string
+  modified_at: string
+}
+
+const rescueScanning = ref(false)
+const rescueScanned = ref(false)
+const rescueImporting = ref(false)
+const orphanDatamaps = ref<OrphanDatamap[]>([])
+
+async function scanOrphans() {
+  rescueScanning.value = true
+  try {
+    if (!filesStore.historyLoaded) {
+      await filesStore.loadHistory()
+    }
+    const knownPaths = filesStore.files
+      .filter(f => f.kind === 'upload' && f.data_map_file)
+      .map(f => f.data_map_file!)
+    orphanDatamaps.value = await invoke<OrphanDatamap[]>('scan_orphan_datamaps', {
+      knownPaths,
+    })
+    rescueScanned.value = true
+  } catch (e: any) {
+    toasts.add(`Scan failed: ${e.message ?? e}`, 'error')
+  } finally {
+    rescueScanning.value = false
+  }
+}
+
+async function importOrphans() {
+  rescueImporting.value = true
+  try {
+    const newEntries: UploadHistoryEntry[] = []
+    for (const orphan of orphanDatamaps.value) {
+      // Read the datamap JSON so we can compute its network address. Without
+      // the address the history row can't participate in re-download flows.
+      let json: string
+      try {
+        json = await invoke<string>('read_datamap_file', { path: orphan.path })
+      } catch {
+        // Skip datamaps we can't read — they stay as orphans for the user
+        // to re-scan later once they've fixed permissions / disk issues.
+        continue
+      }
+      const address = await sha256Hex(json)
+      newEntries.push({
+        name: orphan.suggested_name,
+        size_bytes: 0,
+        address,
+        cost: null,
+        uploaded_at: orphan.modified_at,
+        data_map_file: orphan.path,
+      })
+    }
+
+    // Append, skipping any address already in history (shouldn't happen since
+    // we filtered by known path, but a computed address could coincidentally
+    // collide with an address we already have from some other path).
+    const existingAddrs = new Set(
+      filesStore.files
+        .filter(f => f.kind === 'upload' && f.address)
+        .map(f => f.address!.toLowerCase()),
+    )
+    const toImport = newEntries.filter(e => !existingAddrs.has(e.address.toLowerCase()))
+
+    if (toImport.length === 0) {
+      toasts.add('No new datamaps to import', 'info')
+      orphanDatamaps.value = []
+      rescueScanned.value = false
+      return
+    }
+
+    // Build the full entries list (existing history + new) and persist.
+    const fullEntries: UploadHistoryEntry[] = [
+      ...filesStore.files
+        .filter(f => f.kind === 'upload' && f.status === 'complete' && f.address)
+        .map(f => ({
+          name: f.name,
+          size_bytes: f.size_bytes,
+          address: f.address!,
+          cost: f.cost ?? null,
+          uploaded_at: f.date,
+          data_map_file: f.data_map_file ?? null,
+        })),
+      ...toImport,
+    ]
+    await invoke('save_upload_history', { entries: fullEntries })
+
+    // Refresh the store so the Files page picks them up immediately.
+    filesStore.historyLoaded = false
+    filesStore.files = filesStore.files.filter(f => f.kind !== 'upload' || f.status !== 'complete')
+    await filesStore.loadHistory()
+
+    toasts.add(`Imported ${toImport.length} datamap${toImport.length === 1 ? '' : 's'}`, 'success')
+    orphanDatamaps.value = []
+    rescueScanned.value = false
+  } catch (e: any) {
+    toasts.add(`Import failed: ${e.message ?? e}`, 'error')
+  } finally {
+    rescueImporting.value = false
+  }
+}
+
+async function sha256Hex(text: string): Promise<string> {
+  const bytes = new TextEncoder().encode(text)
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
+  const hex = Array.from(new Uint8Array(digest))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+  return `0x${hex}`
+}
+
+function formatShortDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return iso
+  }
+}
 
 </script>

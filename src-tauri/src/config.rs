@@ -117,6 +117,109 @@ pub(crate) fn config_path() -> PathBuf {
         .join("ant-gui")
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrphanDatamap {
+    /// Absolute path to the .datamap file on disk.
+    pub path: String,
+    /// Basename with the `.datamap` extension stripped — the original upload's
+    /// filename stem. Shown to the user to jog their memory about which file
+    /// this datamap belongs to.
+    pub suggested_name: String,
+    /// File modification time as an ISO-8601 string (UTC). Proxy for "when
+    /// you uploaded this" when the real upload timestamp is gone from history.
+    pub modified_at: String,
+}
+
+/// List `.datamap` files in the app config directory that aren't referenced by
+/// any entry in `known_paths`. Used by the Settings → Advanced rescue flow to
+/// surface datamaps orphaned by a wiped `upload_history.json` so the user can
+/// re-import them and resume downloading.
+pub fn scan_orphan_datamaps(known_paths: &[String]) -> Result<Vec<OrphanDatamap>, String> {
+    let dir = config_path();
+    if !dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let known: std::collections::HashSet<PathBuf> = known_paths
+        .iter()
+        .filter_map(|p| std::fs::canonicalize(p).ok())
+        .collect();
+
+    let entries = std::fs::read_dir(&dir)
+        .map_err(|e| format!("Failed to read config dir: {e}"))?;
+
+    let mut orphans = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) != Some(DATAMAP_EXTENSION) {
+            continue;
+        }
+        let canonical = match std::fs::canonicalize(&path) {
+            Ok(p) => p,
+            Err(_) => continue,
+        };
+        if known.contains(&canonical) {
+            continue;
+        }
+
+        let suggested_name = path
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_else(|| "unknown".to_string());
+
+        let modified_at = entry
+            .metadata()
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| {
+                // Format as an ISO-8601 UTC string without pulling in chrono —
+                // just enough precision for a display label.
+                let secs = d.as_secs() as i64;
+                let nanos = d.subsec_nanos();
+                format_iso_utc(secs, nanos)
+            })
+            .unwrap_or_default();
+
+        orphans.push(OrphanDatamap {
+            path: canonical.to_string_lossy().into_owned(),
+            suggested_name,
+            modified_at,
+        });
+    }
+
+    Ok(orphans)
+}
+
+/// Minimal ISO-8601 UTC formatter. Avoids a chrono dep just for a label.
+fn format_iso_utc(secs: i64, nanos: u32) -> String {
+    let (y, mo, d, h, mi, s) = epoch_to_ymdhms(secs);
+    format!("{y:04}-{mo:02}-{d:02}T{h:02}:{mi:02}:{s:02}.{:03}Z", nanos / 1_000_000)
+}
+
+/// Convert unix epoch seconds to (year, month, day, hour, minute, second)
+/// in UTC. Implements the civil-from-days algorithm so we don't pull in chrono.
+fn epoch_to_ymdhms(secs: i64) -> (i32, u8, u8, u8, u8, u8) {
+    let days = secs.div_euclid(86_400);
+    let seconds_of_day = secs.rem_euclid(86_400) as u32;
+    let h = (seconds_of_day / 3600) as u8;
+    let mi = ((seconds_of_day % 3600) / 60) as u8;
+    let s = (seconds_of_day % 60) as u8;
+
+    // Howard Hinnant's days_from_civil inverse.
+    let z = days + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = (z - era * 146_097) as u32;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let y = (yoe as i32) + era as i32 * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = (doy - (153 * mp + 2) / 5 + 1) as u8;
+    let mo = (if mp < 10 { mp + 3 } else { mp - 9 }) as u8;
+    let y = if mo <= 2 { y + 1 } else { y };
+    (y, mo, d, h, mi, s)
+}
+
 /// Resolve the OS-appropriate default downloads directory. Returns
 /// `~/Downloads` on macOS/Linux and `C:\Users\<name>\Downloads` on Windows,
 /// falling back to `<home>/Downloads` if the platform-specific lookup fails.

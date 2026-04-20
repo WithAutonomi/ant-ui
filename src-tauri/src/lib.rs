@@ -2,7 +2,7 @@ mod autonomi_ops;
 mod config;
 
 use autonomi_ops::AutonomiState;
-use config::{AppConfig, FileMetaResult, UploadHistory, UploadHistoryEntry};
+use config::{AppConfig, FileMetaResult, OrphanDatamap, UploadHistory, UploadHistoryEntry};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::{watch, RwLock};
@@ -572,6 +572,11 @@ fn save_upload_history(entries: Vec<UploadHistoryEntry>) -> Result<(), String> {
     history.save().map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn scan_orphan_datamaps(known_paths: Vec<String>) -> Result<Vec<OrphanDatamap>, String> {
+    config::scan_orphan_datamaps(&known_paths)
+}
+
 pub fn run() {
     // Pipe ant-core / ant-node tracing events to stderr so the dev console
     // surfaces upload progress (encrypt → quote → store → finalize). Without
@@ -613,6 +618,7 @@ pub fn run() {
             read_file_bytes,
             load_upload_history,
             save_upload_history,
+            scan_orphan_datamaps,
             discover_daemon_url,
             ensure_daemon_running,
             connect_daemon_sse,
