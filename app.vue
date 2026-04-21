@@ -52,8 +52,10 @@ onMounted(async () => {
       console.warn('Autonomi client init failed:', e)
     })
 
-    // Only bypass WalletConnect for local Anvil devnet, not Sepolia
-    if (!settingsStore.devnetIsSepolia) {
+    // Only bypass WalletConnect for local Anvil devnet. Sepolia / mainnet
+    // manifests expect the user to connect their own wallet via WalletConnect.
+    const { ANVIL_CHAIN_ID } = await import('~/utils/constants')
+    if (settingsStore.devnetChainId === ANVIL_CHAIN_ID) {
       const { initDevnetWallet } = await import('~/composables/useDevnetWallet')
       initDevnetWallet()
     }

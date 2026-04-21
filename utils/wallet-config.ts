@@ -1,5 +1,4 @@
-import { arbitrum, arbitrumSepolia } from '@reown/appkit/networks'
-import { ANVIL_CHAIN_ID } from '~/utils/constants'
+import { arbitrum } from '@reown/appkit/networks'
 import { useSettingsStore } from '~/stores/settings'
 
 // Project ID from cloud.reown.com (shared with project-dave)
@@ -36,10 +35,11 @@ export function getVaultAddress(): `0x${string}` {
   return PAYMENT_VAULT_ADDRESS
 }
 
-/** Active chain ID — Anvil (31337) in local devnet, Sepolia (421614) in Sepolia mode, Arbitrum (42161) in production. */
+/** Active chain ID — uses devnetChainId when set, falls back to Arbitrum One mainnet. */
 export function getActiveChainId(): number {
   const settings = useSettingsStore()
-  if (settings.devnetActive && settings.devnetIsSepolia) return arbitrumSepolia.id as number
-  if (settings.devnetActive) return ANVIL_CHAIN_ID
+  if (settings.devnetActive && settings.devnetChainId !== null) {
+    return settings.devnetChainId
+  }
   return arbitrum.id
 }
