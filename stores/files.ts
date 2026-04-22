@@ -93,6 +93,10 @@ export interface FileEntry {
   paymentMode?: 'regular' | 'merkle'
   /** Visibility chosen in the confirm dialog */
   visibility?: 'private' | 'public'
+  /** True when ant-core's estimator reported every chunk already stored on
+   *  the network (`storage_cost_atto === "0"` with a positive `chunk_count`).
+   *  Distinguishes a genuinely free re-upload from a suspiciously cheap quote. */
+  alreadyStored?: boolean
 }
 
 // Pinned rows (top of the table, independent sort). Includes the two queued
@@ -301,11 +305,21 @@ export const useFilesStore = defineStore('files', {
 
       const estimate = await this.estimateFileCost(entry.path)
       if (estimate) {
+        // ant-core returns "0" for both fields when every sampled chunk is
+        // already on the network (see ant-core file.rs::estimate_upload_cost).
+        // That's a legitimate signal, not a failed estimate — flag it so the
+        // UI can say "already stored" instead of rendering "0 ANT" as if it
+        // were any other cheap quote.
+        const alreadyStored = estimate.chunk_count > 0
+          && estimate.storage_cost_atto === '0'
+          && estimate.estimated_gas_cost_wei === '0'
+
         this.updateEntry(id, {
           estimate,
           paymentMode: estimate.payment_mode === 'merkle' ? 'merkle' : 'regular',
           cost: formatNanoTokens(estimate.storage_cost_atto),
           gas_cost: formatGasCost(estimate.estimated_gas_cost_wei),
+          alreadyStored,
           status: 'awaiting_approval',
         })
       } else {

@@ -114,8 +114,13 @@
                   <StatusBadge :status="statusLabel(file)" />
                 </td>
                 <td class="px-4 py-2.5 text-autonomi-muted">
-                  <span>{{ file.cost ?? '-' }}</span>
-                  <span v-if="file.gas_cost" class="block text-[10px] text-autonomi-muted/60">+ {{ file.gas_cost }} gas</span>
+                  <template v-if="file.alreadyStored">
+                    <span class="text-green-400">Free — already stored</span>
+                  </template>
+                  <template v-else>
+                    <span>{{ file.cost ?? '-' }}</span>
+                    <span v-if="file.gas_cost" class="block text-[10px] text-autonomi-muted/60">+ {{ file.gas_cost }} gas</span>
+                  </template>
                 </td>
                 <td class="px-4 py-2.5">
                   <span

@@ -26,7 +26,15 @@
               :key="entry.id"
               class="flex items-center justify-between text-sm"
             >
-              <span class="max-w-[280px] truncate">{{ entry.name }}</span>
+              <span class="flex min-w-0 items-center gap-2">
+                <span class="max-w-[200px] truncate">{{ entry.name }}</span>
+                <span
+                  v-if="entry.alreadyStored"
+                  class="shrink-0 rounded bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-green-400"
+                >
+                  Already stored
+                </span>
+              </span>
               <span class="text-autonomi-muted">{{ entry.size_bytes ? formatBytes(entry.size_bytes) : '-' }}</span>
             </div>
           </div>
@@ -49,7 +57,18 @@
                quote spinner so users aren't left watching a spinner that will
                never resolve. No heuristic / placeholder values. -->
           <div class="rounded-md border border-autonomi-border bg-autonomi-surface/50 p-3 space-y-2">
-            <template v-if="quotedCost">
+            <template v-if="allAlreadyStored">
+              <div class="flex items-center gap-2 text-sm font-medium text-green-400">
+                <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Already stored on the network — free</span>
+              </div>
+              <p class="text-xs text-autonomi-muted">
+                Every chunk is already present. No ANT or gas will be spent.
+              </p>
+            </template>
+            <template v-else-if="quotedCost">
               <div class="flex items-center justify-between text-sm font-medium">
                 <span>Network storage cost</span>
                 <span class="text-autonomi-blue">{{ quotedCost }}</span>
@@ -58,6 +77,9 @@
                 <span>Estimated gas</span>
                 <span>{{ quotedGas ?? '—' }}</span>
               </div>
+              <p v-if="someAlreadyStored" class="text-xs text-green-400">
+                Some files are already stored — that portion costs nothing.
+              </p>
             </template>
             <template v-else-if="connectionStore.hasFailed">
               <div class="space-y-2">
@@ -136,7 +158,7 @@
             </div>
           </div>
 
-          <p v-if="quotedCost && effectivePaymentMode === 'regular'" class="text-xs text-autonomi-muted">
+          <p v-if="quotedCost && !allAlreadyStored && effectivePaymentMode === 'regular'" class="text-xs text-autonomi-muted">
             Estimated from a single network quote — final cost may vary slightly. Gas fees apply on top.
           </p>
 
@@ -210,6 +232,12 @@ const entries = computed<FileEntry[]>(() =>
 
 const allEstimated = computed(() =>
   entries.value.length > 0 && entries.value.every(e => e.estimate),
+)
+const allAlreadyStored = computed(() =>
+  entries.value.length > 0 && entries.value.every(e => e.alreadyStored),
+)
+const someAlreadyStored = computed(() =>
+  entries.value.some(e => e.alreadyStored),
 )
 const anyQuoting = computed(() =>
   entries.value.some(e => e.status === 'quoting' || e.status === 'queued_for_quote'),
