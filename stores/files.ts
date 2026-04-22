@@ -252,7 +252,10 @@ export const useFilesStore = defineStore('files', {
       }
     },
 
-    /** Get a real network quote for a file. Used by the upload dialog to show real costs. */
+    /** Get a real network quote for a file. Parks a `PreparedUpload` in the
+     *  daemon. Used internally by `startRealUpload` after the user clicks
+     *  Confirm — not for display. For pre-upload cost display, use
+     *  `estimateFileCost` instead. */
     async getUploadQuote(path: string): Promise<UploadQuote | null> {
       const uploadId = `quote-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
