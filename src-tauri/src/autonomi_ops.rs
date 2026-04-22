@@ -1,5 +1,6 @@
 use ant_core::data::{
-    Client, ClientConfig, CustomNetwork, DataMap, EvmNetwork, ExternalPaymentInfo, PreparedUpload,
+    Client, ClientConfig, CustomNetwork, DataMap, EvmNetwork, ExternalPaymentInfo, PaymentMode,
+    PreparedUpload, UploadCostEstimate,
 };
 use evmlib::common::{QuoteHash, TxHash};
 use serde::{Deserialize, Serialize};
@@ -477,6 +478,46 @@ pub async fn start_upload(
     );
 
     Ok(())
+}
+
+/// Estimate the cost of uploading a file without parking any chunks.
+///
+/// Wraps `Client::estimate_upload_cost` (ant-core #44): encrypts the file to a
+/// local spill, samples a single network quote for a representative chunk, and
+/// extrapolates total storage cost. Gas is a documented heuristic. No wallet
+/// required, no `PreparedUpload` parked in `pending_uploads`.
+///
+/// `mode` accepts "auto" (default), "single", or "merkle". Unknown values
+/// fall back to "auto".
+#[tauri::command]
+pub async fn estimate_file_cost(
+    state: tauri::State<'_, AutonomiState>,
+    path: String,
+    mode: Option<String>,
+) -> Result<UploadCostEstimate, String> {
+    let client_lock = state.client.read().await;
+    let client = client_lock
+        .as_ref()
+        .ok_or("Autonomi client not initialized")?;
+
+    let path_buf = PathBuf::from(&path);
+    let canonical = tokio::fs::canonicalize(&path_buf)
+        .await
+        .map_err(|e| format!("Invalid file path: {e}"))?;
+    if !canonical.is_file() {
+        return Err("Path is not a regular file".into());
+    }
+
+    let payment_mode = match mode.as_deref().unwrap_or("auto") {
+        "single" => PaymentMode::Single,
+        "merkle" => PaymentMode::Merkle,
+        _ => PaymentMode::Auto,
+    };
+
+    client
+        .estimate_upload_cost(&canonical, payment_mode, None)
+        .await
+        .map_err(|e| format!("Failed to estimate upload cost: {e}"))
 }
 
 /// Confirm wave-batch upload after frontend has paid on-chain.

@@ -82,7 +82,7 @@
             <template v-else>
               <div class="flex items-center gap-2 text-sm text-autonomi-muted">
                 <div class="h-3 w-3 animate-spin rounded-full border-2 border-autonomi-blue border-t-transparent" />
-                <span>Preparing cost quote...</span>
+                <span>Estimating cost...</span>
               </div>
             </template>
           </div>
@@ -134,7 +134,7 @@
           </div>
 
           <p v-if="quotedCost && effectivePaymentMode === 'regular'" class="text-xs text-autonomi-muted">
-            Cost quoted from the Autonomi network. Gas fees apply on top.
+            Estimated from a single network quote — final cost may vary slightly. Gas fees apply on top.
           </p>
 
           <div class="flex justify-end gap-2">

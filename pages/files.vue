@@ -255,8 +255,9 @@ import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { open as openFileDialog } from '@tauri-apps/plugin-dialog'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
-import { useFilesStore, type FileEntry, type UploadQuote } from '~/stores/files'
+import { useFilesStore, type FileEntry, type UploadCostEstimate } from '~/stores/files'
 import { formatBytes, truncateAddress } from '~/utils/formatters'
+import { formatNanoTokens, formatGasCost } from '~/utils/payment'
 import { useSettingsStore } from '~/stores/settings'
 import { useToastStore } from '~/stores/toasts'
 import { useConnectionStore } from '~/stores/connection'
@@ -381,7 +382,7 @@ function statusLabel(file: FileEntry): string {
   if (file.status === 'downloaded') return 'Downloaded'
   if (file.status === 'failed') return file.error ? `Failed: ${file.error}` : 'Failed'
   if (file.status === 'complete') return 'Complete'
-  if (file.status === 'quoting') return 'Quoting'
+  if (file.status === 'quoting') return 'Preparing upload…'
   if (file.status === 'paying') return 'Paying'
   return file.status
 }
@@ -431,7 +432,6 @@ const isQuoting = ref(false)
 const quotedCostDisplay = ref<string | null>(null)
 const quotedGasEstimate = ref<string | null>(null)
 const quotedPaymentMode = ref<'wave-batch' | 'merkle' | null>(null)
-const pendingQuotes = ref<Map<string, UploadQuote>>(new Map())
 
 async function getFileMetas(paths: string[]): Promise<FileMeta[]> {
   try {
@@ -467,7 +467,6 @@ async function showUploadConfirmForPaths(paths: string[]) {
   quotedCostDisplay.value = null
   quotedGasEstimate.value = null
   quotedPaymentMode.value = null
-  pendingQuotes.value = new Map()
   showUploadConfirm.value = true
 
   const metas = await getFileMetas(paths)
@@ -508,47 +507,32 @@ watch(
 async function startQuoting(metas: FileMeta[]) {
   isQuoting.value = true
   try {
-    // Quote each file (sequentially to avoid overwhelming the network)
-    const quotes = new Map<string, UploadQuote>()
-    for (const meta of metas) {
-      const quote = await filesStore.getUploadQuote(meta.path)
-      if (quote) {
-        quotes.set(meta.path, quote)
-      }
-    }
-    pendingQuotes.value = quotes
+    // Use the light-weight `estimate_file_cost` path: encrypts locally, samples
+    // one quote per file, no chunks parked. Confirm click runs the real
+    // `start_upload` (which does park). Each estimate is independent, so
+    // parallelize — cuts dialog-open latency for multi-file uploads.
+    const estimates = await Promise.all(
+      metas.map(meta => filesStore.estimateFileCost(meta.path)),
+    )
+    const valid = estimates.filter((e): e is UploadCostEstimate => e !== null)
 
-    if (quotes.size > 0) {
-      const quoteValues = Array.from(quotes.values())
-      quotedPaymentMode.value = quoteValues[0].payment_mode
+    if (valid.length > 0) {
+      // ant-core PaymentMode 'single' maps to the frontend's 'wave-batch'.
+      const mode = valid[0].payment_mode === 'merkle' ? 'merkle' : 'wave-batch'
+      quotedPaymentMode.value = mode
 
-      if (quotedPaymentMode.value === 'merkle') {
-        quotedCostDisplay.value = 'Determined on-chain'
-      } else {
-        const totalNanos = quoteValues.reduce(
-          (sum, q) => sum + BigInt(q.total_cost), 0n,
-        )
-        const whole = totalNanos / 1_000_000_000_000_000_000n
-        const frac = (totalNanos % 1_000_000_000_000_000_000n) / 1_000_000_000_000_000n
-        quotedCostDisplay.value = frac > 0n ? `${whole}.${frac.toString().padStart(3, '0')} ANT` : `${whole} ANT`
-      }
+      const totalStorageAtto = valid.reduce(
+        (sum, e) => sum + BigInt(e.storage_cost_atto), 0n,
+      )
+      quotedCostDisplay.value = formatNanoTokens(totalStorageAtto.toString())
 
-      // Estimate gas cost
-      const wagmiConfig = getWagmiConfig()
-      if (wagmiConfig) {
-        const totalPayments = quoteValues.reduce((sum, q) => sum + q.payments.length, 0)
-        const poolCount = quoteValues[0].merkle_pool_commitments?.length
-        const est = await estimatePaymentGasCost(
-          wagmiConfig,
-          quotedPaymentMode.value,
-          totalPayments,
-          poolCount,
-        )
-        quotedGasEstimate.value = est
-      }
+      const totalGasWei = valid.reduce(
+        (sum, e) => sum + BigInt(e.estimated_gas_cost_wei), 0n,
+      )
+      quotedGasEstimate.value = formatGasCost(totalGasWei.toString())
     }
   } catch {
-    // Quoting failed — user can still proceed (will re-quote during upload)
+    // Estimate failed — user can still proceed (real quote runs at upload time).
   } finally {
     isQuoting.value = false
   }
@@ -560,26 +544,26 @@ function confirmUpload(options: { visibility: 'private' | 'public'; paymentMode:
 
   for (const file of pendingUploadFiles.value) {
     const id = filesStore.addUpload(file.name, file.path, file.size)
-    const preQuote = pendingQuotes.value.get(file.path)
 
     if (settingsStore.indelibleConnected && !settingsStore.devnetActive) {
       filesStore.startIndelibleUpload(id)
     } else if ((autonomiConnected.value || settingsStore.devnetActive) && wagmiConfig) {
-      filesStore.startRealUpload(id, wagmiConfig, options, preQuote ?? undefined)
+      // No preQuote handoff: the dialog showed a light estimate (no chunks
+      // parked). `startRealUpload` fetches a fresh real quote via
+      // `start_upload`, which is what parks chunks — only on confirm.
+      filesStore.startRealUpload(id, wagmiConfig, options)
     } else {
       filesStore.updateEntry(id, { status: 'failed', error: 'Not connected to network or wallet' })
       toastStore.add('Upload requires network connection and wallet', 'warning')
     }
   }
   pendingUploadFiles.value = []
-  pendingQuotes.value = new Map()
   quotedCostDisplay.value = null
 }
 
 function cancelUpload() {
   showUploadConfirm.value = false
   pendingUploadFiles.value = []
-  pendingQuotes.value = new Map()
   quotedCostDisplay.value = null
   isQuoting.value = false
 }
@@ -763,15 +747,20 @@ async function runCostEstimateQuotes(metas: FileMeta[]) {
   if (costEstimateQuoting.value) return
   costEstimateQuoting.value = true
   try {
-    for (const meta of metas) {
-      const quote = await filesStore.getUploadQuote(meta.path)
-      if (!quote) continue
+    // Parallel: each estimate is independent, and this is display-only.
+    const results = await Promise.all(
+      metas.map(async (meta) => ({
+        meta,
+        estimate: await filesStore.estimateFileCost(meta.path),
+      })),
+    )
+    for (const { meta, estimate } of results) {
+      if (!estimate) continue
       const idx = costFiles.value.findIndex(f => f.name === meta.name)
       if (idx === -1) continue
-      // Mutate the entry in place so the dialog's reactive `:files` re-renders.
       costFiles.value[idx] = {
         ...costFiles.value[idx],
-        cost: quote.total_cost_display,
+        cost: formatNanoTokens(estimate.storage_cost_atto),
       }
     }
   } finally {
