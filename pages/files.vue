@@ -540,7 +540,9 @@ function kickScheduler() {
   const budget = settingsStore.uploadConcurrency
 
   while (true) {
-    const active = filesStore.quotingCount + filesStore.uploadingCount
+    const quotingCount = filesStore.quotingCount
+    const uploadingCount = filesStore.uploadingCount
+    const active = quotingCount + uploadingCount
     if (active >= budget) break
 
     const quoteHead = filesStore.queuedForQuote[0]
@@ -572,21 +574,21 @@ function kickScheduler() {
   }
 }
 
-// React whenever any of the scheduler's inputs change: the budget, the
-// active counts (slots freed), the queue lengths (new work enqueued), or
-// the connection state flipping to online.
-watch(
-  () => [
-    settingsStore.uploadConcurrency,
-    filesStore.quotingCount,
-    filesStore.uploadingCount,
-    filesStore.queuedForQuote.length,
-    filesStore.queuedForUpload.length,
-    autonomiConnected.value,
-    settingsStore.devnetActive,
-  ],
-  () => { kickScheduler() },
-)
+// Auto-track every reactive dep the scheduler reads via watchEffect. Runs
+// once on setup and re-runs whenever any of the store getters / connection
+// state change. watchEffect is more robust here than the array-source form
+// of watch because we don't have to remember to list every dep by hand.
+watchEffect(() => {
+  // Touch every reactive input so it's registered, then kick.
+  void settingsStore.uploadConcurrency
+  void filesStore.quotingCount
+  void filesStore.uploadingCount
+  void filesStore.queuedForQuote.length
+  void filesStore.queuedForUpload.length
+  void autonomiConnected.value
+  void settingsStore.devnetActive
+  kickScheduler()
+})
 
 function cancelPendingUploads() {
   for (const id of selectedFileIds.value) filesStore.cancelPendingUpload(id)
