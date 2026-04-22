@@ -31,18 +31,23 @@
     </div>
 
     <!-- Storage Directory -->
-    <div class="flex items-center justify-between rounded-lg border border-autonomi-border p-4">
-      <div class="min-w-0 flex-1">
-        <h3 class="text-sm font-medium">Storage Directory</h3>
-        <p class="text-xs text-autonomi-muted">Where node data is stored on disk</p>
-        <p class="mt-0.5 truncate font-mono text-xs text-autonomi-muted">{{ settingsStore.storageDir ?? 'Default' }}</p>
+    <div class="rounded-lg border border-autonomi-border p-4">
+      <div class="flex items-center justify-between">
+        <div class="min-w-0 flex-1">
+          <h3 class="text-sm font-medium">Storage Directory</h3>
+          <p class="text-xs text-autonomi-muted">Where node data is stored on disk</p>
+          <p class="mt-0.5 truncate font-mono text-xs text-autonomi-muted">{{ settingsStore.storageDir ?? 'Default' }}</p>
+        </div>
+        <button
+          class="ml-3 shrink-0 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-text"
+          @click="pickStorageDir"
+        >
+          Browse
+        </button>
       </div>
-      <button
-        class="ml-3 shrink-0 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-text"
-        @click="pickStorageDir"
-      >
-        Browse
-      </button>
+      <p class="mt-2 text-xs text-autonomi-warning">
+        Only applies to newly added nodes. Existing nodes keep their current directory.
+      </p>
     </div>
 
     <!-- Downloads Directory -->
