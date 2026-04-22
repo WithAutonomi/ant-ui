@@ -619,6 +619,7 @@ pub fn run() {
             disconnect_daemon_sse,
             autonomi_ops::init_autonomi_client,
             autonomi_ops::start_upload,
+            autonomi_ops::estimate_file_cost,
             autonomi_ops::confirm_upload,
             autonomi_ops::confirm_upload_merkle,
             autonomi_ops::download_file,

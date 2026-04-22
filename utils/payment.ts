@@ -1,17 +1,10 @@
-import { readContract, writeContract, waitForTransactionReceipt, getGasPrice, getAccount } from '@wagmi/core'
+import { readContract, writeContract, waitForTransactionReceipt, getAccount } from '@wagmi/core'
 import { getTokenAddress, getVaultAddress, getActiveChainId } from '~/utils/wallet-config'
 import paymentVaultAbi from '~/assets/abi/IPaymentVault.json'
 import paymentTokenAbi from '~/assets/abi/PaymentToken.json'
-import { decodeEventLog, formatEther, encodeFunctionData } from 'viem'
+import { decodeEventLog, formatEther } from 'viem'
 
 const MAX_PAYMENTS_PER_BATCH = 256
-
-// Typical gas units per operation (conservative estimates)
-const GAS_APPROVE = 50_000n
-const GAS_PER_QUOTE_PAYMENT = 38_000n
-const GAS_QUOTE_BASE = 25_000n
-const GAS_MERKLE_BASE = 180_000n
-const GAS_MERKLE_PER_POOL = 25_000n
 
 // Arbitrum produces blocks every ~250ms; viem's default 4s polling is tuned
 // for L1. Dropping to 2s reduces the window where we might miss a newly-mined
@@ -221,43 +214,6 @@ async function ensureAllowance(wagmiConfig: any, needed: bigint): Promise<bigint
     pollingInterval: RECEIPT_POLL_INTERVAL_MS,
   })
   return receiptGasCost(receipt)
-}
-
-/**
- * Estimate gas cost for an upload payment before executing it.
- * Uses current chain gas price and conservative gas unit estimates.
- *
- * @returns Estimated gas cost formatted as ETH string, or null if estimation fails.
- */
-export async function estimatePaymentGasCost(
-  wagmiConfig: any,
-  paymentMode: 'wave-batch' | 'merkle',
-  paymentCount: number,
-  poolCount?: number,
-): Promise<string | null> {
-  try {
-    const gasPrice = await Promise.race([
-      getGasPrice(wagmiConfig, { chainId: getActiveChainId() }),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Gas price timeout')), 10_000)),
-    ])
-
-    let totalGas: bigint
-    if (paymentMode === 'merkle') {
-      // Merkle: one approve + one payForMerkleTree call
-      totalGas = GAS_APPROVE + GAS_MERKLE_BASE + GAS_MERKLE_PER_POOL * BigInt(poolCount ?? 4)
-    } else {
-      // Wave-batch: one approve + N batches of payForQuotes
-      const batches = Math.ceil(paymentCount / MAX_PAYMENTS_PER_BATCH)
-      const paymentsGas = GAS_PER_QUOTE_PAYMENT * BigInt(paymentCount)
-      const batchOverhead = GAS_QUOTE_BASE * BigInt(batches)
-      totalGas = GAS_APPROVE + paymentsGas + batchOverhead
-    }
-
-    const costWei = totalGas * gasPrice
-    return formatGasCost(costWei.toString())
-  } catch {
-    return null
-  }
 }
 
 /**

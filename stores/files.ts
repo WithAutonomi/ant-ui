@@ -3,8 +3,18 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { useToastStore } from './toasts'
 import { useSettingsStore } from './settings'
-import { payForQuotes, payForMerkleTree, formatNanoTokens, formatGasCost, estimatePaymentGasCost, type RawPayment, type SerializedPoolCommitment } from '~/utils/payment'
+import { payForQuotes, payForMerkleTree, formatNanoTokens, formatGasCost, type RawPayment, type SerializedPoolCommitment } from '~/utils/payment'
 import { indelibleApi } from '~/utils/indelible-api'
+
+// ── Lightweight cost estimate (no chunks parked) ──
+// Matches ant_core::data::UploadCostEstimate.
+export interface UploadCostEstimate {
+  file_size: number
+  chunk_count: number
+  storage_cost_atto: string
+  estimated_gas_cost_wei: string
+  payment_mode: 'auto' | 'single' | 'merkle'
+}
 
 // ── Pre-obtained quote from network ──
 
@@ -226,6 +236,20 @@ export const useFilesStore = defineStore('files', {
         transferStartedAt: Date.now(),
       })
       return id
+    },
+
+    /** Light-touch cost estimate — wraps ant-core `estimate_upload_cost`.
+     *  Encrypts the file locally, samples one network quote, extrapolates cost.
+     *  Does NOT park a `PreparedUpload`, so the user can cancel without orphaning
+     *  hundreds of chunks in the daemon's pending_uploads map. Display-only;
+     *  actual uploads must still go through `getUploadQuote`/`start_upload`. */
+    async estimateFileCost(path: string): Promise<UploadCostEstimate | null> {
+      try {
+        return await invoke<UploadCostEstimate>('estimate_file_cost', { path })
+      } catch (e) {
+        console.warn('estimate_file_cost failed:', e)
+        return null
+      }
     },
 
     /** Get a real network quote for a file. Used by the upload dialog to show real costs. */
