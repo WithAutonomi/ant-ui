@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { markRaw } from 'vue'
 import { check, type Update } from '@tauri-apps/plugin-updater'
 
 export interface CheckResult {
@@ -55,7 +56,9 @@ export const useUpdaterStore = defineStore('updater', {
           this.available = true
           this.version = update.version
           this.body = update.body ?? null
-          this._update = update
+          // markRaw: Update has private fields that break when wrapped in
+          // Pinia's reactive Proxy — downloadAndInstall() silently no-ops.
+          this._update = markRaw(update)
           return { ok: true, available: true }
         }
         return { ok: true, available: false }
