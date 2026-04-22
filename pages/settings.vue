@@ -118,6 +118,30 @@
       </button>
       <div v-if="showAdvanced" class="mt-2 space-y-4">
 
+        <!-- Upload concurrency -->
+        <div class="rounded-lg border border-autonomi-border p-4">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <h3 class="text-sm font-medium">Upload concurrency</h3>
+              <p class="mt-1 text-xs text-autonomi-muted">
+                This controls how many quotes/uploads can be running at the same time.
+              </p>
+              <p class="mt-1 text-xs text-autonomi-muted">
+                Note that this has a very large impact on performance.
+              </p>
+            </div>
+            <input
+              :value="settingsStore.uploadConcurrency"
+              type="number"
+              :min="UPLOAD_CONCURRENCY_MIN"
+              :max="UPLOAD_CONCURRENCY_MAX"
+              step="1"
+              class="w-16 shrink-0 rounded-md border border-autonomi-border bg-autonomi-dark px-2 py-1 text-center text-sm text-autonomi-text focus:border-autonomi-blue focus:outline-none"
+              @change="onConcurrencyChange(($event.target as HTMLInputElement).value)"
+            />
+          </div>
+        </div>
+
         <!-- Indelible Enterprise Connection (only show setup when not connected) -->
         <div v-if="!settingsStore.indelibleConnected" class="rounded-lg border border-autonomi-border p-4">
           <div class="flex items-center justify-between">
@@ -383,7 +407,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { openUrl as tauriOpenUrl } from '@tauri-apps/plugin-opener'
 import { arbitrum, arbitrumSepolia } from 'viem/chains'
-import { setDevnetWalletKey } from '~/stores/settings'
+import { setDevnetWalletKey, UPLOAD_CONCURRENCY_MIN, UPLOAD_CONCURRENCY_MAX } from '~/stores/settings'
 import { useSettingsStore } from '~/stores/settings'
 import { isValidEthAddress } from '~/utils/validators'
 import { useToastStore } from '~/stores/toasts'
@@ -610,6 +634,12 @@ async function saveDaemon() {
   await settingsStore.setDaemonUrl(val)
   editingDaemon.value = false
   toasts.add('Daemon URL updated', 'info')
+}
+
+async function onConcurrencyChange(raw: string) {
+  const n = Number.parseInt(raw, 10)
+  if (!Number.isFinite(n)) return
+  await settingsStore.setUploadConcurrency(n)
 }
 
 async function copyDiagnostics() {

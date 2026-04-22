@@ -12,7 +12,11 @@
           <p class="text-sm text-autonomi-muted">Estimating cost...</p>
         </div>
 
-        <div v-else-if="files.length > 0" class="space-y-3">
+        <div v-else-if="files.length === 0" class="py-4 text-center text-sm text-autonomi-muted">
+          No files selected
+        </div>
+
+        <div v-else class="space-y-3">
           <div
             v-for="file in files"
             :key="file.name"
@@ -20,32 +24,51 @@
           >
             <span class="max-w-[200px] truncate">{{ file.name }}</span>
             <div class="text-right">
-              <span v-if="file.size" class="text-autonomi-muted">{{ file.size ? formatBytes(file.size) : '-' }}</span>
-              <span class="ml-2 text-autonomi-blue">
-                {{ file.cost ? file.cost : `~${estimateCost(file.size)} ANT` }}
-              </span>
+              <span v-if="file.size" class="text-autonomi-muted">{{ formatBytes(file.size) }}</span>
+              <span v-if="file.cost" class="ml-2 text-autonomi-blue">{{ file.cost }}</span>
+              <span v-else class="ml-2 text-autonomi-muted">—</span>
               <span v-if="file.gas_cost" class="ml-1 text-autonomi-muted">+ {{ file.gas_cost }} gas</span>
             </div>
           </div>
 
-          <div v-if="!hasRealCosts" class="border-t border-autonomi-border pt-3">
-            <div class="flex items-center justify-between text-sm font-medium">
-              <span>Total</span>
-              <div>
-                <span class="text-autonomi-muted">{{ totalSize ? formatBytes(totalSize) : '-' }}</span>
-                <span class="ml-2 text-autonomi-blue">~{{ estimateCost(totalSize) }} ANT</span>
+          <!-- Status line while (or after) quotes arrive. Connection-error is
+               checked first so a failed connect surfaces even if some files
+               happened to get quoted before the failure. -->
+          <div v-if="!allCostsReal" class="border-t border-autonomi-border pt-3">
+            <template v-if="connectionStore.hasFailed">
+              <div class="space-y-2">
+                <p class="text-sm text-yellow-500/80">
+                  Not connected to the Autonomi network — cost estimate unavailable.
+                </p>
+                <p v-if="failedReason" class="text-xs text-autonomi-muted break-words">
+                  {{ failedReason }}
+                </p>
+                <button
+                  type="button"
+                  class="rounded-md border border-autonomi-blue/40 px-2.5 py-1 text-xs font-medium text-autonomi-blue hover:bg-autonomi-blue/10"
+                  @click="connectionStore.retry()"
+                >
+                  Retry connection
+                </button>
               </div>
-            </div>
+            </template>
+            <template v-else-if="connectionStore.isConnecting">
+              <div class="flex items-center gap-2 text-sm text-autonomi-muted">
+                <div class="h-3 w-3 animate-spin rounded-full border-2 border-yellow-500 border-t-transparent" />
+                <span>Connecting to the Autonomi network…</span>
+              </div>
+            </template>
+            <template v-else>
+              <div class="flex items-center gap-2 text-sm text-autonomi-muted">
+                <div class="h-3 w-3 animate-spin rounded-full border-2 border-autonomi-blue border-t-transparent" />
+                <span>Obtaining quotes from network…</span>
+              </div>
+            </template>
           </div>
 
-          <p class="text-xs text-autonomi-muted">
-            {{ hasRealCosts ? 'Costs queried from the Autonomi network.' : 'Estimates are approximate and may vary based on network conditions.' }}
-            Gas fees (ETH) apply on top of storage costs.
+          <p v-if="allCostsReal" class="text-xs text-autonomi-muted">
+            Costs queried from the Autonomi network. Gas fees (ETH) apply on top of storage costs.
           </p>
-        </div>
-
-        <div v-else class="py-4 text-center text-sm text-autonomi-muted">
-          No files selected
         </div>
 
         <div class="mt-4 flex justify-end">
@@ -63,6 +86,7 @@
 
 <script setup lang="ts">
 import { formatBytes } from '~/utils/formatters'
+import { useConnectionStore } from '~/stores/connection'
 
 const props = defineProps<{
   open: boolean
@@ -72,12 +96,11 @@ const props = defineProps<{
 
 defineEmits<{ close: [] }>()
 
-const totalSize = computed(() => props.files.reduce((sum, f) => sum + f.size, 0))
-const hasRealCosts = computed(() => props.files.some(f => f.cost))
-
-/** Rough client-side estimate — real cost is determined by network quotes during upload. */
-function estimateCost(bytes: number) {
-  return (bytes / 1_048_576 * 0.05).toFixed(4)
-}
-
+const connectionStore = useConnectionStore()
+const allCostsReal = computed(() =>
+  props.files.length > 0 && props.files.every(f => f.cost),
+)
+const failedReason = computed(() =>
+  connectionStore.current.status === 'failed' ? connectionStore.current.reason : null,
+)
 </script>

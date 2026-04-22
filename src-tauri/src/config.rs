@@ -24,6 +24,12 @@ pub struct AppConfig {
     pub indelible_api_key: Option<String>,
     #[serde(default = "default_theme_mode")]
     pub theme_mode: String,
+    /// Max concurrent quote/upload operations. Defaults to 1 — testing shows
+    /// concurrent uploads slow down non-linearly (2 files ≠ 2× time, often
+    /// 4–12× on real networks), so serial is the safe default. Power users
+    /// can tune up to 8 via Settings → Advanced.
+    #[serde(default = "default_upload_concurrency")]
+    pub upload_concurrency: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,6 +66,10 @@ pub struct UploadHistory {
 
 fn default_theme_mode() -> String {
     "dark".to_string()
+}
+
+fn default_upload_concurrency() -> u32 {
+    1
 }
 
 fn default_daemon_url() -> String {
@@ -106,6 +116,7 @@ impl Default for AppConfig {
             indelible_url: None,
             indelible_api_key: None,
             theme_mode: default_theme_mode(),
+            upload_concurrency: default_upload_concurrency(),
         }
     }
 }

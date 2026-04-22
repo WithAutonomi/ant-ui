@@ -3,42 +3,51 @@
     <div
       v-if="open"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      @click.self="$emit('cancel')"
+      @click.self="$emit('close')"
     >
       <div role="dialog" aria-modal="true" aria-labelledby="upload-confirm-title" class="w-[36rem] rounded-lg border border-autonomi-border bg-autonomi-dark p-6 shadow-xl">
-        <h2 id="upload-confirm-title" class="mb-4 text-lg font-medium">Confirm Upload</h2>
+        <h2 id="upload-confirm-title" class="mb-3 text-lg font-medium">Confirm Upload</h2>
 
-        <div v-if="loading" class="flex flex-col items-center py-8">
-          <p class="text-sm text-autonomi-muted">Estimating costs...</p>
+        <!-- Info banner: dialog is dismissible, job keeps running -->
+        <div class="mb-4 flex items-start gap-2 rounded-md border border-autonomi-blue/30 bg-autonomi-blue/5 px-3 py-2">
+          <svg class="mt-0.5 h-4 w-4 shrink-0 text-autonomi-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p class="text-xs text-autonomi-muted">
+            You can close this window and come back when the quote is in. The upload stays pending until you approve or cancel it.
+          </p>
         </div>
 
-        <div v-else class="space-y-5">
+        <div class="space-y-5">
           <!-- File list -->
           <div class="max-h-32 space-y-1.5 overflow-y-auto">
             <div
-              v-for="file in files"
-              :key="file.name"
+              v-for="entry in entries"
+              :key="entry.id"
               class="flex items-center justify-between text-sm"
             >
-              <span class="max-w-[280px] truncate">{{ file.name }}</span>
-              <span class="text-autonomi-muted">{{ file.size ? formatBytes(file.size) : '-' }}</span>
+              <span class="max-w-[280px] truncate">{{ entry.name }}</span>
+              <span class="text-autonomi-muted">{{ entry.size_bytes ? formatBytes(entry.size_bytes) : '-' }}</span>
             </div>
           </div>
 
-          <!-- Payment mode -->
-          <div class="flex items-baseline justify-between">
+          <!-- Payment mode — only shown once the network has quoted the files.
+               Never guessed from chunk count: that was a fallback lie. -->
+          <div v-if="effectivePaymentMode" class="flex items-baseline justify-between">
             <span class="text-sm text-autonomi-muted">Payment</span>
             <div class="text-right">
               <span class="text-sm font-medium">{{ effectivePaymentMode === 'merkle' ? 'Merkle tree' : 'Regular' }}</span>
               <p class="text-xs text-autonomi-muted">
                 {{ effectivePaymentMode === 'merkle'
-                  ? `Single transaction for ${estimatedChunks} chunks — lower gas.`
-                  : `Per-batch payment for ${estimatedChunks} chunk${estimatedChunks !== 1 ? 's' : ''}.` }}
+                  ? `Single transaction for ${quotedChunks} chunks — lower gas.`
+                  : `Per-batch payment for ${quotedChunks} chunk${quotedChunks !== 1 ? 's' : ''}.` }}
               </p>
             </div>
           </div>
 
-          <!-- Cost breakdown -->
+          <!-- Cost breakdown. Connection-error takes priority over any in-flight
+               quote spinner so users aren't left watching a spinner that will
+               never resolve. No heuristic / placeholder values. -->
           <div class="rounded-md border border-autonomi-border bg-autonomi-surface/50 p-3 space-y-2">
             <template v-if="quotedCost">
               <div class="flex items-center justify-between text-sm font-medium">
@@ -47,25 +56,13 @@
               </div>
               <div class="flex items-center justify-between text-xs text-autonomi-muted">
                 <span>Estimated gas</span>
-                <span>{{ quotedGas ?? 'Estimating...' }}</span>
-              </div>
-            </template>
-            <template v-else-if="quoting">
-              <div class="flex items-center gap-2 text-sm text-autonomi-muted">
-                <div class="h-3 w-3 animate-spin rounded-full border-2 border-autonomi-blue border-t-transparent" />
-                <span>Getting cost quote from network...</span>
-              </div>
-            </template>
-            <template v-else-if="connectionStore.isConnecting">
-              <div class="flex items-center gap-2 text-sm text-autonomi-muted">
-                <div class="h-3 w-3 animate-spin rounded-full border-2 border-yellow-500 border-t-transparent" />
-                <span>Connecting to the Autonomi network...</span>
+                <span>{{ quotedGas ?? '—' }}</span>
               </div>
             </template>
             <template v-else-if="connectionStore.hasFailed">
               <div class="space-y-2">
                 <div class="text-sm text-yellow-500/80">
-                  Could not connect to the Autonomi network.
+                  Not connected to the Autonomi network — cost estimate unavailable.
                 </div>
                 <div v-if="failedReason" class="text-xs text-autonomi-muted break-words">
                   {{ failedReason }}
@@ -75,14 +72,20 @@
                   class="rounded-md border border-autonomi-blue/40 px-2.5 py-1 text-xs font-medium text-autonomi-blue hover:bg-autonomi-blue/10"
                   @click="connectionStore.retry()"
                 >
-                  Retry
+                  Retry connection
                 </button>
               </div>
             </template>
-            <template v-else>
+            <template v-else-if="connectionStore.isConnecting">
+              <div class="flex items-center gap-2 text-sm text-autonomi-muted">
+                <div class="h-3 w-3 animate-spin rounded-full border-2 border-yellow-500 border-t-transparent" />
+                <span>Connecting to the Autonomi network…</span>
+              </div>
+            </template>
+            <template v-else-if="anyQuoting">
               <div class="flex items-center gap-2 text-sm text-autonomi-muted">
                 <div class="h-3 w-3 animate-spin rounded-full border-2 border-autonomi-blue border-t-transparent" />
-                <span>Estimating cost...</span>
+                <span>Obtaining quote from network…</span>
               </div>
             </template>
           </div>
@@ -137,19 +140,39 @@
             Estimated from a single network quote — final cost may vary slightly. Gas fees apply on top.
           </p>
 
-          <div class="flex justify-end gap-2">
-            <button
-              class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
-              @click="$emit('cancel')"
-            >
-              Cancel
-            </button>
-            <button
-              class="rounded-md bg-autonomi-blue px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
-              @click="handleConfirm"
-            >
-              Upload {{ files.length }} file{{ files.length !== 1 ? 's' : '' }}
-            </button>
+          <!-- Buttons grouped by intent: both "back out" actions on the left,
+               the money-spending Approve isolated on the right so no
+               fat-finger can land on it from a dismiss attempt. -->
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex gap-2">
+              <button
+                class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
+                @click="$emit('close')"
+              >
+                Close
+              </button>
+              <button
+                class="rounded-md border border-red-500/40 px-3 py-1.5 text-sm text-red-400 hover:bg-red-500/10"
+                @click="$emit('cancelUpload')"
+              >
+                Cancel Upload
+              </button>
+            </div>
+            <div class="flex items-center gap-2">
+              <span
+                v-if="!canApprove && entries.length > 1"
+                class="text-xs text-autonomi-muted"
+              >
+                Ready: {{ readyCount }} of {{ entries.length }}
+              </span>
+              <button
+                class="rounded-md bg-autonomi-blue px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="!canApprove"
+                @click="handleApprove"
+              >
+                {{ approveButtonLabel }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -159,46 +182,89 @@
 
 <script setup lang="ts">
 import { formatBytes } from '~/utils/formatters'
-import { MERKLE_THRESHOLD, AVG_CHUNK_SIZE } from '~/utils/constants'
 import { useConnectionStore } from '~/stores/connection'
+import { useFilesStore, type FileEntry } from '~/stores/files'
+import { formatNanoTokens, formatGasCost } from '~/utils/payment'
 
 const props = defineProps<{
   open: boolean
-  files: { name: string; size: number; path: string }[]
-  loading: boolean
-  /** Real cost from network quote (e.g. "0.0234 ANT" or "Determined on-chain") */
-  quotedCost?: string | null
-  /** Estimated gas cost (e.g. "0.000142 ETH") */
-  quotedGas?: string | null
-  /** Whether a network quote is in progress */
-  quoting?: boolean
-  /** Payment mode selected by the backend (null if no quote yet) */
-  quotedPaymentMode?: 'wave-batch' | 'merkle' | null
-  /**
-   * Kept for backward compatibility with the parent — the dialog now reads
-   * the connection state directly from useConnectionStore() so it can show
-   * a Retry button when the connect fails.
-   */
-  networkConnected?: boolean
+  /** IDs of FileEntry rows this dialog is bound to. Dialog is a thin view —
+   *  all quote/estimate state lives on the entries themselves. */
+  fileIds: number[]
 }>()
 
 const emit = defineEmits<{
-  confirm: [options: { visibility: 'private' | 'public'; paymentMode: 'regular' | 'merkle' }]
-  cancel: []
+  approve: [options: { visibility: 'private' | 'public'; paymentMode: 'regular' | 'merkle' }]
+  cancelUpload: []
+  close: []
 }>()
 
+const filesStore = useFilesStore()
 const connectionStore = useConnectionStore()
+
+const entries = computed<FileEntry[]>(() =>
+  props.fileIds
+    .map(id => filesStore.findById(id))
+    .filter((e): e is FileEntry => e !== undefined),
+)
+
+const allEstimated = computed(() =>
+  entries.value.length > 0 && entries.value.every(e => e.estimate),
+)
+const anyQuoting = computed(() =>
+  entries.value.some(e => e.status === 'quoting' || e.status === 'queued_for_quote'),
+)
+const readyCount = computed(() =>
+  entries.value.filter(e => e.status === 'awaiting_approval').length,
+)
+/** Approve is gated on every entry being `awaiting_approval`. Partial
+ *  approve would leave some files silently queued and invite mis-clicks;
+ *  block until the whole batch is ready. */
+const canApprove = computed(() =>
+  entries.value.length > 0 && readyCount.value === entries.value.length,
+)
+
+/** Sum of estimate costs across entries. Null unless every entry has a real
+ *  estimate — partial or fake totals would mislead the user. */
+const quotedCost = computed<string | null>(() => {
+  if (!allEstimated.value) return null
+  const totalAtto = entries.value.reduce(
+    (sum, e) => sum + BigInt(e.estimate!.storage_cost_atto), 0n,
+  )
+  return formatNanoTokens(totalAtto.toString())
+})
+
+const quotedGas = computed<string | null>(() => {
+  if (!allEstimated.value) return null
+  const totalGas = entries.value.reduce(
+    (sum, e) => sum + BigInt(e.estimate!.estimated_gas_cost_wei), 0n,
+  )
+  return formatGasCost(totalGas.toString())
+})
+
+/** Real chunk count from the network estimates. Null until all entries have
+ *  been quoted — no client-side size-based fallback. */
+const quotedChunks = computed<number | null>(() => {
+  if (!allEstimated.value) return null
+  return entries.value.reduce((sum, e) => sum + e.estimate!.chunk_count, 0)
+})
+
+/** Payment mode is reported by the network — we do not guess it from size.
+ *  Null until all entries are quoted, so the template can hide the Payment
+ *  row entirely instead of showing a misleading prediction. */
+const effectivePaymentMode = computed<'regular' | 'merkle' | null>(() => {
+  if (!allEstimated.value) return null
+  const modes = entries.value.map(e => e.paymentMode).filter(Boolean) as ('regular' | 'merkle')[]
+  if (modes.length !== entries.value.length) return null
+  return modes.includes('merkle') ? 'merkle' : 'regular'
+})
 
 const visibility = ref<'private' | 'public'>('private')
 
-const totalSize = computed(() => props.files.reduce((sum, f) => sum + f.size, 0))
-const estimatedChunks = computed(() => Math.max(1, Math.ceil(totalSize.value / AVG_CHUNK_SIZE)))
-
-/** Payment mode — determined by backend quote, or estimated from file size */
-const effectivePaymentMode = computed(() => {
-  if (props.quotedPaymentMode === 'merkle') return 'merkle'
-  if (props.quotedPaymentMode === 'wave-batch') return 'regular'
-  return estimatedChunks.value >= MERKLE_THRESHOLD ? 'merkle' : 'regular'
+const approveButtonLabel = computed(() => {
+  const n = entries.value.length
+  if (n <= 1) return 'Approve Upload'
+  return `Approve ${n} Uploads`
 })
 
 const failedReason = computed(() =>
@@ -214,11 +280,14 @@ watch(
   },
 )
 
-function handleConfirm() {
-  emit('confirm', {
+function handleApprove() {
+  if (!canApprove.value) return
+  // Fall back to 'regular' when the estimate failed — backend redetermines
+  // the real payment mode from the live quote's chunk count anyway, so the
+  // frontend's guess is only used for status display during paying.
+  emit('approve', {
     visibility: visibility.value,
-    paymentMode: effectivePaymentMode.value,
+    paymentMode: effectivePaymentMode.value ?? 'regular',
   })
 }
-
 </script>

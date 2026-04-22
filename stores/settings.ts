@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import { acceptHMRUpdate, defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
 import { arbitrumSepolia } from 'viem/chains'
 import { ANVIL_CHAIN_ID } from '~/utils/constants'
@@ -19,6 +19,16 @@ interface AppConfig {
   indelible_url: string | null
   indelible_api_key: string | null
   theme_mode: string
+  upload_concurrency: number
+}
+
+/** Allowed range for upload_concurrency (see AppConfig in Rust). */
+export const UPLOAD_CONCURRENCY_MIN = 1
+export const UPLOAD_CONCURRENCY_MAX = 8
+
+function clampConcurrency(n: number): number {
+  if (!Number.isFinite(n)) return UPLOAD_CONCURRENCY_MIN
+  return Math.max(UPLOAD_CONCURRENCY_MIN, Math.min(UPLOAD_CONCURRENCY_MAX, Math.floor(n)))
 }
 
 export const useSettingsStore = defineStore('settings', {
@@ -34,6 +44,7 @@ export const useSettingsStore = defineStore('settings', {
     indelibleOrgName: null as string | null,
     indelibleUserEmail: null as string | null,
     themeMode: 'dark' as ThemeMode,
+    uploadConcurrency: 1,
     loaded: false,
     // Devnet/testnet/direct-key mode (set by manifest or settings form).
     // devnetChainId picks the chain:
@@ -64,6 +75,7 @@ export const useSettingsStore = defineStore('settings', {
         this.indelibleUrl = config.indelible_url
         this.indelibleApiKey = config.indelible_api_key
         this.themeMode = config.theme_mode === 'light' ? 'light' : 'dark'
+        this.uploadConcurrency = clampConcurrency(config.upload_concurrency)
         this.loaded = true
       } catch (e) {
         console.error('Failed to load config:', e)
@@ -81,11 +93,17 @@ export const useSettingsStore = defineStore('settings', {
           indelible_url: this.indelibleUrl,
           indelible_api_key: this.indelibleApiKey,
           theme_mode: this.themeMode,
+          upload_concurrency: this.uploadConcurrency,
         }
         await invoke('save_config', { config })
       } catch (e) {
         console.error('Failed to save config:', e)
       }
+    },
+
+    async setUploadConcurrency(n: number) {
+      this.uploadConcurrency = clampConcurrency(n)
+      await this.saveConfig()
     },
 
     async setStorageDir(path: string) {
@@ -192,3 +210,7 @@ export const useSettingsStore = defineStore('settings', {
     },
   },
 })
+
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(useSettingsStore, import.meta.hot))
+}
