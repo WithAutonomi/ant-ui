@@ -182,10 +182,10 @@
             </div>
             <div class="flex items-center gap-2">
               <span
-                v-if="!canApprove && entries.length > 1"
+                v-if="!canApprove && needsApprovalEntries.length > 1"
                 class="text-xs text-autonomi-muted"
               >
-                Ready: {{ readyCount }} of {{ entries.length }}
+                Ready: {{ readyCount }} of {{ needsApprovalEntries.length }}
               </span>
               <button
                 class="rounded-md bg-autonomi-blue px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
@@ -242,14 +242,21 @@ const someAlreadyStored = computed(() =>
 const anyQuoting = computed(() =>
   entries.value.some(e => e.status === 'quoting' || e.status === 'queued_for_quote'),
 )
-const readyCount = computed(() =>
-  entries.value.filter(e => e.status === 'awaiting_approval').length,
+/** Entries that still require a user decision — already-stored files auto-
+ *  process through the scheduler and never see `awaiting_approval`, so they
+ *  don't count toward the approve gate. */
+const needsApprovalEntries = computed(() =>
+  entries.value.filter(e => !e.alreadyStored),
 )
-/** Approve is gated on every entry being `awaiting_approval`. Partial
- *  approve would leave some files silently queued and invite mis-clicks;
- *  block until the whole batch is ready. */
+const readyCount = computed(() =>
+  needsApprovalEntries.value.filter(e => e.status === 'awaiting_approval').length,
+)
+/** Approve is gated on every non-stored entry being `awaiting_approval`.
+ *  Partial approve would leave some files silently queued and invite
+ *  mis-clicks; block until the whole approvable batch is ready. */
 const canApprove = computed(() =>
-  entries.value.length > 0 && readyCount.value === entries.value.length,
+  needsApprovalEntries.value.length > 0
+  && readyCount.value === needsApprovalEntries.value.length,
 )
 
 /** Sum of estimate costs across entries. Null unless every entry has a real
@@ -290,7 +297,7 @@ const effectivePaymentMode = computed<'regular' | 'merkle' | null>(() => {
 const visibility = ref<'private' | 'public'>('private')
 
 const approveButtonLabel = computed(() => {
-  const n = entries.value.length
+  const n = needsApprovalEntries.value.length
   if (n <= 1) return 'Approve Upload'
   return `Approve ${n} Uploads`
 })

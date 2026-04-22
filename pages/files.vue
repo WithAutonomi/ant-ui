@@ -375,6 +375,17 @@ function basenameOf(path: string): string {
 // ── Row display helpers ──
 
 function statusLabel(file: FileEntry): string {
+  // Already-stored uploads collapse every state after the initial estimate
+  // into a single honest label. The real backend still cycles through
+  // quoting → paying → uploading for ant-core's bookkeeping, but it's all
+  // a no-op sub-second dance in terms of user-visible work.
+  if (
+    file.alreadyStored
+    && (file.status === 'quoting' || file.status === 'queued_for_upload' || file.status === 'paying' || file.status === 'uploading')
+  ) {
+    return 'Saving datamap…'
+  }
+
   if (file.status === 'uploading') return 'Uploading'
   if (file.status === 'downloading') return 'Downloading'
   if (file.status === 'downloaded') return 'Downloaded'
@@ -594,6 +605,28 @@ watchEffect(() => {
   void settingsStore.devnetActive
   kickScheduler()
 })
+
+// Auto-dismiss the confirm dialog when every selected entry was detected as
+// already stored on the network. Those entries bypass `awaiting_approval`
+// (no user decision left to make) and flow through the scheduler on their
+// own, so leaving the dialog open waiting for an Approve that can never
+// enable is just clutter.
+watch(
+  () => selectedFileIds.value.map(id => filesStore.findById(id)?.alreadyStored),
+  (flags) => {
+    if (!showUploadConfirm.value) return
+    if (flags.length === 0) return
+    if (flags.some(f => f === undefined)) return
+    if (!flags.every(f => f === true)) return
+    const n = flags.length
+    showUploadConfirm.value = false
+    selectedFileIds.value = []
+    toastStore.add(
+      `${n} file${n !== 1 ? 's' : ''} already stored — saving datamap`,
+      'info',
+    )
+  },
+)
 
 function cancelPendingUploads() {
   for (const id of selectedFileIds.value) filesStore.cancelPendingUpload(id)

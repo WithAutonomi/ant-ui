@@ -314,13 +314,17 @@ export const useFilesStore = defineStore('files', {
           && estimate.storage_cost_atto === '0'
           && estimate.estimated_gas_cost_wei === '0'
 
+        // Already-stored entries skip awaiting_approval entirely — there's
+        // no user decision to make (no payment, no real upload). Route them
+        // straight into the upload queue so the scheduler drives them through
+        // to `complete` without a ceremonial Approve click.
         this.updateEntry(id, {
           estimate,
           paymentMode: estimate.payment_mode === 'merkle' ? 'merkle' : 'regular',
           cost: formatNanoTokens(estimate.storage_cost_atto),
           gas_cost: formatGasCost(estimate.estimated_gas_cost_wei),
           alreadyStored,
-          status: 'awaiting_approval',
+          status: alreadyStored ? 'queued_for_upload' : 'awaiting_approval',
         })
       } else {
         this.updateEntry(id, { status: 'awaiting_approval' })
