@@ -49,18 +49,32 @@ describe('wallet-config', () => {
       expect(getActiveChainId()).toBe(42161)
     })
 
+    it('returns Arbitrum mainnet (42161) when direct-key targets mainnet', () => {
+      settings.devnetActive = true
+      settings.devnetChainId = 42161
+
+      expect(getActiveChainId()).toBe(42161)
+    })
+
     it('returns Anvil (31337) in local devnet', () => {
       settings.devnetActive = true
-      settings.devnetIsSepolia = false
+      settings.devnetChainId = 31337
 
       expect(getActiveChainId()).toBe(31337)
     })
 
     it('returns Sepolia (421614) in Sepolia mode', () => {
       settings.devnetActive = true
-      settings.devnetIsSepolia = true
+      settings.devnetChainId = 421614
 
       expect(getActiveChainId()).toBe(421614)
+    })
+
+    it('falls back to mainnet when devnetActive but chainId is null', () => {
+      settings.devnetActive = true
+      settings.devnetChainId = null
+
+      expect(getActiveChainId()).toBe(42161)
     })
   })
 })

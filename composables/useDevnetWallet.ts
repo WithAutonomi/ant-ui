@@ -1,13 +1,17 @@
 import { createConfig, http } from '@wagmi/core'
 import { defineChain } from 'viem'
 import { privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts'
-import { arbitrumSepolia } from 'viem/chains'
+import { arbitrum, arbitrumSepolia } from 'viem/chains'
 import { useWalletStore } from '~/stores/wallet'
 import { useSettingsStore, getDevnetWalletKey } from '~/stores/settings'
 import { getTokenAddress, getActiveChainId } from '~/utils/wallet-config'
 import { ANVIL_CHAIN_ID } from '~/utils/constants'
 import { formatEther, formatUnits, erc20Abi } from 'viem'
 import { getBalance, readContract } from '@wagmi/core'
+
+// Public Arbitrum One RPC fallback when no explicit URL is configured.
+const ARBITRUM_ONE_RPC = 'https://arb1.arbitrum.io/rpc'
+const ARBITRUM_SEPOLIA_RPC = 'https://sepolia-rollup.arbitrum.io/rpc'
 
 let devnetWagmiConfig: any = null
 let devnetAccount: PrivateKeyAccount | null = null
@@ -35,26 +39,46 @@ export function initDevnetWallet() {
 
   devnetAccount = privateKeyToAccount(key as `0x${string}`)
 
-  // Determine which chain to use
-  if (settings.devnetIsSepolia || (!settings.devnetRpcUrl && !settings.devnetActive)) {
-    // Sepolia mode or direct key import (no manifest) — use Arbitrum Sepolia
-    devnetWagmiConfig = createConfig({
-      chains: [arbitrumSepolia],
-      transports: {
-        [arbitrumSepolia.id]: http(settings.devnetRpcUrl ?? 'https://sepolia-rollup.arbitrum.io/rpc'),
-      },
-      connectors: [],
-    })
-  } else {
-    // Local Anvil devnet
-    const chain = buildAnvilChain(settings.devnetRpcUrl!)
-    devnetWagmiConfig = createConfig({
-      chains: [chain],
-      transports: {
-        [ANVIL_CHAIN_ID]: http(settings.devnetRpcUrl!),
-      },
-      connectors: [],
-    })
+  switch (settings.devnetChainId) {
+    case arbitrumSepolia.id:
+      devnetWagmiConfig = createConfig({
+        chains: [arbitrumSepolia],
+        transports: {
+          [arbitrumSepolia.id]: http(settings.devnetRpcUrl ?? ARBITRUM_SEPOLIA_RPC),
+        },
+        connectors: [],
+      })
+      break
+
+    case arbitrum.id:
+      devnetWagmiConfig = createConfig({
+        chains: [arbitrum],
+        transports: {
+          [arbitrum.id]: http(settings.devnetRpcUrl ?? ARBITRUM_ONE_RPC),
+        },
+        connectors: [],
+      })
+      break
+
+    case ANVIL_CHAIN_ID: {
+      if (!settings.devnetRpcUrl) {
+        console.error('Anvil devnet requires devnetRpcUrl')
+        return null
+      }
+      const chain = buildAnvilChain(settings.devnetRpcUrl)
+      devnetWagmiConfig = createConfig({
+        chains: [chain],
+        transports: {
+          [ANVIL_CHAIN_ID]: http(settings.devnetRpcUrl),
+        },
+        connectors: [],
+      })
+      break
+    }
+
+    default:
+      console.error('initDevnetWallet: unknown devnetChainId', settings.devnetChainId)
+      return null
   }
 
   walletStore.connected = true

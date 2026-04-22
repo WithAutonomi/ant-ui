@@ -95,7 +95,7 @@
             Connect Wallet
           </button>
           <p class="mt-2 text-xs text-autonomi-muted">
-            {{ settingsStore.devnetIsSepolia ? 'Arbitrum Sepolia testnet' : 'Arbitrum One network required' }}
+            {{ settingsStore.devnetChainId === arbitrumSepolia.id ? 'Arbitrum Sepolia testnet' : 'Arbitrum One network required' }}
           </p>
           <p class="mt-1 text-xs text-autonomi-muted">
             Or import a private key in <NuxtLink to="/settings" class="text-autonomi-blue hover:underline">Settings &gt; Advanced</NuxtLink>
@@ -136,6 +136,7 @@
 </template>
 
 <script setup lang="ts">
+import { arbitrumSepolia } from 'viem/chains'
 import { useWalletStore } from '~/stores/wallet'
 import { truncateAddress } from '~/utils/formatters'
 import { isValidEthAddress } from '~/utils/validators'

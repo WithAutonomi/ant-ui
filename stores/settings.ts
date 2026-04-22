@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
+import { arbitrumSepolia } from 'viem/chains'
+import { ANVIL_CHAIN_ID } from '~/utils/constants'
 
 // Private key stored outside reactive state — not visible in Vue DevTools.
 let _walletKey: string | null = null
@@ -33,9 +35,14 @@ export const useSettingsStore = defineStore('settings', {
     indelibleUserEmail: null as string | null,
     themeMode: 'dark' as ThemeMode,
     loaded: false,
-    // Devnet/testnet mode (auto-detected from manifest file)
+    // Devnet/testnet/direct-key mode (set by manifest or settings form).
+    // devnetChainId picks the chain:
+    //   - null / not set   → production mainnet (WalletConnect)
+    //   - ANVIL_CHAIN_ID   → local Anvil devnet (manifest)
+    //   - arbitrumSepolia.id → Arbitrum Sepolia testnet
+    //   - arbitrum.id      → Arbitrum One mainnet via direct key
     devnetActive: false,
-    devnetIsSepolia: false,
+    devnetChainId: null as number | null,
     devnetRpcUrl: null as string | null,
     devnetTokenAddress: null as string | null,
     devnetVaultAddress: null as string | null,
@@ -154,7 +161,9 @@ export const useSettingsStore = defineStore('settings', {
         const result = await invoke<any>('load_devnet_manifest')
         if (result) {
           this.devnetActive = true
-          this.devnetIsSepolia = (result.rpc_url ?? '').includes('sepolia')
+          this.devnetChainId = (result.rpc_url ?? '').includes('sepolia')
+            ? arbitrumSepolia.id
+            : ANVIL_CHAIN_ID
           this.devnetRpcUrl = result.rpc_url
           this.devnetTokenAddress = result.payment_token_address
           this.devnetVaultAddress = result.payment_vault_address
@@ -163,7 +172,8 @@ export const useSettingsStore = defineStore('settings', {
             setDevnetWalletKey(result.wallet_private_key)
             this._devnetWalletKeySet = true
           }
-          console.info(`${this.devnetIsSepolia ? 'Sepolia' : 'Devnet'} mode active:`, result.rpc_url)
+          const modeLabel = this.devnetChainId === arbitrumSepolia.id ? 'Sepolia' : 'Devnet'
+          console.info(`${modeLabel} mode active:`, result.rpc_url)
         }
       } catch (e) {
         // No manifest or invalid — stay in production mode

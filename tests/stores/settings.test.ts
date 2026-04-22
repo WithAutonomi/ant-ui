@@ -66,7 +66,7 @@ describe('settings store', () => {
       await store.loadDevnetManifest()
 
       expect(store.devnetActive).toBe(true)
-      expect(store.devnetIsSepolia).toBe(false)
+      expect(store.devnetChainId).toBe(31337) // ANVIL_CHAIN_ID
       expect(store.devnetRpcUrl).toBe('http://127.0.0.1:8545')
       expect(store.devnetTokenAddress).toBe('0xtoken')
       expect(store.devnetVaultAddress).toBe('0xvault')
@@ -88,7 +88,7 @@ describe('settings store', () => {
       await store.loadDevnetManifest()
 
       expect(store.devnetActive).toBe(true)
-      expect(store.devnetIsSepolia).toBe(true)
+      expect(store.devnetChainId).toBe(421614) // arbitrumSepolia.id
     })
 
     it('stays in production mode when no manifest', async () => {

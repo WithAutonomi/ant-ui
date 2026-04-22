@@ -377,6 +377,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { openUrl as tauriOpenUrl } from '@tauri-apps/plugin-opener'
+import { arbitrum, arbitrumSepolia } from 'viem/chains'
 import { setDevnetWalletKey } from '~/stores/settings'
 import { useSettingsStore } from '~/stores/settings'
 import { isValidEthAddress } from '~/utils/validators'
@@ -469,12 +470,14 @@ async function connectDirectWallet() {
     setDevnetWalletKey(key)
     settingsStore._devnetWalletKeySet = true
     settingsStore.devnetActive = true
-    settingsStore.devnetIsSepolia = isSepolia
     if (isSepolia) {
+      settingsStore.devnetChainId = arbitrumSepolia.id
       settingsStore.devnetRpcUrl = 'https://sepolia-rollup.arbitrum.io/rpc'
       settingsStore.devnetTokenAddress = '0x4bc1aCE0E66170375462cB4E6Af42Ad4D5EC689C'
       settingsStore.devnetVaultAddress = '0xd742E8CFEf27A9a884F3EFfA239Ee2F39c276522'
     } else {
+      // Arbitrum One mainnet — use mainnet token/vault defaults via wallet-config.
+      settingsStore.devnetChainId = arbitrum.id
       settingsStore.devnetRpcUrl = null
       settingsStore.devnetTokenAddress = null
       settingsStore.devnetVaultAddress = null

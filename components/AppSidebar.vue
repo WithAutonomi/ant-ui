@@ -10,7 +10,7 @@
     <nav class="flex-1 px-2 py-2">
       <!-- Network mode indicator -->
       <div
-        v-if="settingsStore.devnetActive"
+        v-if="settingsStore.devnetActive && networkLabel"
         class="mb-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 text-center text-xs font-medium text-amber-400"
       >
         {{ networkLabel }}
@@ -60,9 +60,11 @@
 </template>
 
 <script setup lang="ts">
+import { arbitrumSepolia } from 'viem/chains'
 import { useNodesStore } from '~/stores/nodes'
 import { useFilesStore } from '~/stores/files'
 import { useUpdaterStore } from '~/stores/updater'
+import { ANVIL_CHAIN_ID } from '~/utils/constants'
 
 const route = useRoute()
 const nodesStore = useNodesStore()
@@ -70,8 +72,12 @@ const filesStore = useFilesStore()
 const updaterStore = useUpdaterStore()
 const settingsStore = useSettingsStore()
 
-const networkLabel = computed(() => {
-  return settingsStore.devnetIsSepolia ? 'SEPOLIA TESTNET' : 'DEVNET'
+const networkLabel = computed<string | null>(() => {
+  switch (settingsStore.devnetChainId) {
+    case arbitrumSepolia.id: return 'SEPOLIA TESTNET'
+    case ANVIL_CHAIN_ID: return 'DEVNET'
+    default: return null  // mainnet or unset — no badge
+  }
 })
 
 const mainNav = computed(() => [
