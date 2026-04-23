@@ -297,6 +297,33 @@ jobs:
           tag="v${{ needs.release-meta.outputs.version }}"
           gh release upload "$tag" "$APPIMAGE" "$APPIMAGE.sig" --clobber
 
+      - name: build portable Linux tar.gz
+        if: startsWith(matrix.platform, 'ubuntu')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Portable archive: main exe + ant sidecar + bootstrap_peers
+          # resource, mirroring what's inside the macOS .app.tar.gz.
+          # Not consumed by Tauri's updater (Linux auto-updates via the
+          # .AppImage directly); published purely for release-page
+          # symmetry with the macOS assets.
+
+          work=$(mktemp -d)
+          pkg="$work/autonomi"
+          mkdir -p "$pkg/resources"
+          cp src-tauri/target/release/ant-gui "$pkg/ant-gui"
+          cp src-tauri/binaries/ant-x86_64-unknown-linux-gnu "$pkg/ant"
+          cp src-tauri/resources/bootstrap_peers.toml "$pkg/resources/bootstrap_peers.toml"
+          chmod +x "$pkg/ant-gui" "$pkg/ant"
+
+          out="$GITHUB_WORKSPACE/Autonomi_x64_linux.tar.gz"
+          tar -C "$work" -czf "$out" autonomi
+
+          tag="v${{ needs.release-meta.outputs.version }}"
+          gh release upload "$tag" "$out" --clobber
+
   build-windows:
     name: build windows MSI (signed)
     runs-on: windows-latest
@@ -470,6 +497,32 @@ jobs:
             src-tauri/target/release/bundle/msi/*.msi \
             src-tauri/target/release/bundle/msi/*.msi.sig \
             --clobber
+
+      - name: build portable Windows tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Portable archive: main exe + ant sidecar + bootstrap_peers
+          # resource, mirroring what's inside the macOS .app.tar.gz.
+          # Not consumed by Tauri's updater (Windows auto-updates via the
+          # .msi directly); published purely for release-page symmetry
+          # with the macOS assets.
+
+          work=$(mktemp -d)
+          pkg="$work/autonomi"
+          mkdir -p "$pkg/resources"
+          cp src-tauri/target/release/ant-gui.exe "$pkg/ant-gui.exe"
+          cp src-tauri/binaries/ant-x86_64-pc-windows-msvc.exe "$pkg/ant.exe"
+          cp src-tauri/resources/bootstrap_peers.toml "$pkg/resources/bootstrap_peers.toml"
+
+          out="$GITHUB_WORKSPACE/Autonomi_x64_windows.tar.gz"
+          tar -C "$work" -czf "$out" autonomi
+
+          tag="${GITHUB_REF#refs/tags/}"
+          gh release upload "$tag" "$out" --clobber
 
       - name: upload signing logs on failure
         if: failure()
