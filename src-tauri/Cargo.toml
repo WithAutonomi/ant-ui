@@ -35,3 +35,12 @@ sha2 = "0.10"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+
+# TEMP — saorsa-labs/saorsa-core#97 fixes an HRTB bound introduced by the
+# parallel-bootstrap-dial change in rc-2026.4.2. Without it, `tokio::spawn`
+# of the connect chain fails to compile in ant-gui. Pinned by SHA so the
+# build stays reproducible; remove once #97 merges and ant-node → ant-client
+# picks up the fixed rev (at which point the ant-core rev above is rebumped
+# and this patch becomes redundant).
+[patch."https://github.com/saorsa-labs/saorsa-core.git"]
+saorsa-core = { git = "https://github.com/Nic-dorman/saorsa-core.git", rev = "8a9b8077fc2c69c063a2509ad03b5ec45ef2cc4d" }
