@@ -227,6 +227,76 @@ jobs:
           includeUpdaterJson: false
           args: ${{ matrix.args }}
 
+      - name: repair AppImage sidecar (static-pie workaround)
+        if: startsWith(matrix.platform, 'ubuntu')
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # linuxdeploy + its plugins run strip/patchelf over every executable
+          # in AppDir/usr/bin/ during AppImage packaging. That corrupts
+          # static-pie musl binaries like `ant` (segfault before `main`).
+          # macOS/Windows bundlers don't touch sidecars, and `.deb`/`.rpm`
+          # don't go through linuxdeploy, so only AppImage breaks. Workaround:
+          # extract the produced AppImage, overwrite the mangled sidecar
+          # with the pristine binary we already downloaded, repack, re-sign
+          # for the updater, then replace the asset tauri-action uploaded.
+
+          APPIMAGE=$(realpath "$(ls src-tauri/target/release/bundle/appimage/*.AppImage | head -n 1)")
+          PRISTINE=$(realpath src-tauri/binaries/ant-x86_64-unknown-linux-gnu)
+
+          echo "Repairing: $APPIMAGE"
+          echo "Pristine ant: $(stat -c%s "$PRISTINE") bytes"
+
+          work=$(mktemp -d)
+          pushd "$work" >/dev/null
+          "$APPIMAGE" --appimage-extract >/dev/null
+          echo "Mangled ant in AppImage: $(stat -c%s squashfs-root/usr/bin/ant) bytes"
+
+          cp -f "$PRISTINE" squashfs-root/usr/bin/ant
+          chmod +x squashfs-root/usr/bin/ant
+
+          # GH runners don't have FUSE, so AppImages must be run with
+          # --appimage-extract-and-run.
+          wget -q \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage \
+            -O appimagetool
+          chmod +x appimagetool
+
+          rm "$APPIMAGE"
+          ARCH=x86_64 ./appimagetool --appimage-extract-and-run \
+            squashfs-root "$APPIMAGE"
+          popd >/dev/null
+          rm -rf "$work"
+
+          # Verify the repacked AppImage carries the pristine binary.
+          verify=$(mktemp -d)
+          pushd "$verify" >/dev/null
+          "$APPIMAGE" --appimage-extract >/dev/null
+          repaired_size=$(stat -c%s squashfs-root/usr/bin/ant)
+          pristine_size=$(stat -c%s "$PRISTINE")
+          if [ "$repaired_size" != "$pristine_size" ]; then
+            echo "ERROR: repaired ant size ($repaired_size) != pristine ($pristine_size)" >&2
+            exit 1
+          fi
+          squashfs-root/usr/bin/ant --version
+          popd >/dev/null
+          rm -rf "$verify"
+          echo "Repair verified."
+
+          # Re-sign for the updater. `tauri signer sign` reads the key
+          # and password from TAURI_SIGNING_PRIVATE_KEY{,_PASSWORD} env
+          # and writes <file>.sig next to the input.
+          rm -f "$APPIMAGE.sig"
+          npx tauri signer sign "$APPIMAGE"
+
+          # Replace the asset tauri-action already uploaded to the draft release.
+          tag="v${{ needs.release-meta.outputs.version }}"
+          gh release upload "$tag" "$APPIMAGE" "$APPIMAGE.sig" --clobber
+
   build-windows:
     name: build windows MSI (signed)
     runs-on: windows-latest
