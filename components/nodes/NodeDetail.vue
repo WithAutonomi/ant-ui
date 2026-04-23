@@ -12,7 +12,12 @@
         </div>
         <div>
           <span class="text-autonomi-muted">Version</span>
-          <p>{{ node.version }}</p>
+          <p>
+            {{ node.version }}<span
+              v-if="node.pending_version"
+              class="ml-1 text-autonomi-blue"
+            >→ {{ node.pending_version }}</span>
+          </p>
         </div>
         <div>
           <span class="text-autonomi-muted">PID</span>

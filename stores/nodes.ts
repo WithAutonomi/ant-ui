@@ -17,6 +17,9 @@ export interface NodeInfo {
   version: string
   pid?: number
   uptime_secs?: number
+  /** Version the supervisor detected on disk but hasn't booted yet. Populated
+   *  during the `upgrade_scheduled` window, cleared on `node_upgraded`. */
+  pending_version?: string
   // Fields from NodeConfig (available when daemon provides full info)
   rewards_address?: string
   data_dir?: string
@@ -38,6 +41,7 @@ function summaryToNodeInfo(s: NodeStatusSummary): NodeInfo {
     version: s.version,
     pid: s.pid,
     uptime_secs: s.uptime_secs,
+    pending_version: s.pending_version,
   }
 }
 
@@ -315,6 +319,26 @@ export const useNodesStore = defineStore('nodes', {
           break
         case 'node_restarting':
           if (node) node.status = 'starting'
+          break
+        case 'upgrade_scheduled':
+          // Binary on disk has changed; node still running old version until
+          // it exits (--stop-on-upgrade). Surface the target version so the
+          // UI can show "v0.10.1 → v0.10.2 (upgrading)".
+          if (node) {
+            node.status = 'upgrade_scheduled'
+            node.pending_version = event.pending_version
+          }
+          break
+        case 'node_upgraded':
+          // Supervisor has respawned the node against the new binary. Update
+          // the live version and clear the pending marker. Status will land
+          // on 'running' via the accompanying node_started event; set it
+          // here too in case events arrive out of order.
+          if (node) {
+            if (event.new_version) node.version = event.new_version
+            node.pending_version = undefined
+            if (node.status === 'upgrade_scheduled') node.status = 'running'
+          }
           break
       }
     },
