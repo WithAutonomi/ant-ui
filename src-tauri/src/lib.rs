@@ -370,9 +370,89 @@ async fn disconnect_daemon_sse(state: tauri::State<'_, Arc<SseState>>) -> Result
     Ok(())
 }
 
+/// True when the bundled sidecar binary was modified noticeably after the
+/// current daemon's pid file — i.e. the user installed an app update since
+/// the daemon last started, so the running daemon is from the previous
+/// version. 5-second tolerance avoids false positives from filesystem
+/// timestamp granularity and install-time clock skew.
+fn is_daemon_stale() -> bool {
+    let Some(sidecar) = find_daemon_binary() else {
+        return false;
+    };
+    let Ok(data_dir) = ant_core::config::data_dir() else {
+        return false;
+    };
+    let sidecar_mtime = match std::fs::metadata(&sidecar).and_then(|m| m.modified()) {
+        Ok(t) => t,
+        Err(_) => return false,
+    };
+    let pid_mtime = match std::fs::metadata(data_dir.join("daemon.pid")).and_then(|m| m.modified())
+    {
+        Ok(t) => t,
+        Err(_) => return false,
+    };
+    sidecar_mtime
+        .duration_since(pid_mtime)
+        .map(|d| d > std::time::Duration::from_secs(5))
+        .unwrap_or(false)
+}
+
+/// Stop the daemon if it's running, and wait for the port file / HTTP server
+/// to go away so the caller can safely start a new daemon without a bind
+/// conflict. No-op if the daemon isn't currently running.
+async fn stop_daemon_internal() -> Result<(), String> {
+    use ant_core::node::daemon::client as daemon_client;
+    let config = ant_core::node::types::DaemonConfig::default();
+
+    if !daemon_client::info(&config).running {
+        return Ok(());
+    }
+
+    daemon_client::stop(&config)
+        .await
+        .map_err(|e| format!("Failed to stop daemon: {e}"))?;
+
+    let http_client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_millis(500))
+        .build()
+        .unwrap_or_default();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    while std::time::Instant::now() < deadline {
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        match config::discover_daemon_url() {
+            None => return Ok(()),
+            Some(url) => {
+                if http_client
+                    .get(format!("{url}/api/v1/status"))
+                    .send()
+                    .await
+                    .is_err()
+                {
+                    return Ok(());
+                }
+            }
+        }
+    }
+    Err("Daemon did not shut down within 10 seconds".into())
+}
+
+/// Stop the running daemon (if any) and start a fresh one. Node processes
+/// are intentionally decoupled from the daemon lifecycle
+/// (`ant-core/src/node/process/spawn.rs` → `kill_on_drop(false)`), so they
+/// continue running throughout the restart.
+#[tauri::command]
+async fn restart_daemon() -> Result<String, String> {
+    stop_daemon_internal().await?;
+    ensure_daemon_running().await
+}
+
 /// Start the daemon if it's not already running.
 /// Uses a bundled sidecar binary (production) or PATH fallback (dev).
 /// Spawns detached so the daemon survives app close.
+///
+/// If a running daemon is detected but the bundled sidecar is newer
+/// (`is_daemon_stale`), the old daemon is stopped first so the app
+/// transparently picks up the updated binary on relaunch.
 #[tauri::command]
 async fn ensure_daemon_running() -> Result<String, String> {
     // Check if already running via port file
@@ -387,12 +467,20 @@ async fn ensure_daemon_running() -> Result<String, String> {
             .await
             .is_ok()
         {
-            return Ok(url);
-        }
-        // Port file exists but daemon is unresponsive — clean up stale files
-        if let Ok(data) = ant_core::config::data_dir() {
-            let _ = std::fs::remove_file(data.join("daemon.port"));
-            let _ = std::fs::remove_file(data.join("daemon.pid"));
+            if is_daemon_stale() {
+                tracing::info!(
+                    "Running daemon predates the current app install; restarting to pick up the bundled sidecar"
+                );
+                stop_daemon_internal().await?;
+            } else {
+                return Ok(url);
+            }
+        } else {
+            // Port file exists but daemon is unresponsive — clean up stale files
+            if let Ok(data) = ant_core::config::data_dir() {
+                let _ = std::fs::remove_file(data.join("daemon.port"));
+                let _ = std::fs::remove_file(data.join("daemon.pid"));
+            }
         }
     }
 
@@ -647,6 +735,7 @@ pub fn run() {
             save_upload_history,
             discover_daemon_url,
             ensure_daemon_running,
+            restart_daemon,
             connect_daemon_sse,
             disconnect_daemon_sse,
             autonomi_ops::init_autonomi_client,
