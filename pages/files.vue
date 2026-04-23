@@ -11,6 +11,15 @@
         </button>
         <button
           class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
+          @click="estimateCost"
+        >
+          Estimate Cost
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
           @click="showDownloadDialog = true"
         >
           Download by Address
@@ -21,18 +30,6 @@
         >
           Download by Datamap
         </button>
-        <button
-          class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
-          @click="estimateCost"
-        >
-          Estimate Cost
-        </button>
-      </div>
-
-      <div class="flex items-center gap-3">
-        <span v-if="filesStore.files.length" class="text-xs text-autonomi-muted">
-          {{ filesStore.files.length }} file{{ filesStore.files.length !== 1 ? 's' : '' }}
-        </span>
       </div>
     </div>
 
@@ -109,6 +106,7 @@
                 :key="file.id"
                 class="transition-colors"
                 :class="rowClass(file)"
+                @click="onRowClick(file)"
               >
                 <td class="px-4 py-2.5">{{ file.name }}</td>
                 <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
@@ -116,8 +114,13 @@
                   <StatusBadge :status="statusLabel(file)" />
                 </td>
                 <td class="px-4 py-2.5 text-autonomi-muted">
-                  <span>{{ file.cost ?? '-' }}</span>
-                  <span v-if="file.gas_cost" class="block text-[10px] text-autonomi-muted/60">+ {{ file.gas_cost }} gas</span>
+                  <template v-if="file.alreadyStored">
+                    <span class="text-green-400">Free — already stored</span>
+                  </template>
+                  <template v-else>
+                    <span>{{ file.cost ?? '-' }}</span>
+                    <span v-if="file.gas_cost" class="block text-[10px] text-autonomi-muted/60">+ {{ file.gas_cost }} gas</span>
+                  </template>
                 </td>
                 <td class="px-4 py-2.5">
                   <span
@@ -230,15 +233,10 @@
 
     <FilesUploadConfirmDialog
       :open="showUploadConfirm"
-      :files="pendingUploadFiles"
-      :loading="uploadEstimating"
-      :quoted-cost="quotedCostDisplay"
-      :quoted-gas="quotedGasEstimate"
-      :quoting="isQuoting"
-      :quoted-payment-mode="quotedPaymentMode"
-      :network-connected="autonomiConnected"
-      @confirm="confirmUpload"
-      @cancel="cancelUpload"
+      :file-ids="selectedFileIds"
+      @approve="approveUpload"
+      @cancel-upload="cancelPendingUploads"
+      @close="closeUploadDialog"
     />
 
     <FilesCostEstimateDialog
@@ -255,7 +253,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { open as openFileDialog } from '@tauri-apps/plugin-dialog'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
-import { useFilesStore, type FileEntry, type UploadCostEstimate } from '~/stores/files'
+import { useFilesStore, type FileEntry } from '~/stores/files'
 import { formatBytes, truncateAddress } from '~/utils/formatters'
 import { formatNanoTokens, formatGasCost } from '~/utils/payment'
 import { useSettingsStore } from '~/stores/settings'
@@ -377,24 +375,56 @@ function basenameOf(path: string): string {
 // ── Row display helpers ──
 
 function statusLabel(file: FileEntry): string {
+  // Already-stored uploads collapse every state after the initial estimate
+  // into a single honest label. The real backend still cycles through
+  // quoting → paying → uploading for ant-core's bookkeeping, but it's all
+  // a no-op sub-second dance in terms of user-visible work.
+  if (
+    file.alreadyStored
+    && (file.status === 'quoting' || file.status === 'queued_for_upload' || file.status === 'paying' || file.status === 'uploading')
+  ) {
+    return 'Saving datamap…'
+  }
+
   if (file.status === 'uploading') return 'Uploading'
   if (file.status === 'downloading') return 'Downloading'
   if (file.status === 'downloaded') return 'Downloaded'
   if (file.status === 'failed') return file.error ? `Failed: ${file.error}` : 'Failed'
   if (file.status === 'complete') return 'Complete'
-  if (file.status === 'quoting') return 'Preparing upload…'
+  if (file.status === 'queued_for_quote') return 'Queued: quoting'
+  if (file.status === 'queued_for_upload') return 'Queued: uploading'
+  if (file.status === 'quoting') {
+    if (connectionStore.hasFailed) return 'Network unavailable'
+    if (!connectionStore.isConnected) return 'Connecting to network…'
+    return 'Obtaining quote…'
+  }
+  if (file.status === 'awaiting_approval') return 'Ready to approve'
   if (file.status === 'paying') return 'Paying'
   return file.status
 }
 
+function isReopenable(file: FileEntry): boolean {
+  if (file.kind !== 'upload') return false
+  return (
+    file.status === 'queued_for_quote'
+    || file.status === 'quoting'
+    || file.status === 'awaiting_approval'
+    || file.status === 'queued_for_upload'
+  )
+}
 
 function rowClass(file: FileEntry): string {
   if (file.status === 'downloaded') return 'hover:bg-autonomi-surface/50 cursor-pointer bg-autonomi-blue/5'
+  if (isReopenable(file)) return 'hover:bg-autonomi-surface/50 cursor-pointer'
   if (file.status === 'failed') return 'hover:bg-autonomi-surface/50 opacity-60'
   return 'hover:bg-autonomi-surface/50'
 }
 
 function onRowClick(file: FileEntry) {
+  if (isReopenable(file)) {
+    reopenUploadDialog(file.id)
+    return
+  }
   if (file.status === 'downloaded' && file.dest_path) {
     openFolder(file.dest_path)
     filesStore.acknowledgeDownload(file.id)
@@ -423,15 +453,14 @@ async function setupDragDrop() {
 }
 
 // ── Upload flow ──
+//
+// The dialog is a thin view bound to FileEntry ids. Quote state lives on the
+// entries themselves (stores/files.ts), which means the dialog can be closed
+// and reopened mid-flight without losing anything. Row click on a pending
+// entry in the uploads table reopens the dialog for that entry.
 
 const showUploadConfirm = ref(false)
-const uploadEstimating = ref(false)
-const pendingUploadFiles = ref<{ name: string; size: number; path: string }[]>([])
-const pendingMetas = ref<FileMeta[]>([])
-const isQuoting = ref(false)
-const quotedCostDisplay = ref<string | null>(null)
-const quotedGasEstimate = ref<string | null>(null)
-const quotedPaymentMode = ref<'wave-batch' | 'merkle' | null>(null)
+const selectedFileIds = ref<number[]>([])
 
 async function getFileMetas(paths: string[]): Promise<FileMeta[]> {
   try {
@@ -461,111 +490,153 @@ async function uploadFiles() {
 }
 
 async function showUploadConfirmForPaths(paths: string[]) {
-  uploadEstimating.value = true
-  pendingUploadFiles.value = []
-  pendingMetas.value = []
-  quotedCostDisplay.value = null
-  quotedGasEstimate.value = null
-  quotedPaymentMode.value = null
+  // Entries enter `queued_for_quote`; the scheduler promotes them to
+  // `quoting` as concurrency slots open. Dialog renders off the entries,
+  // so rows appear immediately and reactively update as the scheduler
+  // works through them.
+  const metas = await getFileMetas(paths)
+  const ids = metas.map(m => filesStore.addUpload(m.name, m.path, m.size))
+  selectedFileIds.value = ids
   showUploadConfirm.value = true
 
-  const metas = await getFileMetas(paths)
-  pendingMetas.value = metas
-  pendingUploadFiles.value = metas.map(m => ({
-    name: m.name,
-    size: m.size,
-    path: m.path,
-  }))
-  uploadEstimating.value = false
-
-  // Start real quoting in background (only when connected to network).
-  // The watcher below picks up the case where connection completes after the
-  // dialog is already open.
-  if ((autonomiConnected.value || settingsStore.devnetActive) && !settingsStore.indelibleConnected) {
-    startQuoting(metas)
+  // Indelible bypass: the remote gateway handles pricing, so skip the
+  // quote phase entirely — entries jump straight to `awaiting_approval`.
+  if (settingsStore.indelibleConnected && !settingsStore.devnetActive) {
+    for (const id of ids) filesStore.updateEntry(id, { status: 'awaiting_approval' })
+    return
   }
+
+  kickScheduler()
 }
 
-// If the embedded ant-core client connects (or finishes retrying) while the
-// upload dialog is open and we don't yet have a quote, kick off quoting now.
-// Without this, opening the dialog before the network is ready leaves the
-// dialog stuck on the misleading "Cost will be quoted from the network when
-// upload starts" fallback even after the connection succeeds.
-watch(
-  () => autonomiConnected.value,
-  (connected) => {
-    if (!connected) return
-    if (!showUploadConfirm.value) return
-    if (settingsStore.indelibleConnected) return
-    if (isQuoting.value) return
-    if (quotedCostDisplay.value) return
-    if (pendingMetas.value.length === 0) return
-    startQuoting(pendingMetas.value)
-  },
-)
-
-async function startQuoting(metas: FileMeta[]) {
-  isQuoting.value = true
-  try {
-    // Use the light-weight `estimate_file_cost` path: encrypts locally, samples
-    // one quote per file, no chunks parked. Confirm click runs the real
-    // `start_upload` (which does park). Each estimate is independent, so
-    // parallelize — cuts dialog-open latency for multi-file uploads.
-    const estimates = await Promise.all(
-      metas.map(meta => filesStore.estimateFileCost(meta.path)),
-    )
-    const valid = estimates.filter((e): e is UploadCostEstimate => e !== null)
-
-    if (valid.length > 0) {
-      // ant-core PaymentMode 'single' maps to the frontend's 'wave-batch'.
-      const mode = valid[0].payment_mode === 'merkle' ? 'merkle' : 'wave-batch'
-      quotedPaymentMode.value = mode
-
-      const totalStorageAtto = valid.reduce(
-        (sum, e) => sum + BigInt(e.storage_cost_atto), 0n,
-      )
-      quotedCostDisplay.value = formatNanoTokens(totalStorageAtto.toString())
-
-      const totalGasWei = valid.reduce(
-        (sum, e) => sum + BigInt(e.estimated_gas_cost_wei), 0n,
-      )
-      quotedGasEstimate.value = formatGasCost(totalGasWei.toString())
-    }
-  } catch {
-    // Estimate failed — user can still proceed (real quote runs at upload time).
-  } finally {
-    isQuoting.value = false
-  }
+// Reopen the confirm dialog for an entry the user clicked in the uploads
+// table. Supports the four pre-payment stalls; `paying`/`uploading` rows
+// stay non-clickable (nothing actionable there).
+function reopenUploadDialog(id: number) {
+  selectedFileIds.value = [id]
+  showUploadConfirm.value = true
 }
 
-function confirmUpload(options: { visibility: 'private' | 'public'; paymentMode: 'regular' | 'merkle' }) {
+function approveUpload(options: { visibility: 'private' | 'public'; paymentMode: 'regular' | 'merkle' }) {
   showUploadConfirm.value = false
-  const wagmiConfig = getWagmiConfig()
+  const ids = selectedFileIds.value.slice()
+  selectedFileIds.value = []
 
-  for (const file of pendingUploadFiles.value) {
-    const id = filesStore.addUpload(file.name, file.path, file.size)
+  for (const id of ids) {
+    const entry = filesStore.findById(id)
+    if (!entry || entry.status !== 'awaiting_approval') continue
+
+    filesStore.updateEntry(id, { visibility: options.visibility })
 
     if (settingsStore.indelibleConnected && !settingsStore.devnetActive) {
       filesStore.startIndelibleUpload(id)
-    } else if ((autonomiConnected.value || settingsStore.devnetActive) && wagmiConfig) {
-      // No preQuote handoff: the dialog showed a light estimate (no chunks
-      // parked). `startRealUpload` fetches a fresh real quote via
-      // `start_upload`, which is what parks chunks — only on confirm.
-      filesStore.startRealUpload(id, wagmiConfig, options)
     } else {
-      filesStore.updateEntry(id, { status: 'failed', error: 'Not connected to network or wallet' })
-      toastStore.add('Upload requires network connection and wallet', 'warning')
+      // Autonomi path — queue for the scheduler to dispatch.
+      filesStore.enqueueForUpload(id)
     }
   }
-  pendingUploadFiles.value = []
-  quotedCostDisplay.value = null
+  kickScheduler()
 }
 
-function cancelUpload() {
+// ── Upload concurrency scheduler ──
+//
+// Single budget `settingsStore.uploadConcurrency` covers both quoting and
+// uploading (they both hit the network; Autonomi throughput degrades non-
+// linearly so serial-by-default is the safe choice).
+//
+// Priority: promote `queued_for_quote` first so the dialog can enable the
+// Approve button ASAP; then drain `queued_for_upload` post-approval. Offline
+// → skip all promotions (entries stay queued and resume when the watcher
+// sees `autonomiConnected` flip).
+function kickScheduler() {
+  if (settingsStore.indelibleConnected && !settingsStore.devnetActive) return
+  const online = autonomiConnected.value || settingsStore.devnetActive
+  if (!online) return
+
+  const budget = settingsStore.uploadConcurrency
+
+  while (true) {
+    const quotingCount = filesStore.quotingCount
+    const uploadingCount = filesStore.uploadingCount
+    const active = quotingCount + uploadingCount
+    if (active >= budget) break
+
+    const quoteHead = filesStore.queuedForQuote[0]
+    if (quoteHead) {
+      // beginQuoting synchronously flips status to `quoting`, then awaits
+      // the estimate; we count the slot from the status change.
+      filesStore.beginQuoting(quoteHead.id)
+      continue
+    }
+
+    const uploadHead = filesStore.queuedForUpload[0]
+    if (!uploadHead) break
+
+    const wagmiConfig = getWagmiConfig()
+    if (!wagmiConfig) {
+      filesStore.updateEntry(uploadHead.id, {
+        status: 'failed',
+        error: 'Wallet not connected',
+      })
+      toastStore.add('Upload requires a wallet', 'warning')
+      continue
+    }
+
+    const opts = {
+      visibility: uploadHead.visibility ?? 'private' as const,
+      paymentMode: uploadHead.paymentMode ?? 'regular' as const,
+    }
+    filesStore.startRealUpload(uploadHead.id, wagmiConfig, opts)
+  }
+}
+
+// Auto-track every reactive dep the scheduler reads via watchEffect. Runs
+// once on setup and re-runs whenever any of the store getters / connection
+// state change. watchEffect is more robust here than the array-source form
+// of watch because we don't have to remember to list every dep by hand.
+watchEffect(() => {
+  // Touch every reactive input so it's registered, then kick.
+  void settingsStore.uploadConcurrency
+  void filesStore.quotingCount
+  void filesStore.uploadingCount
+  void filesStore.queuedForQuote.length
+  void filesStore.queuedForUpload.length
+  void autonomiConnected.value
+  void settingsStore.devnetActive
+  kickScheduler()
+})
+
+// Auto-dismiss the confirm dialog when every selected entry was detected as
+// already stored on the network. Those entries bypass `awaiting_approval`
+// (no user decision left to make) and flow through the scheduler on their
+// own, so leaving the dialog open waiting for an Approve that can never
+// enable is just clutter.
+watch(
+  () => selectedFileIds.value.map(id => filesStore.findById(id)?.alreadyStored),
+  (flags) => {
+    if (!showUploadConfirm.value) return
+    if (flags.length === 0) return
+    if (flags.some(f => f === undefined)) return
+    if (!flags.every(f => f === true)) return
+    const n = flags.length
+    showUploadConfirm.value = false
+    selectedFileIds.value = []
+    toastStore.add(
+      `${n} file${n !== 1 ? 's' : ''} already stored — saving datamap`,
+      'info',
+    )
+  },
+)
+
+function cancelPendingUploads() {
+  for (const id of selectedFileIds.value) filesStore.cancelPendingUpload(id)
+  selectedFileIds.value = []
   showUploadConfirm.value = false
-  pendingUploadFiles.value = []
-  quotedCostDisplay.value = null
-  isQuoting.value = false
+}
+
+function closeUploadDialog() {
+  showUploadConfirm.value = false
+  selectedFileIds.value = []
 }
 
 // ── Download flow ──

@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import { acceptHMRUpdate, defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { useToastStore } from './toasts'
@@ -37,13 +37,16 @@ export interface UploadQuote {
 // ── Unified file entry ──
 
 export type FileStatus =
-  | 'complete'      // Normal row, no active transfer
-  | 'quoting'       // Upload: getting cost estimate
-  | 'paying'        // Upload: wallet payment in progress
-  | 'uploading'     // Upload: data being sent to network
-  | 'downloading'   // Download: fetching from network
-  | 'downloaded'    // Download complete, waiting for user to open folder
-  | 'failed'        // Transfer failed
+  | 'complete'           // Normal row, no active transfer
+  | 'queued_for_quote'   // Upload: waiting in queue for a quoting slot
+  | 'quoting'            // Upload: getting cost estimate
+  | 'awaiting_approval'  // Upload: estimate in, waiting for user to click Approve
+  | 'queued_for_upload'  // Upload: approved, waiting in queue for an upload slot
+  | 'paying'             // Upload: wallet payment in progress
+  | 'uploading'          // Upload: data being sent to network
+  | 'downloading'        // Download: fetching from network
+  | 'downloaded'         // Download complete, waiting for user to open folder
+  | 'failed'             // Transfer failed
 
 export interface FileEntry {
   /** Unique ID for reactive tracking */
@@ -84,9 +87,33 @@ export interface FileEntry {
   duration?: number
   /** Error message if failed */
   error?: string
+  /** Raw light-estimate result (held while the entry is in the confirm dialog) */
+  estimate?: UploadCostEstimate
+  /** Payment mode derived from the estimate; carried through to the real upload */
+  paymentMode?: 'regular' | 'merkle'
+  /** Visibility chosen in the confirm dialog */
+  visibility?: 'private' | 'public'
+  /** True when ant-core's estimator reported every chunk already stored on
+   *  the network (`storage_cost_atto === "0"` with a positive `chunk_count`).
+   *  Distinguishes a genuinely free re-upload from a suspiciously cheap quote. */
+  alreadyStored?: boolean
 }
 
-const ACTIVE_STATUSES: FileStatus[] = ['quoting', 'paying', 'uploading', 'downloading', 'downloaded']
+// Pinned rows (top of the table, independent sort). Includes the two queued
+// states and awaiting_approval because the user must still see them and be
+// able to reopen the dialog — they just aren't doing network work yet.
+const ACTIVE_STATUSES: FileStatus[] = [
+  'queued_for_quote',
+  'quoting',
+  'awaiting_approval',
+  'queued_for_upload',
+  'paying',
+  'uploading',
+  'downloading',
+  'downloaded',
+]
+// Entries with live network activity. Excludes the queued/awaiting_approval
+// stalls (they don't need progress bars or spinners in the header).
 const IN_FLIGHT_STATUSES: FileStatus[] = ['quoting', 'paying', 'uploading', 'downloading']
 
 /** Shape persisted to upload_history.json (kept for backwards compat) */
@@ -135,6 +162,29 @@ export const useFilesStore = defineStore('files', {
 
     hasActiveTransfers: (state) =>
       state.files.some(f => IN_FLIGHT_STATUSES.includes(f.status)),
+
+    /** Uploads currently holding a quoting slot. Used by the page scheduler
+     *  to decide whether to promote the next `queued_for_quote` entry. */
+    quotingCount: (state) =>
+      state.files.filter(f => f.kind === 'upload' && f.status === 'quoting').length,
+
+    /** Uploads currently holding an upload slot (payment or chunk storage). */
+    uploadingCount: (state) =>
+      state.files.filter(
+        f => f.kind === 'upload' && (f.status === 'paying' || f.status === 'uploading'),
+      ).length,
+
+    /** FIFO list (oldest first, by row id) of entries waiting for a quote slot. */
+    queuedForQuote: (state) =>
+      state.files
+        .filter(f => f.kind === 'upload' && f.status === 'queued_for_quote')
+        .sort((a, b) => a.id - b.id),
+
+    /** FIFO list of entries waiting for an upload slot (post-approval). */
+    queuedForUpload: (state) =>
+      state.files
+        .filter(f => f.kind === 'upload' && f.status === 'queued_for_upload')
+        .sort((a, b) => a.id - b.id),
   },
 
   actions: {
@@ -223,6 +273,8 @@ export const useFilesStore = defineStore('files', {
 
     // ── Upload flow ──
 
+    /** Create a new upload row. Entry starts in `queued_for_quote`; the page
+     *  scheduler promotes it to `quoting` when a concurrency slot opens. */
     addUpload(name: string, path: string, size_bytes: number): number {
       const id = this.nextId++
       this.files.unshift({
@@ -231,11 +283,76 @@ export const useFilesStore = defineStore('files', {
         name,
         path,
         size_bytes,
-        status: 'quoting',
+        status: 'queued_for_quote',
         date: new Date().toISOString(),
         transferStartedAt: Date.now(),
       })
       return id
+    },
+
+    /** Run the light estimate for an entry that's ready to quote. Promotes
+     *  `queued_for_quote` → `quoting` on entry (so concurrency accounting is
+     *  consistent while the async estimate is in flight), then transitions
+     *  to `awaiting_approval` when the estimate returns — even if the
+     *  estimate itself failed, so the real quote can surface a clearer
+     *  error on `startRealUpload`. */
+    async beginQuoting(id: number) {
+      const entry = this.findById(id)
+      if (!entry || entry.kind !== 'upload' || !entry.path) return
+      if (entry.status !== 'quoting' && entry.status !== 'queued_for_quote') return
+
+      this.updateEntry(id, { status: 'quoting' })
+
+      const estimate = await this.estimateFileCost(entry.path)
+      if (estimate) {
+        // ant-core returns "0" for both fields when every sampled chunk is
+        // already on the network (see ant-core file.rs::estimate_upload_cost).
+        // That's a legitimate signal, not a failed estimate — flag it so the
+        // UI can say "already stored" instead of rendering "0 ANT" as if it
+        // were any other cheap quote.
+        const alreadyStored = estimate.chunk_count > 0
+          && estimate.storage_cost_atto === '0'
+          && estimate.estimated_gas_cost_wei === '0'
+
+        // Already-stored entries skip awaiting_approval entirely — there's
+        // no user decision to make (no payment, no real upload). Route them
+        // straight into the upload queue so the scheduler drives them through
+        // to `complete` without a ceremonial Approve click.
+        this.updateEntry(id, {
+          estimate,
+          paymentMode: estimate.payment_mode === 'merkle' ? 'merkle' : 'regular',
+          cost: formatNanoTokens(estimate.storage_cost_atto),
+          gas_cost: formatGasCost(estimate.estimated_gas_cost_wei),
+          alreadyStored,
+          status: alreadyStored ? 'queued_for_upload' : 'awaiting_approval',
+        })
+      } else {
+        this.updateEntry(id, { status: 'awaiting_approval' })
+      }
+    },
+
+    /** Mark an approved entry as waiting for an upload slot. Caller is
+     *  responsible for kicking the scheduler. */
+    enqueueForUpload(id: number) {
+      const entry = this.findById(id)
+      if (!entry || entry.status !== 'awaiting_approval') return
+      this.updateEntry(id, { status: 'queued_for_upload' })
+    },
+
+    /** Cancel a pending upload that hasn't started paying yet. Covers the
+     *  four pre-payment stalls: both queued states plus quoting and
+     *  awaiting_approval. Once payment begins the backend owns the flow. */
+    cancelPendingUpload(id: number) {
+      const entry = this.findById(id)
+      if (!entry) return
+      const cancellable: FileStatus[] = [
+        'queued_for_quote',
+        'quoting',
+        'awaiting_approval',
+        'queued_for_upload',
+      ]
+      if (!cancellable.includes(entry.status)) return
+      this.removeEntry(id)
     },
 
     /** Light-touch cost estimate — wraps ant-core `estimate_upload_cost`.
@@ -640,6 +757,10 @@ export const useFilesStore = defineStore('files', {
     },
   },
 })
+
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(useFilesStore, import.meta.hot))
+}
 
 /** Compute `sha256(text)` as a `0x`-prefixed lowercase hex string. Matches
  *  the address derivation in `src-tauri/src/autonomi_ops.rs` so the frontend

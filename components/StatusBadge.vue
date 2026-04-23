@@ -19,6 +19,13 @@ const statusMap: Record<string, { dot: string; label: string; color: string }> =
   // File transfer statuses
   Pending: { dot: '○', label: 'Pending', color: 'text-autonomi-muted' },
   Quoting: { dot: '◐', label: 'Quoting', color: 'text-autonomi-warning' },
+  'Queued: quoting': { dot: '○', label: 'Queued: quoting', color: 'text-autonomi-muted' },
+  'Queued: uploading': { dot: '○', label: 'Queued: uploading', color: 'text-autonomi-muted' },
+  'Connecting to network…': { dot: '◐', label: 'Connecting to network…', color: 'text-autonomi-warning' },
+  'Obtaining quote…': { dot: '◐', label: 'Obtaining quote…', color: 'text-autonomi-warning' },
+  'Saving datamap…': { dot: '◐', label: 'Saving datamap…', color: 'text-autonomi-warning' },
+  'Network unavailable': { dot: '✖', label: 'Network unavailable', color: 'text-autonomi-error' },
+  'Ready to approve': { dot: '●', label: 'Ready to approve', color: 'text-autonomi-blue' },
   Paying: { dot: '◐', label: 'Paying', color: 'text-autonomi-warning' },
   Uploading: { dot: '●', label: 'Uploading', color: 'text-autonomi-blue' },
   Downloading: { dot: '●', label: 'Downloading', color: 'text-autonomi-blue' },
