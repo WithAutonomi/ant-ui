@@ -497,18 +497,17 @@ const editingDaemon = ref(false)
 const daemonInput = ref('')
 const daemonInputRef = ref<HTMLInputElement | null>(null)
 
-// Daemon control
-const daemonRestarting = ref(false)
+// Daemon control — delegate to the nodes store so the nodes page can show a
+// "Restarting" panel instead of the default "Cannot connect" flicker during
+// the brief window when the old daemon is down.
+const daemonRestarting = computed(() => nodesStore.restarting)
 
 async function restartDaemon() {
-  daemonRestarting.value = true
   try {
-    await invoke<string>('restart_daemon')
+    await nodesStore.restartDaemon()
     toasts.add('Daemon restarted', 'info')
   } catch (e: any) {
     toasts.add(`Failed to restart daemon: ${e?.message ?? e}`, 'error')
-  } finally {
-    daemonRestarting.value = false
   }
 }
 

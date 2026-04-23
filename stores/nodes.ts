@@ -46,6 +46,11 @@ export const useNodesStore = defineStore('nodes', {
     nodes: [] as NodeInfo[],
     loading: false,
     initializing: true,
+    /** True while an explicit daemon restart is in flight. Suppresses the
+     *  "Cannot connect" flash that would otherwise happen during the ~1 s
+     *  gap between the old daemon shutting down and the new one accepting
+     *  connections. */
+    restarting: false,
     daemonConnected: false,
     daemonStatus: null as DaemonStatus | null,
     _pollTimer: null as ReturnType<typeof setInterval> | null,
@@ -120,13 +125,38 @@ export const useNodesStore = defineStore('nodes', {
         })
         this.daemonConnected = true
       } catch {
-        if (this.daemonConnected) {
-          // Was connected, now lost — schedule reconnect
+        // Don't demote to "disconnected" during a known restart — the new
+        // daemon is seconds away and the UI renders a `restarting` panel in
+        // the meantime.
+        if (this.daemonConnected && !this.restarting) {
           this.daemonConnected = false
           this.scheduleReconnect()
         }
       } finally {
         this.loading = false
+      }
+    },
+
+    /** Trigger a daemon restart from the UI. Covers the connect-flicker that
+     *  the manual `restart_daemon` command would otherwise produce: polling
+     *  errors while the old daemon is dead don't flip `daemonConnected`, and
+     *  `pages/index.vue` renders a dedicated "Restarting" panel for the
+     *  duration. Node processes are untouched by the restart (spawn.rs sets
+     *  kill_on_drop(false)), so the node list and counts stay stable. */
+    async restartDaemon() {
+      this.restarting = true
+      try {
+        const url = await invoke<string>('restart_daemon')
+        const settings = useSettingsStore()
+        if (url && url !== settings.daemonUrl) {
+          settings.daemonUrl = url
+        }
+        // Force a fresh fetch so the UI reflects the post-restart state
+        // immediately instead of waiting for the next poll tick.
+        await this.fetchDaemonStatus()
+        await this.fetchNodes()
+      } finally {
+        this.restarting = false
       }
     },
 
