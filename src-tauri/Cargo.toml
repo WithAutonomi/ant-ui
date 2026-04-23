@@ -1,6 +1,6 @@
 [package]
 name = "ant-gui"
-version = "0.6.6"
+version = "0.6.7-rc.1"
 edition = "2021"
 
 [lib]
@@ -25,10 +25,10 @@ toml = "0.8"
 tauri-plugin-updater = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-# Pinned to the merge commit of WithAutonomi/ant-client#44, which adds
-# `Client::estimate_upload_cost` (file cost estimation without parking
-# chunks). Repoint to the next `ant-cli-vX.Y.Z` tag once it ships.
-ant-core = { git = "https://github.com/WithAutonomi/ant-client", rev = "b0c501a163c1a95bdbfc703892b88a8a91f7e482" }
+# Pinned to the tip of WithAutonomi/ant-client rc-2026.4.2 (tag
+# `ant-cli-v0.2.0-rc.1`), matching the sidecar bundled via .ant-version.
+# Repoint to the next `ant-cli-vX.Y.Z` tag once the RC promotes to stable.
+ant-core = { git = "https://github.com/WithAutonomi/ant-client", rev = "91af99375bff20c4d0e95d4a956bcfa4deaee0d9" }
 evmlib = "0.8"
 hex = "0.4"
 sha2 = "0.10"
