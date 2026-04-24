@@ -3,6 +3,7 @@ use ant_core::data::{
     PreparedUpload, UploadCostEstimate,
 };
 use evmlib::common::{QuoteHash, TxHash};
+use evmlib::wallet::Wallet;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -81,6 +82,10 @@ pub struct InitArgs {
     pub evm_rpc_url: Option<String>,
     pub evm_token_address: Option<String>,
     pub evm_vault_address: Option<String>,
+    /// Optional hex-encoded private key. When present (devnet manifest path
+    /// only — never WalletConnect), the Rust client gets a wallet attached
+    /// via `Client::with_wallet`, unlocking the wallet-flow upload path.
+    pub wallet_private_key: Option<String>,
 }
 
 /// Pending uploads older than this are garbage-collected.
@@ -266,7 +271,35 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
     match Client::connect(&peers, client_config).await {
         Ok(client) => {
             let peer_count = client.network().connected_peers().await.len();
-            let client = client.with_evm_network(evm_network);
+            // When the manifest supplies a wallet key, attach a wallet so the
+            // Rust client can drive payments end-to-end via evmlib (the same
+            // path ant-cli uses). This bypasses the JS-side wagmi flow for
+            // direct-key mode — useful when devops manifests and on-chain
+            // contracts can drift, since one Rust path is easier to keep
+            // aligned than two parallel client implementations. Skip the
+            // wallet when no key is provided (WalletConnect / production):
+            // those flows still go through the external-signer path.
+            let client = if let Some(key) = args.wallet_private_key.as_deref() {
+                let key = if let Some(rest) = key.strip_prefix("0x") {
+                    rest
+                } else {
+                    key
+                };
+                match Wallet::new_from_private_key(evm_network.clone(), key) {
+                    Ok(wallet) => {
+                        eprintln!("Wallet attached to Client (address {})", wallet.address());
+                        client.with_wallet(wallet)
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "Wallet from manifest key rejected, falling back to external-signer mode: {e}"
+                        );
+                        client.with_evm_network(evm_network)
+                    }
+                }
+            } else {
+                client.with_evm_network(evm_network)
+            };
             *app.state::<AutonomiState>().client.write().await = Some(client);
             eprintln!("Autonomi connect succeeded ({peer_count} peers)");
             set_connection_status(&app, ConnectionStatus::Connected).await;
@@ -294,6 +327,7 @@ pub async fn init_autonomi_client(
     evm_rpc_url: Option<String>,
     evm_token_address: Option<String>,
     evm_vault_address: Option<String>,
+    wallet_private_key: Option<String>,
 ) -> Result<bool, String> {
     if state.client.read().await.is_some() {
         return Ok(true);
@@ -311,6 +345,7 @@ pub async fn init_autonomi_client(
         evm_rpc_url,
         evm_token_address,
         evm_vault_address,
+        wallet_private_key,
     };
     *state.last_init_args.write().await = Some(args.clone());
 
@@ -638,6 +673,129 @@ pub async fn confirm_upload_merkle(
         .finalize_upload_merkle(prepared, hash_bytes)
         .await
         .map_err(|e| format!("Merkle upload failed: {e}"))?;
+
+    let data_map_json = serde_json::to_string(&result.data_map)
+        .map_err(|e| format!("Failed to serialize DataMap: {e}"))?;
+    let address = format!("0x{:x}", Sha256::digest(data_map_json.as_bytes()));
+    let data_map_file = crate::config::write_datamap_for(&file_name, &data_map_json)?
+        .to_string_lossy()
+        .into_owned();
+
+    app.emit(
+        "upload-progress",
+        serde_json::json!({
+            "upload_id": upload_id,
+            "status": "complete",
+            "chunks_stored": result.chunks_stored,
+        }),
+    )
+    .ok();
+
+    Ok(UploadResult {
+        upload_id,
+        data_map_json,
+        address,
+        chunks_stored: result.chunks_stored,
+        data_map_file,
+    })
+}
+
+/// Hot-attach a wallet to the running Client.
+///
+/// Used by the runtime direct-key path (Settings → Connect with private key)
+/// where the user supplies a key after the app already booted and called
+/// `init_autonomi_client` without one. Without this, uploads in that path
+/// hit `wallet_upload` against a wallet-less client and get an error.
+///
+/// Builds the EVM network the same way `init_autonomi_client` does: when an
+/// `evm_rpc_url` is supplied, all three custom fields are required and a
+/// `Custom` network is built; otherwise the `ArbitrumOne` preset is used so
+/// the wallet sits on the same chain as the bootstrap peers (mainnet by
+/// default when no manifest is present).
+///
+/// `Client::with_wallet` consumes the client by value, so we take it out of
+/// the `RwLock<Option<Client>>`, transform it, and put it back. The network
+/// connection (saorsa-transport peers) is preserved — no re-bootstrap.
+#[tauri::command]
+pub async fn attach_wallet(
+    state: tauri::State<'_, AutonomiState>,
+    wallet_private_key: String,
+    evm_rpc_url: Option<String>,
+    evm_token_address: Option<String>,
+    evm_vault_address: Option<String>,
+) -> Result<(), String> {
+    let evm_network = if let Some(rpc_url) = &evm_rpc_url {
+        let token = evm_token_address
+            .as_deref()
+            .ok_or("evm_token_address required when evm_rpc_url is provided")?;
+        let vault = evm_vault_address
+            .as_deref()
+            .ok_or("evm_vault_address required when evm_rpc_url is provided")?;
+        EvmNetwork::Custom(CustomNetwork::new(rpc_url, token, vault))
+    } else {
+        EvmNetwork::ArbitrumOne
+    };
+
+    let key = wallet_private_key
+        .strip_prefix("0x")
+        .unwrap_or(&wallet_private_key);
+    let wallet = Wallet::new_from_private_key(evm_network, key)
+        .map_err(|e| format!("Failed to build wallet from private key: {e}"))?;
+    let address = wallet.address();
+
+    let mut client_lock = state.client.write().await;
+    let client = client_lock
+        .take()
+        .ok_or("Autonomi client not initialized — wait for connection before attaching a wallet")?;
+    *client_lock = Some(client.with_wallet(wallet));
+
+    eprintln!("Wallet attached to Client (address {address})");
+    Ok(())
+}
+
+/// One-shot wallet-flow upload for direct-key mode.
+///
+/// Uses ant-core's `Client::file_upload` (the wallet flow that ant-cli runs)
+/// instead of the two-phase external-signer dance (`start_upload` → frontend
+/// payForQuotes → `confirm_upload`). The Rust client must have been
+/// initialised with `wallet_private_key` so it has an attached wallet.
+///
+/// `upload_id` is the frontend-supplied tracking id, included in the result
+/// so the upload row can be reconciled on receive.
+#[tauri::command]
+pub async fn wallet_upload(
+    app: AppHandle,
+    state: tauri::State<'_, AutonomiState>,
+    upload_id: String,
+    file_path: String,
+) -> Result<UploadResult, String> {
+    let client_lock = state.client.read().await;
+    let client = client_lock
+        .as_ref()
+        .ok_or("Autonomi client not initialized")?;
+    if client.wallet().is_none() {
+        return Err(
+            "Autonomi client has no wallet — wallet_upload requires direct-key (manifest) mode"
+                .into(),
+        );
+    }
+
+    let path = PathBuf::from(&file_path);
+    let canonical = tokio::fs::canonicalize(&path)
+        .await
+        .map_err(|e| format!("Invalid file path: {e}"))?;
+    if !canonical.is_file() {
+        return Err("Path is not a regular file".into());
+    }
+    let file_name = canonical
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "upload".to_string());
+
+    let result = client
+        .file_upload(&canonical)
+        .await
+        .map_err(|e| format!("Upload failed: {e}"))?;
 
     let data_map_json = serde_json::to_string(&result.data_map)
         .map_err(|e| format!("Failed to serialize DataMap: {e}"))?;

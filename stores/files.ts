@@ -435,6 +435,49 @@ export const useFilesStore = defineStore('files', {
       const entry = this.findById(id)
       if (!entry) return
 
+      // Direct-key (manifest) mode: skip the entire JS quote+pay+confirm
+      // dance and call the Rust-side wallet_upload, which drives evmlib's
+      // wallet flow — same code path ant-cli uses. Avoids JS BigInt
+      // round-trips, devops vault-config drift, and double-implementation
+      // bugs. WalletConnect users still take the external-signer path below.
+      const settings = useSettingsStore()
+      if (settings.devnetActive && settings._devnetWalletKeySet) {
+        if (!entry.path) {
+          this.updateEntry(id, { status: 'failed', error: 'Upload entry has no file path' })
+          return
+        }
+        const walletUploadId = `wallet-${Date.now()}-${Math.random().toString(36).slice(2)}`
+        this.updateEntry(id, { status: 'uploading', progress: 0 })
+        try {
+          const result = await invoke<{
+            upload_id: string
+            data_map_json: string
+            address: string
+            chunks_stored: number
+            data_map_file: string
+          }>('wallet_upload', { uploadId: walletUploadId, filePath: entry.path })
+
+          const duration = entry.transferStartedAt
+            ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
+            : 0
+          this.updateEntry(id, {
+            status: 'complete',
+            progress: 100,
+            address: result.address,
+            data_map_json: result.data_map_json,
+            data_map_file: result.data_map_file,
+            duration,
+            transferStartedAt: undefined,
+          })
+          await this.persistHistory()
+          toasts.add(`Upload complete: ${entry.name}`, 'info')
+        } catch (e: any) {
+          this.updateEntry(id, { status: 'failed', error: e.message ?? String(e) })
+          toasts.add(`Upload failed: ${entry.name} — ${e.message ?? e}`, 'error')
+        }
+        return
+      }
+
       try {
         let uploadId: string
         let quote: UploadQuote

@@ -43,23 +43,27 @@ onMounted(async () => {
 
   // Initialize autonomi client — when manifest present, pass custom config
   if (settingsStore.devnetActive) {
+    // When the manifest supplied a private key, hand it to the Rust client
+    // too — that flips uploads onto evmlib's wallet flow (`wallet_upload`),
+    // bypassing the JS-side wagmi external-signer dance. evmlib auto-approves
+    // the vault on first use, so no separate approval call is needed for the
+    // wallet path. The JS-side wallet still gets initialised below for the
+    // balance display in the header.
+    const { getDevnetWalletKey } = await import('~/stores/settings')
     invoke('init_autonomi_client', {
       bootstrapPeers: settingsStore.devnetBootstrapPeers,
       evmRpcUrl: settingsStore.devnetRpcUrl,
       evmTokenAddress: settingsStore.devnetTokenAddress,
       evmVaultAddress: settingsStore.devnetVaultAddress,
+      walletPrivateKey: getDevnetWalletKey(),
     }).catch((e) => {
       console.warn('Autonomi client init failed:', e)
     })
 
-    // Auto-activate the direct-key wallet whenever the manifest supplied a
-    // `wallet_private_key` (loadDevnetManifest stashes it and flips
-    // _devnetWalletKeySet). Previously gated on ANVIL_CHAIN_ID only, so a
-    // Sepolia manifest with a pre-funded key silently left the wallet
-    // disconnected — the key sat in storage and every upload hit the
-    // no-wallet path. Manifests *without* a key still fall through to
-    // WalletConnect, and no-manifest (production) is unaffected since this
-    // entire block is gated on `devnetActive`.
+    // Init the JS-side direct wallet for balance display + WalletConnect
+    // fallback. The Rust-side wallet (above) is what actually pays for
+    // uploads in direct-key mode now, but the wagmi config still drives the
+    // header balance widget and any user-initiated WalletConnect interaction.
     if (settingsStore._devnetWalletKeySet) {
       const { initDevnetWallet } = await import('~/composables/useDevnetWallet')
       initDevnetWallet()
