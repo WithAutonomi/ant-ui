@@ -1,6 +1,6 @@
 [package]
 name = "ant-gui"
-version = "0.6.7-rc.4"
+version = "0.6.7-rc.5"
 edition = "2021"
 
 [lib]
@@ -25,22 +25,16 @@ toml = "0.8"
 tauri-plugin-updater = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-# Pinned to the tip of WithAutonomi/ant-client rc-2026.4.2 (tag
-# `ant-cli-v0.2.0-rc.1`), matching the sidecar bundled via .ant-version.
-# Repoint to the next `ant-cli-vX.Y.Z` tag once the RC promotes to stable.
-ant-core = { git = "https://github.com/WithAutonomi/ant-client", rev = "91af99375bff20c4d0e95d4a956bcfa4deaee0d9" }
+# Pinned to the tip of WithAutonomi/ant-client rc-2026.4.2, which is
+# post-`ant-cli-v0.2.0-rc.2` plus the merged adopt-running-nodes fix (PR #57).
+# Its Cargo.lock resolves saorsa-core to the rc-2026.4.2 HEAD that includes
+# the parallel-bootstrap-dial HRTB fix (PR #97), so no workspace [patch]
+# overrides are needed. Repoint to the next `ant-cli-vX.Y.Z` tag once the
+# RC promotes to stable.
+ant-core = { git = "https://github.com/WithAutonomi/ant-client", rev = "d9ef2c9cf58fda58992bee1bca62246a400b14bf" }
 evmlib = "0.8"
 hex = "0.4"
 sha2 = "0.10"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
-
-# TEMP — saorsa-labs/saorsa-core#97 fixes an HRTB bound introduced by the
-# parallel-bootstrap-dial change in rc-2026.4.2. Without it, `tokio::spawn`
-# of the connect chain fails to compile in ant-gui. Pinned by SHA so the
-# build stays reproducible; remove once #97 merges and ant-node → ant-client
-# picks up the fixed rev (at which point the ant-core rev above is rebumped
-# and this patch becomes redundant).
-[patch."https://github.com/saorsa-labs/saorsa-core.git"]
-saorsa-core = { git = "https://github.com/Nic-dorman/saorsa-core.git", rev = "8a9b8077fc2c69c063a2509ad03b5ec45ef2cc4d" }
