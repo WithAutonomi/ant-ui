@@ -52,10 +52,15 @@ onMounted(async () => {
       console.warn('Autonomi client init failed:', e)
     })
 
-    // Only bypass WalletConnect for local Anvil devnet. Sepolia / mainnet
-    // manifests expect the user to connect their own wallet via WalletConnect.
-    const { ANVIL_CHAIN_ID } = await import('~/utils/constants')
-    if (settingsStore.devnetChainId === ANVIL_CHAIN_ID) {
+    // Auto-activate the direct-key wallet whenever the manifest supplied a
+    // `wallet_private_key` (loadDevnetManifest stashes it and flips
+    // _devnetWalletKeySet). Previously gated on ANVIL_CHAIN_ID only, so a
+    // Sepolia manifest with a pre-funded key silently left the wallet
+    // disconnected — the key sat in storage and every upload hit the
+    // no-wallet path. Manifests *without* a key still fall through to
+    // WalletConnect, and no-manifest (production) is unaffected since this
+    // entire block is gated on `devnetActive`.
+    if (settingsStore._devnetWalletKeySet) {
       const { initDevnetWallet } = await import('~/composables/useDevnetWallet')
       initDevnetWallet()
     }
