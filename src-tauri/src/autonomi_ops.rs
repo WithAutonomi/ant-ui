@@ -246,12 +246,15 @@ async fn run_connection_loop(app: AppHandle, args: InitArgs) {
         EvmNetwork::ArbitrumOne
     };
 
-    // Devnet (custom EVM RPC) runs on loopback — opt the saorsa-transport
-    // `local` flag in for that case only. Production peers reject the
-    // loopback handshake variant, so the default of `false` is correct
-    // for mainnet uploads. Matches the `--allow-loopback` semantics in
-    // ant-cli (see WithAutonomi/ant-client#40).
-    let allow_loopback = args.evm_rpc_url.is_some();
+    // `allow_loopback` changes the saorsa-transport QUIC handshake variant;
+    // enabling it on a client that dials remote peers makes those peers
+    // reject the connection (`found 0 peers` despite a successful dial).
+    // Enable only when the bootstrap peers themselves are on loopback —
+    // i.e. a genuine local Anvil + local ant-node setup. Remote devnets
+    // (a Sepolia manifest with public DigitalOcean peers) must not flip
+    // this on just because a custom EVM RPC is configured. Matches the
+    // `--allow-loopback` semantics in ant-cli, which is explicit-opt-in.
+    let allow_loopback = peers.iter().any(|p| p.ip().is_loopback());
 
     set_connection_status(&app, ConnectionStatus::Connecting).await;
 
