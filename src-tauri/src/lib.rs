@@ -26,12 +26,16 @@ impl SseState {
     }
 }
 
-/// Find the daemon binary. Checks (in order):
-/// 1. Adjacent to the current executable (bundled sidecar — works for both
-///    macOS `.app/Contents/MacOS/`, Windows install dir, Linux AppImage,
-///    AND Tauri dev mode which copies sidecars next to the dev exe).
-/// 2. CARGO_MANIFEST_DIR/binaries/ (dev workflow with target-triple suffix)
-/// 3. PATH and common install locations (dev fallback)
+/// Find the daemon binary. Installed builds must use the bundled sidecar;
+/// there is no PATH or system-install fallback. Order:
+/// 1. Adjacent to the current executable with the bundled name `ant[.exe]`
+///    — the installed case (macOS `.app/Contents/MacOS/`, Windows install
+///    dir, Linux AppImage), and also Tauri dev mode when it copies the
+///    sidecar next to the dev exe.
+/// 2. Adjacent to the current executable with the target-triple suffix
+///    `ant-<triple>[.exe]` — dev mode where Tauri leaves the triple on.
+/// 3. `CARGO_MANIFEST_DIR/binaries/ant-<triple>[.exe]` — `cargo run` from
+///    the crate root before Tauri stages sidecars.
 fn find_daemon_binary() -> Option<PathBuf> {
     let bin_name = if cfg!(windows) { "ant.exe" } else { "ant" };
     let target_triple = std::env::var("TAURI_ENV_TARGET_TRIPLE")
@@ -70,28 +74,14 @@ fn find_daemon_binary() -> Option<PathBuf> {
     }
 
     // 2. Dev sidecar — CARGO_MANIFEST_DIR/binaries/ (compile-time path)
-    {
-        let dev_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("binaries")
-            .join(&sidecar_name);
-        if dev_path.exists() {
-            return Some(dev_path);
-        }
+    let dev_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("binaries")
+        .join(&sidecar_name);
+    if dev_path.exists() {
+        return Some(dev_path);
     }
 
-    // 3. PATH fallback (development with ant-cli installed)
-    if let Ok(output) = std::process::Command::new("ant").arg("--help").output() {
-        if output.status.success() {
-            return Some(PathBuf::from(bin_name));
-        }
-    }
-
-    // 4. Common install locations
-    let candidates = [dirs::home_dir().map(|h| h.join(".cargo").join("bin").join(bin_name))];
-    candidates
-        .into_iter()
-        .flatten()
-        .find(|candidate| candidate.exists())
+    None
 }
 
 #[tauri::command]
@@ -494,9 +484,10 @@ async fn ensure_daemon_running() -> Result<String, String> {
             .and_then(|p| p.parent().map(|d| d.display().to_string()))
             .unwrap_or_else(|| "<unknown>".into());
         format!(
-            "Cannot find daemon binary. Checked: \
+            "Cannot find bundled ant binary. Please reinstall. Checked: \
              {exe_dir}/ant{ext}, \
-             {manifest_dir}/binaries/ant-{target}{ext}, PATH, ~/.cargo/bin"
+             {exe_dir}/ant-{target}{ext}, \
+             {manifest_dir}/binaries/ant-{target}{ext}"
         )
     })?;
 

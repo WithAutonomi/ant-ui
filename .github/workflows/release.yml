@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       ant_version:
-        description: "ant-client release tag to bundle (e.g. ant-cli-v0.1.2-rc.17). Leave empty to read .ant-version file."
+        description: "ant-client release tag to bundle (e.g. ant-cli-v0.1.2-rc.17). Leave empty to use the latest ant-client release."
         required: false
 
 env:
@@ -53,23 +53,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Priority: workflow_dispatch input > .ant-version file > latest
+          # Priority: workflow_dispatch input > latest ant-client release
           INPUT="${{ github.event.inputs.ant_version }}"
 
           if [ -n "$INPUT" ]; then
             TAG="$INPUT"
             echo "Source: workflow_dispatch input"
-          elif [ -f .ant-version ]; then
-            TAG=$(cat .ant-version | tr -d '[:space:]')
-            echo "Source: .ant-version file"
           else
-            TAG="latest"
-            echo "Source: default (latest)"
-          fi
-
-          if [ "$TAG" = "latest" ]; then
             TAG=$(gh release list --repo WithAutonomi/ant-client --limit 1 --json tagName --jq '.[0].tagName')
-            echo "Resolved 'latest' to: $TAG"
+            echo "Source: latest ant-client release ($TAG)"
           fi
 
           # Extract version number (strip ant-cli-v prefix)
@@ -234,6 +226,103 @@ jobs:
           prerelease: ${{ needs.release-meta.outputs.prerelease == 'true' }}
           includeUpdaterJson: false
           args: ${{ matrix.args }}
+
+      - name: repair AppImage sidecar (static-pie workaround)
+        if: startsWith(matrix.platform, 'ubuntu')
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # linuxdeploy + its plugins run strip/patchelf over every executable
+          # in AppDir/usr/bin/ during AppImage packaging. That corrupts
+          # static-pie musl binaries like `ant` (segfault before `main`).
+          # macOS/Windows bundlers don't touch sidecars, and `.deb`/`.rpm`
+          # don't go through linuxdeploy, so only AppImage breaks. Workaround:
+          # extract the produced AppImage, overwrite the mangled sidecar
+          # with the pristine binary we already downloaded, repack, re-sign
+          # for the updater, then replace the asset tauri-action uploaded.
+
+          APPIMAGE=$(realpath "$(ls src-tauri/target/release/bundle/appimage/*.AppImage | head -n 1)")
+          PRISTINE=$(realpath src-tauri/binaries/ant-x86_64-unknown-linux-gnu)
+
+          echo "Repairing: $APPIMAGE"
+          echo "Pristine ant: $(stat -c%s "$PRISTINE") bytes"
+
+          work=$(mktemp -d)
+          pushd "$work" >/dev/null
+          "$APPIMAGE" --appimage-extract >/dev/null
+          echo "Mangled ant in AppImage: $(stat -c%s squashfs-root/usr/bin/ant) bytes"
+
+          cp -f "$PRISTINE" squashfs-root/usr/bin/ant
+          chmod +x squashfs-root/usr/bin/ant
+
+          # GH runners don't have FUSE, so AppImages must be run with
+          # --appimage-extract-and-run.
+          wget -q \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage \
+            -O appimagetool
+          chmod +x appimagetool
+
+          rm "$APPIMAGE"
+          ARCH=x86_64 ./appimagetool --appimage-extract-and-run \
+            squashfs-root "$APPIMAGE"
+          popd >/dev/null
+          rm -rf "$work"
+
+          # Verify the repacked AppImage carries the pristine binary.
+          verify=$(mktemp -d)
+          pushd "$verify" >/dev/null
+          "$APPIMAGE" --appimage-extract >/dev/null
+          repaired_size=$(stat -c%s squashfs-root/usr/bin/ant)
+          pristine_size=$(stat -c%s "$PRISTINE")
+          if [ "$repaired_size" != "$pristine_size" ]; then
+            echo "ERROR: repaired ant size ($repaired_size) != pristine ($pristine_size)" >&2
+            exit 1
+          fi
+          squashfs-root/usr/bin/ant --version
+          popd >/dev/null
+          rm -rf "$verify"
+          echo "Repair verified."
+
+          # Re-sign for the updater. `tauri signer sign` reads the key
+          # and password from TAURI_SIGNING_PRIVATE_KEY{,_PASSWORD} env
+          # and writes <file>.sig next to the input.
+          rm -f "$APPIMAGE.sig"
+          npx tauri signer sign "$APPIMAGE"
+
+          # Replace the asset tauri-action already uploaded to the draft release.
+          tag="v${{ needs.release-meta.outputs.version }}"
+          gh release upload "$tag" "$APPIMAGE" "$APPIMAGE.sig" --clobber
+
+      - name: build portable Linux tar.gz
+        if: startsWith(matrix.platform, 'ubuntu')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Portable archive: main exe + ant sidecar + bootstrap_peers
+          # resource, mirroring what's inside the macOS .app.tar.gz.
+          # Not consumed by Tauri's updater (Linux auto-updates via the
+          # .AppImage directly); published purely for release-page
+          # symmetry with the macOS assets.
+
+          work=$(mktemp -d)
+          pkg="$work/autonomi"
+          mkdir -p "$pkg/resources"
+          cp src-tauri/target/release/ant-gui "$pkg/ant-gui"
+          cp src-tauri/binaries/ant-x86_64-unknown-linux-gnu "$pkg/ant"
+          cp src-tauri/resources/bootstrap_peers.toml "$pkg/resources/bootstrap_peers.toml"
+          chmod +x "$pkg/ant-gui" "$pkg/ant"
+
+          out="$GITHUB_WORKSPACE/Autonomi_x64_linux.tar.gz"
+          tar -C "$work" -czf "$out" autonomi
+
+          tag="v${{ needs.release-meta.outputs.version }}"
+          gh release upload "$tag" "$out" --clobber
 
   build-windows:
     name: build windows MSI (signed)
@@ -408,6 +497,34 @@ jobs:
             src-tauri/target/release/bundle/msi/*.msi \
             src-tauri/target/release/bundle/msi/*.msi.sig \
             --clobber
+
+      - name: build portable Windows tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Portable archive: main exe + ant sidecar + bootstrap_peers
+          # resource, mirroring what's inside the macOS .app.tar.gz.
+          # Not consumed by Tauri's updater (Windows auto-updates via the
+          # .msi directly); published purely for release-page symmetry
+          # with the macOS assets.
+
+          work=$(mktemp -d)
+          pkg="$work/autonomi"
+          mkdir -p "$pkg/resources"
+          cp src-tauri/target/release/ant-gui.exe "$pkg/ant-gui.exe"
+          cp src-tauri/binaries/ant-x86_64-pc-windows-msvc.exe "$pkg/ant.exe"
+          cp src-tauri/resources/bootstrap_peers.toml "$pkg/resources/bootstrap_peers.toml"
+
+          out="$GITHUB_WORKSPACE/Autonomi_x64_windows.tar.gz"
+          # --force-local: $GITHUB_WORKSPACE starts with "D:\...", which GNU tar
+          # otherwise treats as an rsh-style host:path spec and tries to dial.
+          tar --force-local -C "$work" -czf "$out" autonomi
+
+          tag="${GITHUB_REF#refs/tags/}"
+          gh release upload "$tag" "$out" --clobber
 
       - name: upload signing logs on failure
         if: failure()
