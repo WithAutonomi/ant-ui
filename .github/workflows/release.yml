@@ -519,7 +519,9 @@ jobs:
           cp src-tauri/resources/bootstrap_peers.toml "$pkg/resources/bootstrap_peers.toml"
 
           out="$GITHUB_WORKSPACE/Autonomi_x64_windows.tar.gz"
-          tar -C "$work" -czf "$out" autonomi
+          # --force-local: $GITHUB_WORKSPACE starts with "D:\...", which GNU tar
+          # otherwise treats as an rsh-style host:path spec and tries to dial.
+          tar --force-local -C "$work" -czf "$out" autonomi
 
           tag="${GITHUB_REF#refs/tags/}"
           gh release upload "$tag" "$out" --clobber
