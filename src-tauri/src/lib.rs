@@ -734,6 +734,8 @@ pub fn run() {
             autonomi_ops::estimate_file_cost,
             autonomi_ops::confirm_upload,
             autonomi_ops::confirm_upload_merkle,
+            autonomi_ops::wallet_upload,
+            autonomi_ops::attach_wallet,
             autonomi_ops::download_file,
             autonomi_ops::download_public,
             autonomi_ops::read_datamap_file,
