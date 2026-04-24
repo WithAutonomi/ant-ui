@@ -19,7 +19,12 @@
     <div class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm lg:grid-cols-4">
       <div>
         <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Version</p>
-        <p class="text-autonomi-text">{{ node.version }}</p>
+        <p class="text-autonomi-text">
+          {{ node.version }}<span
+            v-if="node.pending_version"
+            class="ml-1 text-autonomi-blue"
+          >→ {{ node.pending_version }}</span>
+        </p>
       </div>
       <div>
         <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">PID</p>

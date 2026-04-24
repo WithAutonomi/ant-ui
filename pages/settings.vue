@@ -118,6 +118,26 @@
       </button>
       <div v-if="showAdvanced" class="mt-2 space-y-4">
 
+        <!-- Node daemon -->
+        <div class="rounded-lg border border-autonomi-border p-4">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <h3 class="text-sm font-medium">Node daemon</h3>
+              <p class="text-xs text-autonomi-muted">
+                Restart the background service that supervises your nodes. Your
+                running nodes keep running — only the supervisor is swapped.
+              </p>
+            </div>
+            <button
+              :disabled="daemonRestarting"
+              class="ml-3 shrink-0 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-text disabled:opacity-50"
+              @click="restartDaemon"
+            >
+              {{ daemonRestarting ? 'Restarting…' : 'Restart daemon' }}
+            </button>
+          </div>
+        </div>
+
         <!-- Upload concurrency -->
         <div class="rounded-lg border border-autonomi-border p-4">
           <div class="flex items-center justify-between gap-3">
@@ -476,6 +496,20 @@ const earningsInputRef = ref<HTMLInputElement | null>(null)
 const editingDaemon = ref(false)
 const daemonInput = ref('')
 const daemonInputRef = ref<HTMLInputElement | null>(null)
+
+// Daemon control — delegate to the nodes store so the nodes page can show a
+// "Restarting" panel instead of the default "Cannot connect" flicker during
+// the brief window when the old daemon is down.
+const daemonRestarting = computed(() => nodesStore.restarting)
+
+async function restartDaemon() {
+  try {
+    await nodesStore.restartDaemon()
+    toasts.add('Daemon restarted', 'info')
+  } catch (e: any) {
+    toasts.add(`Failed to restart daemon: ${e?.message ?? e}`, 'error')
+  }
+}
 
 // Direct wallet (private key)
 const editingDirectWallet = ref(false)

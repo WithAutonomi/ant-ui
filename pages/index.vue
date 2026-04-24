@@ -49,6 +49,14 @@
       <p class="text-sm text-autonomi-muted">Starting node daemon...</p>
     </div>
 
+    <!-- Restarting state — takes priority over disconnected so the UI doesn't
+         flicker the "Cannot connect" panel during an intentional restart. -->
+    <div v-else-if="nodesStore.restarting" class="flex flex-col items-center justify-center py-20">
+      <div class="mb-3 h-6 w-6 animate-spin rounded-full border-2 border-autonomi-blue border-t-transparent" />
+      <p class="text-sm text-autonomi-muted">Restarting node daemon...</p>
+      <p class="mt-1 text-xs text-autonomi-muted">Your nodes keep running.</p>
+    </div>
+
     <!-- Disconnected state -->
     <div v-else-if="!nodesStore.daemonConnected" class="flex flex-col items-center justify-center py-20">
       <div class="rounded-full border border-autonomi-error/30 bg-autonomi-error/5 p-4">

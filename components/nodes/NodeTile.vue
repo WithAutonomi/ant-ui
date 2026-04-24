@@ -11,7 +11,7 @@
     <div class="absolute left-3 top-3" :aria-label="`Status: ${node.status}`" role="img">
       <span class="relative flex h-2.5 w-2.5">
         <span
-          v-if="node.status === 'running' || node.status === 'adding'"
+          v-if="node.status === 'running' || node.status === 'adding' || node.status === 'upgrade_scheduled'"
           class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-40"
           :class="dotBgClass"
         />
@@ -22,7 +22,12 @@
     <!-- Node name / ID -->
     <div class="mb-3 mt-1 pl-5">
       <p class="text-sm font-medium text-autonomi-text">{{ node.name || `Node ${node.id}` }}</p>
-      <p v-if="node.version" class="text-[10px] text-autonomi-muted">v{{ node.version }}</p>
+      <p v-if="node.version" class="text-[10px] text-autonomi-muted">
+        v{{ node.version }}<span
+          v-if="node.pending_version"
+          class="ml-1 text-autonomi-blue"
+        >→ v{{ node.pending_version }}</span>
+      </p>
     </div>
 
     <!-- Stats grid -->
@@ -63,6 +68,8 @@ const statusColors: Record<string, { dot: string; bg: string }> = {
   adding:   { dot: 'bg-autonomi-warning', bg: 'bg-autonomi-warning' },
   errored:  { dot: 'bg-autonomi-error', bg: 'bg-autonomi-error' },
   stopped:  { dot: 'border-2 border-autonomi-muted bg-transparent', bg: '' },
+  // Auto-upgrade in progress: node is still running old binary until it exits.
+  upgrade_scheduled: { dot: 'bg-autonomi-blue', bg: 'bg-autonomi-blue' },
 }
 
 const dotClass = computed(() => statusColors[props.node.status]?.dot ?? 'bg-autonomi-muted')

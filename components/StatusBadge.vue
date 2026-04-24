@@ -16,6 +16,7 @@ const statusMap: Record<string, { dot: string; label: string; color: string }> =
   stopping: { dot: '◐', label: 'Stopping', color: 'text-autonomi-warning' },
   adding: { dot: '◐', label: 'Adding...', color: 'text-autonomi-warning' },
   errored: { dot: '●', label: 'Error', color: 'text-autonomi-error' },
+  upgrade_scheduled: { dot: '◐', label: 'Upgrading', color: 'text-autonomi-blue' },
   // File transfer statuses
   Pending: { dot: '○', label: 'Pending', color: 'text-autonomi-muted' },
   Quoting: { dot: '◐', label: 'Quoting', color: 'text-autonomi-warning' },

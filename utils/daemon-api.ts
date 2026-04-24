@@ -4,7 +4,16 @@ import { useSettingsStore } from '~/stores/settings'
 
 // ── Types matching ant-core/src/node/types.rs ──
 
-export type NodeStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'errored'
+export type NodeStatus =
+  | 'stopped'
+  | 'starting'
+  | 'running'
+  | 'stopping'
+  | 'errored'
+  /** The node's on-disk binary has been replaced by an auto-upgrade, but the
+   *  process has not yet restarted. The supervisor is waiting for the current
+   *  process to exit before respawning it against the new binary. */
+  | 'upgrade_scheduled'
 
 export interface NodeConfig {
   id: number
@@ -36,6 +45,9 @@ export interface NodeStatusSummary {
   status: NodeStatus
   pid?: number
   uptime_secs?: number
+  /** Set only when `status === 'upgrade_scheduled'`: the new version that the
+   *  replaced on-disk binary reports. Omitted otherwise. */
+  pending_version?: string
 }
 
 export interface DaemonStatus {
@@ -110,6 +122,12 @@ export interface NodeEvent {
   bytes?: number
   total?: number
   path?: string
+  /** UpgradeScheduled: the new version the supervisor detected on disk. */
+  pending_version?: string
+  /** NodeUpgraded: version before the supervisor respawned against the new binary. */
+  old_version?: string
+  /** NodeUpgraded: version the respawned process now reports. */
+  new_version?: string
 }
 
 // ── API Client ──
