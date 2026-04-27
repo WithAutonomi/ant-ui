@@ -1,6 +1,6 @@
 [package]
 name = "ant-gui"
-version = "0.6.7-rc.9"
+version = "0.6.7-rc.10"
 edition = "2021"
 
 [lib]
@@ -25,13 +25,7 @@ toml = "0.8"
 tauri-plugin-updater = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-# Pinned to the tip of WithAutonomi/ant-client rc-2026.4.2, which is
-# post-`ant-cli-v0.2.0-rc.2` plus the merged adopt-running-nodes fix (PR #57).
-# Its Cargo.lock resolves saorsa-core to the rc-2026.4.2 HEAD that includes
-# the parallel-bootstrap-dial HRTB fix (PR #97), so no workspace [patch]
-# overrides are needed. Repoint to the next `ant-cli-vX.Y.Z` tag once the
-# RC promotes to stable.
-ant-core = { git = "https://github.com/WithAutonomi/ant-client", rev = "d9ef2c9cf58fda58992bee1bca62246a400b14bf" }
+ant-core = { git = "https://github.com/WithAutonomi/ant-client", tag = "ant-core-v0.2.0" }
 evmlib = "0.8"
 hex = "0.4"
 sha2 = "0.10"
