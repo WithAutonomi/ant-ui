@@ -279,10 +279,22 @@ jobs:
             cp src-tauri/target/release/bundle/rpm/*.rpm.sig           "$stage/"
             cp "$GITHUB_WORKSPACE/Autonomi_x64_linux.tar.gz"           "$stage/"
           else
-            # macOS: tauri-action emits .app.tar.gz under target/<triple>/release/bundle/macos/
+            # macOS: tauri-action emits Autonomi.app.tar.gz under target/<triple>/release/bundle/macos/.
+            # Both matrix entries (x86_64 + aarch64) produce the same filename
+            # and would collide when the publish-release job's download-artifact
+            # step merges every release-assets-* artifact into one directory.
+            # Rename with a platform suffix so both archs survive the merge
+            # and the compose latest.json step finds them under the names it
+            # expects (Autonomi_x64.app.tar.gz / Autonomi_aarch64.app.tar.gz).
             target=$(echo "${{ matrix.args }}" | sed -n 's/.*--target \([^ ]*\).*/\1/p')
-            cp src-tauri/target/"$target"/release/bundle/macos/*.app.tar.gz     "$stage/"
-            cp src-tauri/target/"$target"/release/bundle/macos/*.app.tar.gz.sig "$stage/"
+            case "$target" in
+              x86_64-apple-darwin)  suffix="x64" ;;
+              aarch64-apple-darwin) suffix="aarch64" ;;
+              *) echo "Unsupported macOS target: $target" >&2; exit 1 ;;
+            esac
+            src=src-tauri/target/"$target"/release/bundle/macos
+            cp "$src/Autonomi.app.tar.gz"     "$stage/Autonomi_${suffix}.app.tar.gz"
+            cp "$src/Autonomi.app.tar.gz.sig" "$stage/Autonomi_${suffix}.app.tar.gz.sig"
           fi
 
           echo "Staged assets:"
