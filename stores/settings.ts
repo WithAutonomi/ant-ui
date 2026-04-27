@@ -5,7 +5,19 @@ import { ANVIL_CHAIN_ID } from '~/utils/constants'
 
 // Private key stored outside reactive state — not visible in Vue DevTools.
 let _walletKey: string | null = null
-export function setDevnetWalletKey(key: string | null) { _walletKey = key }
+export function setDevnetWalletKey(key: string | null) {
+  // viem's `privateKeyToAccount` requires a `0x`-prefixed hex string.
+  // The manual settings.vue entry path normalises prefix explicitly, but
+  // devnet manifests from devops ship the key without `0x` — store it
+  // normalised here so both entry paths converge. Missing this caused
+  // the manifest-driven wallet to silently fail to init: viem would
+  // derive a junk address (or throw) from the unprefixed bytes.
+  if (key && !key.startsWith('0x')) {
+    _walletKey = `0x${key}`
+  } else {
+    _walletKey = key
+  }
+}
 export function getDevnetWalletKey(): string | null { return _walletKey }
 
 export type ThemeMode = 'dark' | 'light'

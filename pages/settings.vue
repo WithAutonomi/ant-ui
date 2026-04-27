@@ -553,6 +553,25 @@ async function connectDirectWallet() {
       return
     }
 
+    // Hot-attach the wallet on the Rust client so direct-PK uploads take the
+    // evmlib path (wallet_upload). Without this, uploads triggered via the
+    // settings-UI key-entry flow hit the Rust side with no wallet attached
+    // and error out — the JS state flips _devnetWalletKeySet=true while the
+    // Rust client was initialised wallet-less at app startup.
+    try {
+      await invoke('attach_wallet', {
+        walletPrivateKey: key,
+        evmRpcUrl: settingsStore.devnetRpcUrl,
+        evmTokenAddress: settingsStore.devnetTokenAddress,
+        evmVaultAddress: settingsStore.devnetVaultAddress,
+      })
+    } catch (e: any) {
+      console.warn('attach_wallet failed:', e)
+      // Non-fatal — uploads will fall back to the JS wagmi path. Surface
+      // through the toast so the user sees something didn't go right.
+      toasts.add(`Wallet attach (Rust side) failed: ${e?.message ?? e}`, 'error')
+    }
+
     directWalletActive.value = true
     editingDirectWallet.value = false
     directWalletKeyInput.value = ''
