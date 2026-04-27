@@ -295,6 +295,9 @@ jobs:
             src=src-tauri/target/"$target"/release/bundle/macos
             cp "$src/Autonomi.app.tar.gz"     "$stage/Autonomi_${suffix}.app.tar.gz"
             cp "$src/Autonomi.app.tar.gz.sig" "$stage/Autonomi_${suffix}.app.tar.gz.sig"
+            # Tauri names the DMG with the platform suffix already (e.g.
+            # Autonomi_<version>_x64.dmg), so no rename needed.
+            cp src-tauri/target/"$target"/release/bundle/dmg/*.dmg "$stage/"
           fi
 
           echo "Staged assets:"
