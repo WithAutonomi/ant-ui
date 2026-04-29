@@ -571,8 +571,7 @@ pub async fn start_upload(
     // Phase 1: Encrypt file and prepare chunks (gets quotes from network).
     // The forwarder turns ant-core's UploadEvent stream (Encrypting / Encrypted /
     // ChunkQuoted) into Tauri `upload-progress` events keyed by the row id.
-    let progress_tx =
-        spawn_upload_progress_forwarder(app.clone(), request.upload_id.clone());
+    let progress_tx = spawn_upload_progress_forwarder(app.clone(), request.upload_id.clone());
     let prepared = client
         .file_prepare_upload_with_progress(
             &path,
