@@ -568,9 +568,17 @@ pub async fn start_upload(
     }
     let path = canonical;
 
-    // Phase 1: Encrypt file and prepare chunks (gets quotes from network)
+    // Phase 1: Encrypt file and prepare chunks (gets quotes from network).
+    // The forwarder turns ant-core's UploadEvent stream (Encrypting / Encrypted /
+    // ChunkQuoted) into Tauri `upload-progress` events keyed by the row id.
+    let progress_tx =
+        spawn_upload_progress_forwarder(app.clone(), request.upload_id.clone());
     let prepared = client
-        .file_prepare_upload(&path)
+        .file_prepare_upload_with_progress(
+            &path,
+            ant_core::data::Visibility::Private,
+            Some(progress_tx),
+        )
         .await
         .map_err(|e| format!("Failed to prepare upload: {e}"))?;
 
@@ -751,9 +759,12 @@ pub async fn confirm_upload(
         ));
     }
 
-    // Phase 2: Finalize upload with tx hashes and store chunks
+    // Phase 2: Finalize upload with tx hashes and store chunks.
+    // The forwarder emits ChunkStored events as each chunk is stored on the
+    // network so the row's bar climbs from 50% to 100%.
+    let progress_tx = spawn_upload_progress_forwarder(app.clone(), upload_id.clone());
     let result = client
-        .finalize_upload(prepared, &tx_hash_map)
+        .finalize_upload_with_progress(prepared, &tx_hash_map, Some(progress_tx))
         .await
         .map_err(|e| format!("Upload failed: {e}"))?;
 
@@ -813,8 +824,9 @@ pub async fn confirm_upload_merkle(
         .try_into()
         .map_err(|_| "Winner pool hash must be exactly 32 bytes".to_string())?;
 
+    let progress_tx = spawn_upload_progress_forwarder(app.clone(), upload_id.clone());
     let result = client
-        .finalize_upload_merkle(prepared, hash_bytes)
+        .finalize_upload_merkle_with_progress(prepared, hash_bytes, Some(progress_tx))
         .await
         .map_err(|e| format!("Merkle upload failed: {e}"))?;
 

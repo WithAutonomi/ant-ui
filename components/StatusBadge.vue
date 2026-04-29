@@ -1,7 +1,9 @@
 <template>
-  <span class="inline-flex items-center gap-1 text-xs font-medium" :class="colorClass" role="status">
-    <span aria-hidden="true">{{ dot }}</span>
-    <span>{{ label }}</span>
+  <!-- max-w-xs + truncate keeps long failure messages from blowing the table
+       width out; the full text remains readable via the title tooltip. -->
+  <span class="inline-flex max-w-xs items-center gap-1 align-middle text-xs font-medium" :class="colorClass" role="status" :title="label">
+    <span aria-hidden="true" class="shrink-0">{{ dot }}</span>
+    <span class="truncate">{{ label }}</span>
   </span>
 </template>
 

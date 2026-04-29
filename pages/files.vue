@@ -433,11 +433,23 @@ function stageDetail(file: FileEntry): string | null {
   }
 }
 
-/** Whether the row should render a progress bar. Bar is shown for any active
- *  transfer state — even when percent is null (encryption phase) we render
- *  an indeterminate bar so the user sees motion. */
+/** Whether the row should render a progress bar. Shown for every active
+ *  transfer state where progress events are flowing or could flow:
+ *
+ *  - `quoting`     — start_upload emits Encrypting/Encrypted/ChunkQuoted (0..50%)
+ *  - `paying`      — bar freezes at 50% while the wallet popup is open
+ *  - `uploading`   — confirm_upload emits ChunkStored (50..100%)
+ *  - `downloading` — file_download emits ChunksFetched (0..100%)
+ *
+ *  Even when `percent` is null (encryption, before total chunks are known)
+ *  we render an indeterminate bar so the user sees motion. */
 function showsProgressBar(file: FileEntry): boolean {
-  return file.status === 'uploading' || file.status === 'downloading'
+  return (
+    file.status === 'quoting'
+    || file.status === 'paying'
+    || file.status === 'uploading'
+    || file.status === 'downloading'
+  )
 }
 
 function isReopenable(file: FileEntry): boolean {
