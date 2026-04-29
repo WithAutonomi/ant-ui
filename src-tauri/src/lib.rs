@@ -501,8 +501,12 @@ async fn ensure_daemon_running() -> Result<String, String> {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
-        // CREATE_NEW_PROCESS_GROUP — detaches from parent console
-        cmd.creation_flags(0x00000200);
+        // CREATE_NEW_PROCESS_GROUP (0x00000200) — detaches the daemon from
+        // our process group so signals don't propagate.
+        // CREATE_NO_WINDOW       (0x08000000) — prevents Windows from
+        // allocating a console window for the console-subsystem daemon
+        // binary, which would otherwise flash on every spawn.
+        cmd.creation_flags(0x08000200);
     }
     #[cfg(unix)]
     {
