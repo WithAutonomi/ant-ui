@@ -112,6 +112,7 @@
                 <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
                 <td class="px-4 py-2.5">
                   <StatusBadge :status="statusLabel(file)" />
+                  <ProgressLine v-if="showsProgressBar(file)" :detail="stageDetail(file)" :percent="file.progress" />
                 </td>
                 <td class="px-4 py-2.5 text-autonomi-muted">
                   <template v-if="file.alreadyStored">
@@ -198,6 +199,7 @@
               <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
               <td class="px-4 py-2.5">
                 <StatusBadge :status="statusLabel(file)" />
+                <ProgressLine v-if="showsProgressBar(file)" :detail="stageDetail(file)" :percent="file.progress" />
               </td>
               <td class="px-4 py-2.5 font-mono text-xs text-autonomi-muted">
                 {{ file.dest_path ? basenameOf(file.dest_path) : '-' }}
@@ -401,6 +403,41 @@ function statusLabel(file: FileEntry): string {
   if (file.status === 'awaiting_approval') return 'Ready to approve'
   if (file.status === 'paying') return 'Paying'
   return file.status
+}
+
+/** Sub-stage detail line shown under the status badge while a transfer is
+ *  active. Maps the stage / cumulative counts coming from ant-core's
+ *  UploadEvent / DownloadEvent stream into a tight label that fits a row.
+ *  Shows a per-stage percent (how far through the current step we are);
+ *  the bar above shows global progress. Returns null when there's nothing
+ *  useful to show (no event yet, or the row isn't in an active state). */
+function stageDetail(file: FileEntry): string | null {
+  if (!file.stage) return null
+  const done = file.stageDone ?? 0
+  const total = file.stageTotal
+  const pct = total && total > 0 ? Math.round((done / total) * 100) : null
+  switch (file.stage) {
+    case 'encrypting':
+      // Encryption has no total until it finishes — fall back to a spinner.
+      return 'Encrypting…'
+    case 'quoting':
+      return pct !== null ? `Quoting · ${pct}%` : 'Quoting…'
+    case 'uploading':
+      return pct !== null ? `Storing · ${pct}%` : 'Storing…'
+    case 'resolving':
+      return pct !== null ? `Resolving datamap · ${pct}%` : 'Resolving datamap…'
+    case 'downloading':
+      return pct !== null ? `Downloading · ${pct}%` : 'Downloading…'
+    default:
+      return null
+  }
+}
+
+/** Whether the row should render a progress bar. Bar is shown for any active
+ *  transfer state — even when percent is null (encryption phase) we render
+ *  an indeterminate bar so the user sees motion. */
+function showsProgressBar(file: FileEntry): boolean {
+  return file.status === 'uploading' || file.status === 'downloading'
 }
 
 function isReopenable(file: FileEntry): boolean {
