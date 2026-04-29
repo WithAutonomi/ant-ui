@@ -87,10 +87,10 @@
                 <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('name')">
                   Name {{ uploadSortIndicator('name') }}
                 </th>
+                <th class="px-4 py-2.5">Status</th>
                 <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('size_bytes')">
                   Size {{ uploadSortIndicator('size_bytes') }}
                 </th>
-                <th class="px-4 py-2.5">Status</th>
                 <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('cost')">
                   Cost {{ uploadSortIndicator('cost') }}
                 </th>
@@ -108,12 +108,25 @@
                 :class="rowClass(file)"
                 @click="onRowClick(file)"
               >
-                <td class="px-4 py-2.5">{{ file.name }}</td>
-                <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
                 <td class="px-4 py-2.5">
-                  <StatusBadge :status="statusLabel(file)" />
-                  <ProgressLine v-if="showsProgressBar(file)" :detail="stageDetail(file)" :percent="file.progress" />
+                  <div>{{ file.name }}</div>
+                  <ProgressLine
+                    v-if="showsProgressBar(file)"
+                    :percent="file.progress"
+                    :kind="file.kind"
+                    :status="file.status"
+                    :stage="file.stage"
+                    :stage-done="file.stageDone"
+                    :stage-total="file.stageTotal"
+                  />
                 </td>
+                <td class="px-4 py-2.5 align-top">
+                  <div><StatusBadge :status="statusLabel(file)" /></div>
+                  <div v-if="showsProgressBar(file) && stageDetail(file)" class="mt-1 text-[10px] leading-tight text-autonomi-muted">
+                    {{ stageDetail(file) }}
+                  </div>
+                </td>
+                <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
                 <td class="px-4 py-2.5 text-autonomi-muted">
                   <template v-if="file.alreadyStored">
                     <span class="text-green-400">Free — already stored</span>
@@ -177,10 +190,10 @@
               <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleDownloadSort('name')">
                 Name {{ downloadSortIndicator('name') }}
               </th>
+              <th class="px-4 py-2.5">Status</th>
               <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleDownloadSort('size_bytes')">
                 Size {{ downloadSortIndicator('size_bytes') }}
               </th>
-              <th class="px-4 py-2.5">Status</th>
               <th class="px-4 py-2.5">Saved to</th>
               <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleDownloadSort('date')">
                 Date {{ downloadSortIndicator('date') }}
@@ -195,12 +208,25 @@
               :class="rowClass(file)"
               @click="onRowClick(file)"
             >
-              <td class="px-4 py-2.5">{{ file.name }}</td>
-              <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
               <td class="px-4 py-2.5">
-                <StatusBadge :status="statusLabel(file)" />
-                <ProgressLine v-if="showsProgressBar(file)" :detail="stageDetail(file)" :percent="file.progress" />
+                <div>{{ file.name }}</div>
+                <ProgressLine
+                  v-if="showsProgressBar(file)"
+                  :percent="file.progress"
+                  :kind="file.kind"
+                  :status="file.status"
+                  :stage="file.stage"
+                  :stage-done="file.stageDone"
+                  :stage-total="file.stageTotal"
+                />
               </td>
+              <td class="px-4 py-2.5 align-top">
+                <div><StatusBadge :status="statusLabel(file)" /></div>
+                <div v-if="showsProgressBar(file) && stageDetail(file)" class="mt-1 text-[10px] leading-tight text-autonomi-muted">
+                  {{ stageDetail(file) }}
+                </div>
+              </td>
+              <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
               <td class="px-4 py-2.5 font-mono text-xs text-autonomi-muted">
                 {{ file.dest_path ? basenameOf(file.dest_path) : '-' }}
               </td>
@@ -388,8 +414,22 @@ function statusLabel(file: FileEntry): string {
     return 'Saving datamap…'
   }
 
-  if (file.status === 'uploading') return 'Uploading'
-  if (file.status === 'downloading') return 'Downloading'
+  if (file.status === 'uploading') {
+    // Wallet-flow direct-key uploads pre-set status='uploading' before the
+    // Rust side has gone through encrypt/quote, so the badge would say
+    // "Uploading" while the sub-text counts up "Quoting 0..100%". Defer
+    // to the actual stage when it disagrees with the outer status.
+    if (file.stage === 'encrypting') return 'Encrypting…'
+    if (file.stage === 'quoting') return 'Quoting'
+    return 'Uploading'
+  }
+  if (file.status === 'downloading') {
+    // Same logic for downloads — datamap resolution can run a few seconds
+    // before chunk fetching starts, and the user shouldn't see "Downloading"
+    // while we're still pulling the datamap apart.
+    if (file.stage === 'resolving') return 'Resolving datamap'
+    return 'Downloading'
+  }
   if (file.status === 'downloaded') return 'Downloaded'
   if (file.status === 'failed') return file.error ? `Failed: ${file.error}` : 'Failed'
   if (file.status === 'complete') return 'Complete'
