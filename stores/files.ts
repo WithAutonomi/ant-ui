@@ -327,6 +327,33 @@ export const useFilesStore = defineStore('files', {
       if (wasUpload) this.persistHistory()
     },
 
+    /** Reset a failed upload row so the scheduler picks it up for another go.
+     *  Reuses `entry.path` so the user doesn't need to re-pick the file from
+     *  disk, and clears stale per-attempt fields (error, progress, stage,
+     *  address/datamap, costs). Status flips to `queued_for_upload` so the
+     *  page scheduler re-runs `startRealUpload` and gets a fresh quote. */
+    retryUpload(id: number) {
+      const entry = this.files.find(f => f.id === id)
+      if (!entry || entry.kind !== 'upload' || entry.status !== 'failed') return
+      if (!entry.path) return
+      this.updateEntry(id, {
+        status: 'queued_for_upload',
+        error: undefined,
+        progress: undefined,
+        stage: undefined,
+        stageDone: undefined,
+        stageTotal: undefined,
+        address: undefined,
+        data_map_json: undefined,
+        data_map_file: undefined,
+        cost: undefined,
+        gas_cost: undefined,
+        alreadyStored: undefined,
+        duration: undefined,
+        transferStartedAt: Date.now(),
+      })
+    },
+
     /** Remove every upload row in a settled state. Persists. */
     clearUploadHistory() {
       this.files = this.files.filter(f =>

@@ -38,7 +38,7 @@ const statusMap: Record<string, { dot: string; label: string; color: string }> =
   'Saving datamap…': { dot: '◐', label: 'Saving datamap…', color: 'text-autonomi-warning' },
   'Network unavailable': { dot: '✖', label: 'Network unavailable', color: 'text-autonomi-error' },
   'Ready to approve': { dot: '●', label: 'Ready to approve', color: 'text-autonomi-blue' },
-  Paying: { dot: '◐', label: 'Paying', color: 'text-autonomi-warning' },
+  'Awaiting approval': { dot: '◐', label: 'Awaiting approval', color: 'text-autonomi-warning' },
   Uploading: { dot: '●', label: 'Uploading', color: 'text-autonomi-blue' },
   Downloading: { dot: '●', label: 'Downloading', color: 'text-autonomi-blue' },
   Complete: { dot: '●', label: 'Done', color: 'text-autonomi-success' },

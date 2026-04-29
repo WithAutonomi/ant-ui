@@ -378,6 +378,27 @@
       </div>
     </div>
 
+    <!-- Upload history (V2-232) — bulk clear lives here so it's not a
+         single click away on the Files page. Per-row × on hover handles
+         the common single-row case. -->
+    <div class="flex items-center justify-between rounded-lg border border-autonomi-border p-4">
+      <div class="min-w-0 flex-1">
+        <h3 class="text-sm font-medium">Upload history</h3>
+        <p class="mt-0.5 text-xs text-autonomi-muted">
+          {{ settledUploadCount }} settled
+          {{ settledUploadCount === 1 ? 'entry' : 'entries' }} in
+          <span class="font-mono">upload_history.json</span>. DataMaps on disk and chunks on the network are untouched.
+        </p>
+      </div>
+      <button
+        :disabled="settledUploadCount === 0"
+        class="shrink-0 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-error disabled:opacity-50 disabled:hover:text-autonomi-muted"
+        @click="confirmClearUploadHistory"
+      >
+        Clear history
+      </button>
+    </div>
+
     <!-- Software -->
     <div class="rounded-lg border border-autonomi-border p-4">
       <div class="flex items-start justify-between gap-3">
@@ -433,6 +454,7 @@ import { isValidEthAddress } from '~/utils/validators'
 import { useToastStore } from '~/stores/toasts'
 import { useErrorLogStore } from '~/stores/errorlog'
 import { useUpdaterStore } from '~/stores/updater'
+import { useFilesStore } from '~/stores/files'
 
 const settingsStore = useSettingsStore()
 const walletStore = useWalletStore()
@@ -440,9 +462,30 @@ const nodesStore = useNodesStore()
 const toasts = useToastStore()
 const errorLogStore = useErrorLogStore()
 const updaterStore = useUpdaterStore()
+const filesStore = useFilesStore()
 const showAdvanced = ref(false)
 const showLog = ref(false)
 const appVersion = ref('0.1.0')
+
+/** Number of settled (complete/failed) upload rows we'd wipe if Clear is
+ *  pressed. Mid-transfer rows survive — clearUploadHistory's filter only
+ *  drops complete + failed entries. */
+const settledUploadCount = computed(() =>
+  filesStore.settledUploads.filter(f => f.status === 'complete' || f.status === 'failed').length,
+)
+
+async function confirmClearUploadHistory() {
+  if (settledUploadCount.value === 0) return
+  // Native window.confirm is enough here — the sheet is already a settings
+  // page surface and the action is reversible only via OS-level file
+  // restoration on `upload_history.json`.
+  const ok = window.confirm(
+    `Clear ${settledUploadCount.value} upload ${settledUploadCount.value === 1 ? 'entry' : 'entries'} from history?\n\nThis removes the local row + persisted record. The DataMaps on disk and the chunks on the network are unaffected.`,
+  )
+  if (!ok) return
+  filesStore.clearUploadHistory()
+  toasts.add('Upload history cleared', 'info')
+}
 
 // Re-compute "Last checked X ago" every 30s so the label stays fresh while
 // the settings page is visible, without paying for a global ticker.
