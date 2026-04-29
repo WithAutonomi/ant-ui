@@ -152,6 +152,10 @@ export interface UploadHistoryEntry {
   /** Absolute path to the persisted DataMap file; `null`/absent for legacy
    *  entries written before datamap persistence was added. */
   data_map_file?: string | null
+  /** ETH gas cost (formatted string). `null`/absent for legacy entries
+   *  written before gas was tracked, or for already-stored uploads where
+   *  no payment tx ran. */
+  gas_cost?: string | null
 }
 
 export const useFilesStore = defineStore('files', {
@@ -238,6 +242,7 @@ export const useFilesStore = defineStore('files', {
             size_bytes: e.size_bytes,
             address: e.address,
             cost: e.cost ?? undefined,
+            gas_cost: e.gas_cost ?? undefined,
             data_map_file: e.data_map_file ?? undefined,
             status: 'complete',
             date: e.uploaded_at,
@@ -262,6 +267,7 @@ export const useFilesStore = defineStore('files', {
           cost: f.cost ?? null,
           uploaded_at: f.date,
           data_map_file: f.data_map_file ?? null,
+          gas_cost: f.gas_cost ?? null,
         }))
 
       try {

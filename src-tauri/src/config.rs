@@ -56,6 +56,11 @@ pub struct UploadHistoryEntry {
     /// persistence existed.
     #[serde(default)]
     pub data_map_file: Option<String>,
+    /// Pre-formatted ETH gas cost for the upload's payment tx(s). `None` for
+    /// legacy entries written before gas was tracked, or for already-stored
+    /// uploads where no payment tx ran.
+    #[serde(default)]
+    pub gas_cost: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
