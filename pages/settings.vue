@@ -162,6 +162,41 @@
           </div>
         </div>
 
+        <!-- Pre-release channel -->
+        <div class="rounded-lg border border-autonomi-border p-4">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <h3 class="text-sm font-medium">Pre-release builds</h3>
+              <p class="mt-1 text-xs text-autonomi-muted">
+                Receive auto-updates for pre-release builds (rc / beta) in addition to stable releases. Off by default.
+              </p>
+              <p
+                v-if="prereleaseChannelRestartRequired"
+                class="mt-1.5 text-xs font-medium text-amber-400"
+              >
+                Restart the app to apply this change.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              :aria-checked="settingsStore.prereleaseChannel"
+              :class="[
+                'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors',
+                settingsStore.prereleaseChannel ? 'bg-autonomi-blue' : 'bg-autonomi-border',
+              ]"
+              @click="onPrereleaseToggle"
+            >
+              <span
+                :class="[
+                  'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                  settingsStore.prereleaseChannel ? 'translate-x-6' : 'translate-x-1',
+                ]"
+              />
+            </button>
+          </div>
+        </div>
+
         <!-- Indelible Enterprise Connection (only show setup when not connected) -->
         <div v-if="!settingsStore.indelibleConnected" class="rounded-lg border border-autonomi-border p-4">
           <div class="flex items-center justify-between">
@@ -736,6 +771,14 @@ async function onConcurrencyChange(raw: string) {
   const n = Number.parseInt(raw, 10)
   if (!Number.isFinite(n)) return
   await settingsStore.setUploadConcurrency(n)
+}
+
+const prereleaseChannelRestartRequired = computed(
+  () => settingsStore.prereleaseChannel !== settingsStore.prereleaseChannelBootValue,
+)
+
+async function onPrereleaseToggle() {
+  await settingsStore.setPrereleaseChannel(!settingsStore.prereleaseChannel)
 }
 
 async function copyDiagnostics() {
