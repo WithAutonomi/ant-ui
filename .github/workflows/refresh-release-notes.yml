@@ -1,0 +1,96 @@
+name: refresh release notes
+# Patch the `notes` field of an already-published release's `latest.json`
+# from the current GitHub release body. Manual trigger — fire after the
+# release-notes editors have polished the auto-generated changelog into
+# something tester-readable.
+#
+# Why this exists
+# ----------------
+# Tauri's auto-updater reads release notes from the `notes` field of the
+# `latest.json` manifest, NOT from the GitHub release page body. The two
+# are independent: GitHub renders `release.body` on the web; the in-app
+# UpdateDialog renders whatever `latest.json.notes` contains. Our
+# `release.yml` builds latest.json with `notes: ""` because the
+# auto-generated changelog doesn't exist until *after* `gh release create`
+# runs (which is the same step that gives us the body), and editing
+# happens later still.
+#
+# This workflow closes that loop without re-running the ~22 min full
+# release build: download the existing latest.json, patch only `notes`
+# (sigs/URLs/platforms preserved), re-upload. ~30s start to finish.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v0.6.8-rc.1)"
+        required: true
+        type: string
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: validate tag exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "ERROR: release '$TAG' not found in $GITHUB_REPOSITORY" >&2
+            exit 1
+          fi
+
+      - name: download existing latest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release download "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern latest.json
+          # Sanity: must contain platforms with non-empty signatures, else
+          # we'd corrupt a release by overwriting with a bad manifest.
+          if ! jq -e '.platforms | length > 0' latest.json >/dev/null; then
+            echo "ERROR: existing latest.json is missing or malformed (no platforms)" >&2
+            jq . latest.json >&2 || true
+            exit 1
+          fi
+
+      - name: pull current release body
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json body \
+            --jq '.body' > release-body.md
+          echo "--- release body length: $(wc -c < release-body.md) bytes ---"
+
+      - name: patch notes field
+        run: |
+          set -euo pipefail
+          # `--rawfile` reads the body verbatim (preserves markdown, newlines).
+          # Only `.notes` is reassigned; everything else (version, pub_date,
+          # platforms with their sigs and URLs) round-trips unchanged.
+          jq --rawfile body release-body.md '.notes = $body' latest.json > latest.json.new
+          mv latest.json.new latest.json
+          echo "--- patched latest.json ---"
+          jq . latest.json
+
+      - name: re-upload latest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" latest.json \
+            --clobber \
+            --repo "$GITHUB_REPOSITORY"
+          echo "Refreshed notes for $TAG"
