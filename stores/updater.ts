@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
-import { markRaw } from 'vue'
-import { check, type Update } from '@tauri-apps/plugin-updater'
+import { invoke } from '@tauri-apps/api/core'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
 export interface CheckResult {
   ok: boolean
@@ -8,10 +8,22 @@ export interface CheckResult {
   error?: string
 }
 
+interface UpdateMetadata {
+  version: string
+  body: string | null
+  is_prerelease: boolean
+}
+
+type DownloadEvent =
+  | { event: 'Started'; data: { contentLength: number | null } }
+  | { event: 'Progress'; data: { chunkLength: number } }
+  | { event: 'Finished' }
+
+// Inputs that the Rust side surfaces verbatim from tauri-plugin-updater's
+// errors. The plugin's wording is consistent across versions, so the same
+// regex set the JS plugin path used works against the Rust-passthrough
+// strings too.
 function humaniseUpdateError(raw: string): string {
-  // tauri-plugin-updater surfaces `ReleaseNotFound` for any non-success HTTP
-  // response (404, 403, 500, …) with this exact string, so pin to it. The
-  // other phrases catch older plugin versions and direct log messages.
   if (/could not fetch a valid release json|release not found|did not respond with a successful status code|\b404\b|\bnot found\b/i.test(raw)) {
     return 'Cannot find latest version'
   }
@@ -29,13 +41,16 @@ export const useUpdaterStore = defineStore('updater', {
     available: false,
     version: null as string | null,
     body: null as string | null,
+    isPrerelease: false,
     installing: false,
     showDialog: false,
     downloadTotal: null as number | null,
     downloadedBytes: 0,
     checking: false,
     lastCheckedAt: null as number | null,
-    _update: null as Update | null,
+    /** Live listener for download progress while an install is in flight.
+     *  Cleared on Finished or on install failure. */
+    _downloadUnlisten: null as UnlistenFn | null,
   }),
 
   getters: {
@@ -50,21 +65,24 @@ export const useUpdaterStore = defineStore('updater', {
       if (this.checking) return { ok: false, available: false, error: 'Check already in progress' }
       this.checking = true
       try {
-        const update = await check()
+        // Custom Tauri command (see src-tauri/src/updater_channel.rs).
+        // Honours the prerelease_channel flag in AppConfig — stable users go
+        // through the standard /releases/latest/... redirect; pre-release
+        // testers get the latest tag including pre-releases via the GitHub API.
+        const meta = await invoke<UpdateMetadata | null>('check_for_update_custom')
         this.lastCheckedAt = Date.now()
-        if (update) {
+        if (meta) {
           this.available = true
-          this.version = update.version
-          this.body = update.body ?? null
-          // markRaw: Update has private fields that break when wrapped in
-          // Pinia's reactive Proxy — downloadAndInstall() silently no-ops.
-          this._update = markRaw(update)
+          this.version = meta.version
+          this.body = meta.body ?? null
+          this.isPrerelease = meta.is_prerelease
           return { ok: true, available: true }
         }
+        this.available = false
         return { ok: true, available: false }
       } catch (e: any) {
         console.error('Update check failed:', e)
-        const raw = e?.message ?? String(e)
+        const raw = typeof e === 'string' ? e : (e?.message ?? String(e))
         return { ok: false, available: false, error: humaniseUpdateError(raw) }
       } finally {
         this.checking = false
@@ -72,22 +90,32 @@ export const useUpdaterStore = defineStore('updater', {
     },
 
     async installUpdate() {
-      if (!this._update) return
+      if (!this.available) return
       this.installing = true
       this.downloadedBytes = 0
       this.downloadTotal = null
+
+      // Subscribe BEFORE invoking install so we don't lose the Started event
+      // when the download is fast (small installer, warm CDN).
+      this._downloadUnlisten = await listen<DownloadEvent>('update-download-event', (event) => {
+        const payload = event.payload
+        if (payload.event === 'Started') {
+          this.downloadTotal = payload.data.contentLength
+        } else if (payload.event === 'Progress') {
+          this.downloadedBytes += payload.data.chunkLength
+        }
+        // 'Finished' — Tauri will restart the app, no UI action needed.
+      })
+
       try {
-        await this._update.downloadAndInstall((event) => {
-          if (event.event === 'Started') {
-            this.downloadTotal = (event.data as any).contentLength ?? null
-          } else if (event.event === 'Progress') {
-            this.downloadedBytes += (event.data as any).chunkLength ?? 0
-          }
-          // 'Finished' — Tauri will restart the app
-        })
+        await invoke('install_pending_update')
       } catch (e) {
         console.error('Update install failed:', e)
         this.installing = false
+        if (this._downloadUnlisten) {
+          this._downloadUnlisten()
+          this._downloadUnlisten = null
+        }
       }
     },
   },
