@@ -1,4 +1,4 @@
-import { readContract, writeContract, waitForTransactionReceipt, getAccount } from '@wagmi/core'
+import { readContract, writeContract, waitForTransactionReceipt, getAccount, switchChain } from '@wagmi/core'
 import { getTokenAddress, getVaultAddress, getActiveChainId } from '~/utils/wallet-config'
 import paymentVaultAbi from '~/assets/abi/IPaymentVault.json'
 import paymentTokenAbi from '~/assets/abi/PaymentToken.json'
@@ -57,6 +57,21 @@ function getSignerAccount(wagmiConfig: any): `0x${string}` {
 }
 
 /**
+ * Make sure the connected wallet is on the chain we're about to write to.
+ * If not, request a switch — wagmi turns this into a `wallet_switchEthereumChain`
+ * request which prompts the user in the wallet (extension popup or
+ * WalletConnect mobile push). For the direct-key (devnet wallet import)
+ * path we skip — that wallet always sits on the manifest's chain.
+ */
+async function ensureActiveChain(wagmiConfig: any): Promise<void> {
+  if (getDevnetAccount?.()) return
+  const target = getActiveChainId()
+  const account = getAccount(wagmiConfig)
+  if (account.chainId === target) return
+  await switchChain(wagmiConfig, { chainId: target })
+}
+
+/**
  * Build the account option for writeContract.
  */
 function accountOpt(): { account: any } | {} {
@@ -75,6 +90,8 @@ export async function payForQuotes(
   if (payments.length === 0) {
     return { txHashMap: {}, totalPaid: 0n, gasSpent: 0n }
   }
+
+  await ensureActiveChain(wagmiConfig)
 
   const totalAmount = payments.reduce(
     (sum, [, , amount]) => sum + BigInt(amount),
@@ -99,6 +116,14 @@ export async function payForQuotes(
       functionName: 'payForQuotes',
       args: [input],
       chainId: getActiveChainId(),
+      // V2-231: override both EIP-1559 fees explicitly. viem only
+      // auto-estimates the side that's missing, so passing only one
+      // produces an invalid pair (maxFee=baseFee < maxPriority).
+      // Arbitrum base fees are ~0.02 gwei; 1 gwei cap = ~50× headroom;
+      // 0.1 gwei tip is performative (Arbitrum sequencer doesn't
+      // tip-prioritize). Ceiling cost: ~1 gwei × ~150k gas ≈ 0.00015 ETH.
+      maxFeePerGas: 1_000_000_000n,
+      maxPriorityFeePerGas: 100_000_000n,
       ...accountOpt(),
     })
 
@@ -127,6 +152,8 @@ export async function payForMerkleTree(
   poolCommitments: SerializedPoolCommitment[],
   merkleTimestamp: bigint,
 ): Promise<MerklePaymentResult> {
+  await ensureActiveChain(wagmiConfig)
+
   const commitments = poolCommitments.map(pc => ({
     poolHash: pc.pool_hash as `0x${string}`,
     candidates: pc.candidates.map(c => ({
@@ -148,6 +175,9 @@ export async function payForMerkleTree(
     functionName: 'payForMerkleTree',
     args: [depth, commitments, merkleTimestamp],
     chainId: getActiveChainId(),
+    // V2-231: override BOTH fees so EIP-1559's maxFee >= maxPriority holds.
+    maxFeePerGas: 1_000_000_000n,
+    maxPriorityFeePerGas: 100_000_000n,
     ...accountOpt(),
   })
 
@@ -205,6 +235,9 @@ async function ensureAllowance(wagmiConfig: any, needed: bigint): Promise<bigint
     functionName: 'approve',
     args: [getVaultAddress(), needed],
     chainId: getActiveChainId(),
+    // V2-231: override BOTH fees so EIP-1559's maxFee >= maxPriority holds.
+    maxFeePerGas: 1_000_000_000n,
+    maxPriorityFeePerGas: 100_000_000n,
     ...accountOpt(),
   })
 

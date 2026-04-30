@@ -152,6 +152,10 @@ export interface UploadHistoryEntry {
   /** Absolute path to the persisted DataMap file; `null`/absent for legacy
    *  entries written before datamap persistence was added. */
   data_map_file?: string | null
+  /** ETH gas cost (formatted string). `null`/absent for legacy entries
+   *  written before gas was tracked, or for already-stored uploads where
+   *  no payment tx ran. */
+  gas_cost?: string | null
 }
 
 export const useFilesStore = defineStore('files', {
@@ -162,6 +166,11 @@ export const useFilesStore = defineStore('files', {
     /** True once the Rust progress event listeners have been wired up.
      *  Idempotent — safe to call setupProgressListeners() multiple times. */
     _progressListenersStarted: false,
+    /** Maps a Rust-side transfer_id (string) to its FileEntry row id (number).
+     *  The wallet/download paths use `String(id)` so the listener falls through
+     *  to a numeric parse; the external-signer path uses an opaque `quote-…`
+     *  id assigned by `getUploadQuote`, which we register here. */
+    _transferIdToRowId: {} as Record<string, number>,
   }),
 
   getters: {
@@ -233,6 +242,7 @@ export const useFilesStore = defineStore('files', {
             size_bytes: e.size_bytes,
             address: e.address,
             cost: e.cost ?? undefined,
+            gas_cost: e.gas_cost ?? undefined,
             data_map_file: e.data_map_file ?? undefined,
             status: 'complete',
             date: e.uploaded_at,
@@ -257,6 +267,7 @@ export const useFilesStore = defineStore('files', {
           cost: f.cost ?? null,
           uploaded_at: f.date,
           data_map_file: f.data_map_file ?? null,
+          gas_cost: f.gas_cost ?? null,
         }))
 
       try {
@@ -277,7 +288,11 @@ export const useFilesStore = defineStore('files', {
       this._progressListenersStarted = true
 
       const apply = (payload: ProgressEventPayload) => {
-        const id = Number(payload.transfer_id)
+        // External-signer flow registers a string→row mapping; wallet/download
+        // flows just stringify the row id. Try the map first, fall back to a
+        // numeric parse.
+        const mapped = this._transferIdToRowId[payload.transfer_id]
+        const id = mapped ?? Number(payload.transfer_id)
         if (!Number.isFinite(id)) return
         // The transfer may have already settled (failed / completed) by the
         // time a tail-end event arrives; updateEntry no-ops on missing ids.
@@ -310,6 +325,33 @@ export const useFilesStore = defineStore('files', {
       const wasUpload = this.files[idx].kind === 'upload'
       this.files.splice(idx, 1)
       if (wasUpload) this.persistHistory()
+    },
+
+    /** Reset a failed upload row so the scheduler picks it up for another go.
+     *  Reuses `entry.path` so the user doesn't need to re-pick the file from
+     *  disk, and clears stale per-attempt fields (error, progress, stage,
+     *  address/datamap, costs). Status flips to `queued_for_upload` so the
+     *  page scheduler re-runs `startRealUpload` and gets a fresh quote. */
+    retryUpload(id: number) {
+      const entry = this.files.find(f => f.id === id)
+      if (!entry || entry.kind !== 'upload' || entry.status !== 'failed') return
+      if (!entry.path) return
+      this.updateEntry(id, {
+        status: 'queued_for_upload',
+        error: undefined,
+        progress: undefined,
+        stage: undefined,
+        stageDone: undefined,
+        stageTotal: undefined,
+        address: undefined,
+        data_map_json: undefined,
+        data_map_file: undefined,
+        cost: undefined,
+        gas_cost: undefined,
+        alreadyStored: undefined,
+        duration: undefined,
+        transferStartedAt: Date.now(),
+      })
     },
 
     /** Remove every upload row in a settled state. Persists. */
@@ -429,8 +471,17 @@ export const useFilesStore = defineStore('files', {
      *  daemon. Used internally by `startRealUpload` after the user clicks
      *  Confirm — not for display. For pre-upload cost display, use
      *  `estimateFileCost` instead. */
-    async getUploadQuote(path: string): Promise<UploadQuote | null> {
+    async getUploadQuote(path: string, transferRowId?: number): Promise<UploadQuote | null> {
       const uploadId = `quote-${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+      // If the caller has a row to drive a progress bar on, register the
+      // transfer_id → row mapping NOW (before invoke). The Rust side starts
+      // emitting upload-progress events as soon as encryption begins; if we
+      // registered after `start_upload` returns we'd lose the entire quote
+      // phase (0–50%).
+      if (transferRowId !== undefined) {
+        this._transferIdToRowId[uploadId] = transferRowId
+      }
 
       // Deferred so the listener can resolve independently of where the
       // Promise is awaited.
@@ -552,11 +603,18 @@ export const useFilesStore = defineStore('files', {
           // there is a single implementation of the listen+invoke dance.
           if (!entry.path) throw new Error('Upload entry has no file path')
           this.updateEntry(id, { status: 'quoting' })
-          const fresh = await this.getUploadQuote(entry.path)
+          const fresh = await this.getUploadQuote(entry.path, id)
           if (!fresh) throw new Error('Failed to get quote from network')
           uploadId = fresh.upload_id
           quote = fresh
           this.updateEntry(id, { cost: quote.total_cost_display })
+        }
+
+        // For the dialog flow (preQuote already in hand) the mapping wasn't
+        // registered during the dialog's getUploadQuote call. Register it
+        // here so confirm_upload's storage events route to the right row.
+        if (preQuote) {
+          this._transferIdToRowId[uploadId] = id
         }
 
         this.updateEntry(id, { status: 'paying' })

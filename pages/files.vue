@@ -37,13 +37,10 @@
     <section class="mb-6">
       <div class="mb-2 flex items-center justify-between">
         <h2 class="text-sm font-medium text-autonomi-text">Uploads</h2>
-        <button
-          v-if="hasSettledUploads"
-          class="text-xs text-autonomi-muted hover:text-autonomi-text"
-          @click="filesStore.clearUploadHistory()"
-        >
-          Clear History
-        </button>
+        <!-- Bulk "Clear history" lives in Settings → Storage now (V2-232).
+             Per-row × on hover handles the common case of trimming a single
+             failed/complete entry; bulk wipe is gated behind a confirmation
+             dialog over there to prevent accidental data loss. -->
       </div>
 
       <div class="relative">
@@ -87,10 +84,10 @@
                 <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('name')">
                   Name {{ uploadSortIndicator('name') }}
                 </th>
+                <th class="px-4 py-2.5">Status</th>
                 <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('size_bytes')">
                   Size {{ uploadSortIndicator('size_bytes') }}
                 </th>
-                <th class="px-4 py-2.5">Status</th>
                 <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('cost')">
                   Cost {{ uploadSortIndicator('cost') }}
                 </th>
@@ -98,22 +95,36 @@
                 <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('date')">
                   Date {{ uploadSortIndicator('date') }}
                 </th>
+                <th class="w-px px-2 py-2.5"><span class="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody class="divide-y divide-autonomi-border">
               <tr
                 v-for="file in sortedUploads"
                 :key="file.id"
-                class="transition-colors"
+                class="group transition-colors"
                 :class="rowClass(file)"
                 @click="onRowClick(file)"
               >
-                <td class="px-4 py-2.5">{{ file.name }}</td>
-                <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
                 <td class="px-4 py-2.5">
-                  <StatusBadge :status="statusLabel(file)" />
-                  <ProgressLine v-if="showsProgressBar(file)" :detail="stageDetail(file)" :percent="file.progress" />
+                  <div>{{ file.name }}</div>
+                  <ProgressLine
+                    v-if="showsProgressBar(file)"
+                    :percent="file.progress"
+                    :kind="file.kind"
+                    :status="file.status"
+                    :stage="file.stage"
+                    :stage-done="file.stageDone"
+                    :stage-total="file.stageTotal"
+                  />
                 </td>
+                <td class="px-4 py-2.5 align-top">
+                  <div><StatusBadge :status="statusLabel(file)" /></div>
+                  <div v-if="showsProgressBar(file) && stageDetail(file)" class="mt-1 text-[10px] leading-tight text-autonomi-muted">
+                    {{ stageDetail(file) }}
+                  </div>
+                </td>
+                <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
                 <td class="px-4 py-2.5 text-autonomi-muted">
                   <template v-if="file.alreadyStored">
                     <span class="text-green-400">Free — already stored</span>
@@ -142,6 +153,25 @@
                   <span v-else class="text-autonomi-muted">-</span>
                 </td>
                 <td class="px-4 py-2.5 text-autonomi-muted">{{ formatDate(file.date) }}</td>
+                <td class="px-2 py-2.5 text-right whitespace-nowrap">
+                  <span v-if="isSettled(file)" class="inline-flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      v-if="canRetry(file)"
+                      class="rounded px-1.5 py-0.5 text-[11px] text-autonomi-muted hover:bg-autonomi-surface hover:text-autonomi-blue"
+                      title="Retry upload"
+                      @click.stop="onRetry(file)"
+                    >
+                      ↻ Retry
+                    </button>
+                    <button
+                      class="rounded px-1.5 py-0.5 text-[11px] text-autonomi-muted hover:bg-autonomi-surface hover:text-autonomi-error"
+                      title="Remove from list"
+                      @click.stop="onRemove(file)"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -177,34 +207,59 @@
               <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleDownloadSort('name')">
                 Name {{ downloadSortIndicator('name') }}
               </th>
+              <th class="px-4 py-2.5">Status</th>
               <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleDownloadSort('size_bytes')">
                 Size {{ downloadSortIndicator('size_bytes') }}
               </th>
-              <th class="px-4 py-2.5">Status</th>
               <th class="px-4 py-2.5">Saved to</th>
               <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleDownloadSort('date')">
                 Date {{ downloadSortIndicator('date') }}
               </th>
+              <th class="w-px px-2 py-2.5"><span class="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-autonomi-border">
             <tr
               v-for="file in sortedDownloads"
               :key="file.id"
-              class="transition-colors"
+              class="group transition-colors"
               :class="rowClass(file)"
               @click="onRowClick(file)"
             >
-              <td class="px-4 py-2.5">{{ file.name }}</td>
-              <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
               <td class="px-4 py-2.5">
-                <StatusBadge :status="statusLabel(file)" />
-                <ProgressLine v-if="showsProgressBar(file)" :detail="stageDetail(file)" :percent="file.progress" />
+                <div>{{ file.name }}</div>
+                <ProgressLine
+                  v-if="showsProgressBar(file)"
+                  :percent="file.progress"
+                  :kind="file.kind"
+                  :status="file.status"
+                  :stage="file.stage"
+                  :stage-done="file.stageDone"
+                  :stage-total="file.stageTotal"
+                />
               </td>
+              <td class="px-4 py-2.5 align-top">
+                <div><StatusBadge :status="statusLabel(file)" /></div>
+                <div v-if="showsProgressBar(file) && stageDetail(file)" class="mt-1 text-[10px] leading-tight text-autonomi-muted">
+                  {{ stageDetail(file) }}
+                </div>
+              </td>
+              <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
               <td class="px-4 py-2.5 font-mono text-xs text-autonomi-muted">
                 {{ file.dest_path ? basenameOf(file.dest_path) : '-' }}
               </td>
               <td class="px-4 py-2.5 text-autonomi-muted">{{ formatDate(file.date) }}</td>
+              <td class="px-2 py-2.5 text-right whitespace-nowrap">
+                <span v-if="isSettled(file)" class="inline-flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <button
+                    class="rounded px-1.5 py-0.5 text-[11px] text-autonomi-muted hover:bg-autonomi-surface hover:text-autonomi-error"
+                    title="Remove from list"
+                    @click.stop="onRemove(file)"
+                  >
+                    ✕
+                  </button>
+                </span>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -362,10 +417,6 @@ const sortedDownloads = computed(() => {
   return [...pinned, ...settled]
 })
 
-const hasSettledUploads = computed(() =>
-  filesStore.settledUploads.some(f => f.status === 'complete' || f.status === 'failed'),
-)
-
 const hasSettledDownloads = computed(() =>
   filesStore.settledDownloads.some(f => f.status !== 'downloading'),
 )
@@ -388,8 +439,22 @@ function statusLabel(file: FileEntry): string {
     return 'Saving datamap…'
   }
 
-  if (file.status === 'uploading') return 'Uploading'
-  if (file.status === 'downloading') return 'Downloading'
+  if (file.status === 'uploading') {
+    // Wallet-flow direct-key uploads pre-set status='uploading' before the
+    // Rust side has gone through encrypt/quote, so the badge would say
+    // "Uploading" while the sub-text counts up "Quoting 0..100%". Defer
+    // to the actual stage when it disagrees with the outer status.
+    if (file.stage === 'encrypting') return 'Encrypting…'
+    if (file.stage === 'quoting') return 'Quoting'
+    return 'Uploading'
+  }
+  if (file.status === 'downloading') {
+    // Same logic for downloads — datamap resolution can run a few seconds
+    // before chunk fetching starts, and the user shouldn't see "Downloading"
+    // while we're still pulling the datamap apart.
+    if (file.stage === 'resolving') return 'Resolving datamap'
+    return 'Downloading'
+  }
   if (file.status === 'downloaded') return 'Downloaded'
   if (file.status === 'failed') return file.error ? `Failed: ${file.error}` : 'Failed'
   if (file.status === 'complete') return 'Complete'
@@ -401,7 +466,10 @@ function statusLabel(file: FileEntry): string {
     return 'Obtaining quote…'
   }
   if (file.status === 'awaiting_approval') return 'Ready to approve'
-  if (file.status === 'paying') return 'Paying'
+  // `paying` is only reachable from the external-signer flow (wallet-flow
+  // direct-key never enters this state — Rust drives payment internally),
+  // so we can label it for that context unconditionally.
+  if (file.status === 'paying') return 'Awaiting approval'
   return file.status
 }
 
@@ -433,11 +501,44 @@ function stageDetail(file: FileEntry): string | null {
   }
 }
 
-/** Whether the row should render a progress bar. Bar is shown for any active
- *  transfer state — even when percent is null (encryption phase) we render
- *  an indeterminate bar so the user sees motion. */
+/** Whether the row should render a progress bar. Shown for every active
+ *  transfer state where progress events are flowing or could flow:
+ *
+ *  - `quoting`     — start_upload emits Encrypting/Encrypted/ChunkQuoted (0..50%)
+ *  - `paying`      — bar freezes at 50% while the wallet popup is open
+ *  - `uploading`   — confirm_upload emits ChunkStored (50..100%)
+ *  - `downloading` — file_download emits ChunksFetched (0..100%)
+ *
+ *  Even when `percent` is null (encryption, before total chunks are known)
+ *  we render an indeterminate bar so the user sees motion. */
 function showsProgressBar(file: FileEntry): boolean {
-  return file.status === 'uploading' || file.status === 'downloading'
+  return (
+    file.status === 'quoting'
+    || file.status === 'paying'
+    || file.status === 'uploading'
+    || file.status === 'downloading'
+  )
+}
+
+/** Settled = not currently transferring or queued. Per-row Remove and (for
+ *  failed uploads) Retry are gated on this — we don't want a row to vanish
+ *  mid-store. */
+function isSettled(file: FileEntry): boolean {
+  return file.status === 'failed' || file.status === 'complete' || file.status === 'downloaded'
+}
+
+/** Retry only applies to failed uploads — failed downloads need a different
+ *  re-fetch path that's not in scope for this iteration. */
+function canRetry(file: FileEntry): boolean {
+  return file.kind === 'upload' && file.status === 'failed' && !!file.path
+}
+
+function onRetry(file: FileEntry) {
+  filesStore.retryUpload(file.id)
+}
+
+function onRemove(file: FileEntry) {
+  filesStore.removeEntry(file.id)
 }
 
 function isReopenable(file: FileEntry): boolean {
