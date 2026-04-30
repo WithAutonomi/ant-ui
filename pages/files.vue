@@ -136,7 +136,16 @@
                 </td>
                 <td class="px-4 py-2.5">
                   <span
-                    v-if="file.data_map_file"
+                    v-if="file.public_address"
+                    class="inline-flex cursor-pointer items-center gap-1.5 font-mono text-xs text-autonomi-blue hover:text-autonomi-blue/80"
+                    title="Public upload — click to copy the shareable network address"
+                    @click.stop="copyPublicAddress(file.public_address)"
+                  >
+                    <span class="rounded bg-autonomi-blue/15 px-1 py-px text-[9px] font-sans uppercase tracking-wider">Public</span>
+                    {{ truncateAddress(file.public_address, 8, 6) }}
+                  </span>
+                  <span
+                    v-else-if="file.data_map_file"
                     class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue"
                     :title="`Reveal ${datamapBasename(file.data_map_file)} in its folder`"
                     @click.stop="openFolder(file.data_map_file)"
@@ -294,6 +303,7 @@
       @approve="approveUpload"
       @cancel-upload="cancelPendingUploads"
       @close="closeUploadDialog"
+      @visibility-change="onVisibilityChange"
     />
 
     <FilesCostEstimateDialog
@@ -655,6 +665,16 @@ function reopenUploadDialog(id: number) {
   showUploadConfirm.value = true
 }
 
+// Public uploads pay for one extra chunk (the data map itself), so the quote
+// has to be redone when the user flips visibility. We update each selected
+// entry; the scheduler re-quotes any that aren't yet awaiting_approval, and
+// the Approve handler picks up the final visibility regardless.
+function onVisibilityChange(visibility: 'private' | 'public') {
+  for (const id of selectedFileIds.value) {
+    filesStore.updateEntry(id, { visibility })
+  }
+}
+
 function approveUpload(options: { visibility: 'private' | 'public'; paymentMode: 'regular' | 'merkle' }) {
   showUploadConfirm.value = false
   const ids = selectedFileIds.value.slice()
@@ -1006,6 +1026,11 @@ async function openFolder(path: string) {
 function copyAddress(addr: string) {
   navigator.clipboard.writeText(addr)
   toastStore.add('Address copied to clipboard', 'info')
+}
+
+function copyPublicAddress(addr: string) {
+  navigator.clipboard.writeText(addr)
+  toastStore.add('Public address copied — share to let others download this file', 'info')
 }
 
 function datamapBasename(path: string): string {
