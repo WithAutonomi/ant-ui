@@ -170,12 +170,21 @@
               <p class="mt-1 text-xs text-autonomi-muted">
                 Receive auto-updates for pre-release builds (rc / beta) in addition to stable releases. Off by default.
               </p>
-              <p
+              <div
                 v-if="prereleaseChannelRestartRequired"
-                class="mt-1.5 text-xs font-medium text-amber-400"
+                class="mt-1.5 flex items-center gap-2"
               >
-                Restart the app to apply this change.
-              </p>
+                <p class="text-xs font-medium text-amber-400">
+                  Restart the app to apply this change.
+                </p>
+                <button
+                  type="button"
+                  class="rounded-md border border-amber-400/40 px-2 py-0.5 text-xs font-medium text-amber-400 hover:bg-amber-400/10"
+                  @click="relaunchApp"
+                >
+                  Restart now
+                </button>
+              </div>
             </div>
             <button
               type="button"
@@ -779,6 +788,11 @@ const prereleaseChannelRestartRequired = computed(
 
 async function onPrereleaseToggle() {
   await settingsStore.setPrereleaseChannel(!settingsStore.prereleaseChannel)
+}
+
+async function relaunchApp() {
+  const { relaunch } = await import('@tauri-apps/plugin-process')
+  await relaunch()
 }
 
 async function copyDiagnostics() {
