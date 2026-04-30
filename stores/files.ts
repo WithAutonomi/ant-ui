@@ -48,6 +48,24 @@ export type FileStatus =
   | 'downloaded'         // Download complete, waiting for user to open folder
   | 'failed'             // Transfer failed
 
+/** Sub-stage inside an active transfer. Maps 1:1 to ant-core's UploadEvent /
+ *  DownloadEvent variants surfaced by the Rust progress forwarder. Drives the
+ *  detailed label under the status badge ("Encrypting", "Quoting 12/64", ...). */
+export type TransferStage =
+  | 'encrypting'
+  | 'quoting'
+  | 'uploading'
+  | 'resolving'
+  | 'downloading'
+
+interface ProgressEventPayload {
+  transfer_id: string
+  stage: TransferStage
+  done: number
+  total: number | null
+  percent: number | null
+}
+
 export interface FileEntry {
   /** Unique ID for reactive tracking */
   id: number
@@ -77,6 +95,14 @@ export interface FileEntry {
   status: FileStatus
   /** Transfer progress 0-100 */
   progress?: number
+  /** Sub-stage inside the active transfer, populated by upload-progress /
+   *  download-progress events. Ephemeral — cleared when the transfer settles. */
+  stage?: TransferStage
+  /** Cumulative chunks completed in the current stage (paired with stageTotal). */
+  stageDone?: number
+  /** Total chunks for the current stage; absent during encryption (total
+   *  unknown until encryption finishes). */
+  stageTotal?: number
   /** Local destination path (for downloads) */
   dest_path?: string
   /** When the entry was created/uploaded */
@@ -133,6 +159,9 @@ export const useFilesStore = defineStore('files', {
     files: [] as FileEntry[],
     nextId: 1,
     historyLoaded: false,
+    /** True once the Rust progress event listeners have been wired up.
+     *  Idempotent — safe to call setupProgressListeners() multiple times. */
+    _progressListenersStarted: false,
   }),
 
   getters: {
@@ -235,6 +264,33 @@ export const useFilesStore = defineStore('files', {
       } catch (e) {
         console.error('Failed to save upload history:', e)
       }
+    },
+
+    // ── Progress event plumbing ──
+
+    /** Subscribe to upload-progress / download-progress events from the Rust
+     *  backend and route them to the matching FileEntry. The Rust side echoes
+     *  the entry id (as a string) as `transfer_id`, so we just parse it back
+     *  and updateEntry. Idempotent — only wires once per session. */
+    async setupProgressListeners() {
+      if (this._progressListenersStarted) return
+      this._progressListenersStarted = true
+
+      const apply = (payload: ProgressEventPayload) => {
+        const id = Number(payload.transfer_id)
+        if (!Number.isFinite(id)) return
+        // The transfer may have already settled (failed / completed) by the
+        // time a tail-end event arrives; updateEntry no-ops on missing ids.
+        this.updateEntry(id, {
+          stage: payload.stage,
+          stageDone: payload.done,
+          stageTotal: payload.total ?? undefined,
+          progress: payload.percent ?? undefined,
+        })
+      }
+
+      await listen<ProgressEventPayload>('upload-progress', e => apply(e.payload))
+      await listen<ProgressEventPayload>('download-progress', e => apply(e.payload))
     },
 
     // ── Entry management ──
@@ -446,7 +502,8 @@ export const useFilesStore = defineStore('files', {
           this.updateEntry(id, { status: 'failed', error: 'Upload entry has no file path' })
           return
         }
-        const walletUploadId = `wallet-${Date.now()}-${Math.random().toString(36).slice(2)}`
+        // Use the entry id as the transfer_id so Rust-side progress events
+        // (upload-progress) route straight back to this row.
         this.updateEntry(id, { status: 'uploading', progress: 0 })
         try {
           const result = await invoke<{
@@ -455,7 +512,7 @@ export const useFilesStore = defineStore('files', {
             address: string
             chunks_stored: number
             data_map_file: string
-          }>('wallet_upload', { uploadId: walletUploadId, filePath: entry.path })
+          }>('wallet_upload', { uploadId: String(id), filePath: entry.path })
 
           const duration = entry.transferStartedAt
             ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
@@ -468,6 +525,9 @@ export const useFilesStore = defineStore('files', {
             data_map_file: result.data_map_file,
             duration,
             transferStartedAt: undefined,
+            stage: undefined,
+            stageDone: undefined,
+            stageTotal: undefined,
           })
           await this.persistHistory()
           toasts.add(`Upload complete: ${entry.name}`, 'info')
@@ -709,10 +769,12 @@ export const useFilesStore = defineStore('files', {
         // invoke's rejection.
         const request = entry.data_map_json
           ? invoke('download_file', {
+              transferId: String(id),
               dataMapJson: entry.data_map_json,
               destPath: entry.dest_path,
             })
           : invoke('download_public', {
+              transferId: String(id),
               address: entry.address,
               destPath: entry.dest_path,
             })
@@ -726,6 +788,9 @@ export const useFilesStore = defineStore('files', {
           status: 'downloaded',
           progress: 100,
           duration,
+          stage: undefined,
+          stageDone: undefined,
+          stageTotal: undefined,
         })
         toasts.add(`Download complete: ${entry.name}`, 'info')
       } catch (e: any) {

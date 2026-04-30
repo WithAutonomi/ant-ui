@@ -1,6 +1,6 @@
 use ant_core::data::{
-    Client, ClientConfig, CustomNetwork, DataMap, EvmNetwork, ExternalPaymentInfo, PaymentMode,
-    PreparedUpload, UploadCostEstimate,
+    Client, ClientConfig, CustomNetwork, DataMap, DownloadEvent, EvmNetwork, ExternalPaymentInfo,
+    PaymentMode, PreparedUpload, UploadCostEstimate, UploadEvent,
 };
 use evmlib::common::{QuoteHash, TxHash};
 use evmlib::wallet::Wallet;
@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, Manager};
-use tokio::sync::RwLock;
+use tokio::sync::{mpsc, RwLock};
 
 #[derive(Deserialize)]
 struct BootstrapPeersFile {
@@ -173,6 +173,150 @@ pub struct UploadResult {
 pub struct StartUploadRequest {
     pub files: Vec<String>,
     pub upload_id: String,
+}
+
+// ── Progress forwarders ──
+//
+// Spawn a tokio task that drains an mpsc receiver of UploadEvent / DownloadEvent
+// and re-emits them as Tauri events. The frontend listens for `upload-progress`
+// / `download-progress` keyed by `transfer_id` and updates the row in place.
+//
+// Channels are bounded — the receiver task is the only consumer, so back-pressure
+// just slows the upload/download loop. The senders inside ant-core use try_send
+// for high-volume events so we never block the network futures on a busy UI.
+
+/// Wire-shape of the `upload-progress` Tauri event. The `percent` field is
+/// pre-computed so the UI can drive the progress bar without re-deriving it,
+/// and is `None` while the chunk total is still unknown (encryption phase).
+#[derive(Serialize, Clone, Debug)]
+struct UploadProgressPayload {
+    transfer_id: String,
+    stage: &'static str,
+    done: usize,
+    total: Option<usize>,
+    percent: Option<f32>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+struct DownloadProgressPayload {
+    transfer_id: String,
+    stage: &'static str,
+    done: usize,
+    total: Option<usize>,
+    percent: Option<f32>,
+}
+
+/// Map an UploadEvent into the wire payload. Quoting is treated as the first
+/// half of the bar (0..50%) and storage as the second half (50..100%) so the
+/// user sees continuous forward motion across both phases.
+fn map_upload_event(transfer_id: &str, ev: UploadEvent) -> Option<UploadProgressPayload> {
+    let id = transfer_id.to_string();
+    Some(match ev {
+        UploadEvent::Encrypting { chunks_done } => UploadProgressPayload {
+            transfer_id: id,
+            stage: "encrypting",
+            done: chunks_done,
+            total: None,
+            percent: None,
+        },
+        UploadEvent::Encrypted { total_chunks } => UploadProgressPayload {
+            transfer_id: id,
+            stage: "quoting",
+            done: 0,
+            total: Some(total_chunks),
+            percent: Some(0.0),
+        },
+        UploadEvent::QuotingChunks { .. } => return None,
+        UploadEvent::ChunkQuoted { quoted, total } => UploadProgressPayload {
+            transfer_id: id,
+            stage: "quoting",
+            done: quoted,
+            total: Some(total),
+            percent: Some(percent_of(quoted, total) * 0.5),
+        },
+        UploadEvent::ChunkStored { stored, total } => UploadProgressPayload {
+            transfer_id: id,
+            stage: "uploading",
+            done: stored,
+            total: Some(total),
+            percent: Some(50.0 + percent_of(stored, total) * 0.5),
+        },
+        UploadEvent::WaveComplete { .. } => return None,
+    })
+}
+
+fn map_download_event(transfer_id: &str, ev: DownloadEvent) -> DownloadProgressPayload {
+    let id = transfer_id.to_string();
+    match ev {
+        DownloadEvent::ResolvingDataMap { total_map_chunks } => DownloadProgressPayload {
+            transfer_id: id,
+            stage: "resolving",
+            done: 0,
+            total: Some(total_map_chunks),
+            percent: None,
+        },
+        DownloadEvent::MapChunkFetched { fetched } => DownloadProgressPayload {
+            transfer_id: id,
+            stage: "resolving",
+            done: fetched,
+            total: None,
+            percent: None,
+        },
+        DownloadEvent::DataMapResolved { total_chunks } => DownloadProgressPayload {
+            transfer_id: id,
+            stage: "downloading",
+            done: 0,
+            total: Some(total_chunks),
+            percent: Some(0.0),
+        },
+        DownloadEvent::ChunksFetched { fetched, total } => DownloadProgressPayload {
+            transfer_id: id,
+            stage: "downloading",
+            done: fetched,
+            total: Some(total),
+            percent: Some(percent_of(fetched, total)),
+        },
+    }
+}
+
+fn percent_of(done: usize, total: usize) -> f32 {
+    if total == 0 {
+        0.0
+    } else {
+        (done as f32 / total as f32) * 100.0
+    }
+}
+
+/// Spawn a forwarder task that re-emits UploadEvents as `upload-progress`.
+/// Returns the sender end — drop it (or let the upload future drop it) to
+/// shut the forwarder down cleanly.
+fn spawn_upload_progress_forwarder(
+    app: AppHandle,
+    transfer_id: String,
+) -> mpsc::Sender<UploadEvent> {
+    let (tx, mut rx) = mpsc::channel::<UploadEvent>(64);
+    tokio::spawn(async move {
+        while let Some(ev) = rx.recv().await {
+            if let Some(payload) = map_upload_event(&transfer_id, ev) {
+                let _ = app.emit("upload-progress", &payload);
+            }
+        }
+    });
+    tx
+}
+
+fn spawn_download_progress_forwarder(
+    app: AppHandle,
+    transfer_id: String,
+) -> mpsc::Sender<DownloadEvent> {
+    let (tx, mut rx) = mpsc::channel::<DownloadEvent>(64);
+    tokio::spawn(async move {
+        while let Some(ev) = rx.recv().await {
+            let payload = map_download_event(&transfer_id, ev);
+            let _ = app.emit("download-progress", &payload);
+        }
+    });
+    tx
 }
 
 // ── Tauri commands ──
@@ -792,8 +936,10 @@ pub async fn wallet_upload(
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "upload".to_string());
 
+    let progress_tx = spawn_upload_progress_forwarder(app.clone(), upload_id.clone());
+
     let result = client
-        .file_upload(&canonical)
+        .file_upload_with_progress(&canonical, PaymentMode::Auto, Some(progress_tx))
         .await
         .map_err(|e| format!("Upload failed: {e}"))?;
 
@@ -828,6 +974,7 @@ pub async fn wallet_upload(
 pub async fn download_file(
     app: AppHandle,
     state: tauri::State<'_, AutonomiState>,
+    transfer_id: String,
     data_map_json: String,
     dest_path: String,
 ) -> Result<u64, String> {
@@ -839,7 +986,7 @@ pub async fn download_file(
     let data_map: DataMap =
         serde_json::from_str(&data_map_json).map_err(|e| format!("Invalid DataMap: {e}"))?;
 
-    download_with_datamap(client, &data_map, &dest_path, &app).await
+    download_with_datamap(client, &data_map, &dest_path, &app, transfer_id).await
 }
 
 /// Fetch a DataMap from the network by its public chunk address, then
@@ -850,6 +997,7 @@ pub async fn download_file(
 pub async fn download_public(
     app: AppHandle,
     state: tauri::State<'_, AutonomiState>,
+    transfer_id: String,
     address: String,
     dest_path: String,
 ) -> Result<u64, String> {
@@ -869,7 +1017,7 @@ pub async fn download_public(
         .await
         .map_err(|e| format!("No data map at that address: {e}"))?;
 
-    download_with_datamap(client, &data_map, &dest_path, &app).await
+    download_with_datamap(client, &data_map, &dest_path, &app, transfer_id).await
 }
 
 async fn download_with_datamap(
@@ -877,6 +1025,7 @@ async fn download_with_datamap(
     data_map: &DataMap,
     dest_path: &str,
     app: &AppHandle,
+    transfer_id: String,
 ) -> Result<u64, String> {
     let dest = expand_tilde(dest_path);
 
@@ -894,8 +1043,10 @@ async fn download_with_datamap(
         }
     }
 
+    let progress_tx = spawn_download_progress_forwarder(app.clone(), transfer_id);
+
     let bytes_written = client
-        .file_download(data_map, &dest)
+        .file_download_with_progress(data_map, &dest, Some(progress_tx))
         .await
         .map_err(|e| format!("Download failed: {e}"))?;
 

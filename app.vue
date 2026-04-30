@@ -36,6 +36,7 @@ onMounted(async () => {
   await settingsStore.loadDevnetManifest()
   nodesStore.init()
   filesStore.loadHistory()
+  filesStore.setupProgressListeners()
   updaterStore.checkForUpdate()
   settingsStore.reconnectIndelible()
   // Listen for backend connection-status events so the UI reflects retry state.
