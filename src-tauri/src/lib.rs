@@ -1,5 +1,6 @@
 mod autonomi_ops;
 mod config;
+mod updater_channel;
 
 use autonomi_ops::AutonomiState;
 use config::{AppConfig, FileMetaResult, UploadHistory, UploadHistoryEntry};
@@ -732,6 +733,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AutonomiState::new())
         .manage(Arc::new(SseState::new()))
+        .manage(updater_channel::UpdaterChannelState::new())
         .invoke_handler(tauri::generate_handler![
             load_config,
             save_config,
@@ -766,6 +768,8 @@ pub fn run() {
             autonomi_ops::is_autonomi_connected,
             autonomi_ops::retry_autonomi_client,
             autonomi_ops::get_connection_status,
+            updater_channel::check_for_update_custom,
+            updater_channel::install_pending_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
