@@ -8,6 +8,18 @@
 
     <!-- Main navigation -->
     <nav class="flex-1 px-2 py-2">
+      <!-- Pre-release build indicator. Shown whenever the running version
+           contains an -rc./-beta./-alpha. suffix, regardless of whether the
+           pre-release auto-update channel is enabled. Distinct teal palette
+           so it doesn't clash with the amber DEVNET / SEPOLIA TESTNET badge
+           when both apply. -->
+      <div
+        v-if="isPrereleaseBuild"
+        class="mb-2 rounded-md bg-teal-500/10 border border-teal-500/20 px-3 py-1.5 text-center text-xs font-medium text-teal-400"
+      >
+        PRE-RELEASE
+      </div>
+
       <!-- Network mode indicator -->
       <div
         v-if="settingsStore.devnetActive && networkLabel"
@@ -61,6 +73,7 @@
 
 <script setup lang="ts">
 import { arbitrumSepolia } from 'viem/chains'
+import { invoke } from '@tauri-apps/api/core'
 import { useNodesStore } from '~/stores/nodes'
 import { useFilesStore } from '~/stores/files'
 import { useUpdaterStore } from '~/stores/updater'
@@ -71,6 +84,21 @@ const nodesStore = useNodesStore()
 const filesStore = useFilesStore()
 const updaterStore = useUpdaterStore()
 const settingsStore = useSettingsStore()
+
+const currentVersion = ref<string | null>(null)
+onMounted(async () => {
+  try {
+    currentVersion.value = await invoke<string>('get_app_version')
+  } catch {
+    currentVersion.value = null
+  }
+})
+
+// Mirror the `release.yml` and `updater_channel::looks_like_prerelease`
+// detection — anything tagged -rc.N / -beta.N / -alpha.N is a pre-release.
+const isPrereleaseBuild = computed(() =>
+  /-(?:rc|beta|alpha)\./.test(currentVersion.value ?? ''),
+)
 
 const networkLabel = computed<string | null>(() => {
   switch (settingsStore.devnetChainId) {
