@@ -32,6 +32,7 @@ interface AppConfig {
   indelible_api_key: string | null
   theme_mode: string
   upload_concurrency: number
+  prerelease_channel: boolean
 }
 
 /** Allowed range for upload_concurrency (see AppConfig in Rust). */
@@ -57,6 +58,15 @@ export const useSettingsStore = defineStore('settings', {
     indelibleUserEmail: null as string | null,
     themeMode: 'dark' as ThemeMode,
     uploadConcurrency: 1,
+    /** Auto-update channel selector. Off → stable releases only.
+     *  On → next app launch resolves the latest release including pre-releases
+     *  (rc/beta) via the GitHub API. The endpoint is captured at app init, so
+     *  toggling this requires an app restart to take effect — the Settings UI
+     *  shows a hint banner when the live value differs from the boot value. */
+    prereleaseChannel: false,
+    /** Snapshot of `prereleaseChannel` at app boot — drives the "restart to
+     *  apply" hint banner. Set once during loadConfig. */
+    prereleaseChannelBootValue: false,
     loaded: false,
     // Devnet/testnet/direct-key mode (set by manifest or settings form).
     // devnetChainId picks the chain:
@@ -88,6 +98,11 @@ export const useSettingsStore = defineStore('settings', {
         this.indelibleApiKey = config.indelible_api_key
         this.themeMode = config.theme_mode === 'light' ? 'light' : 'dark'
         this.uploadConcurrency = clampConcurrency(config.upload_concurrency)
+        this.prereleaseChannel = config.prerelease_channel ?? false
+        // Capture once on first load — represents the value the Rust side
+        // resolved its updater endpoint URL from. Subsequent toggles diverge
+        // from this until the next app restart.
+        if (!this.loaded) this.prereleaseChannelBootValue = this.prereleaseChannel
         this.loaded = true
       } catch (e) {
         console.error('Failed to load config:', e)
@@ -106,6 +121,7 @@ export const useSettingsStore = defineStore('settings', {
           indelible_api_key: this.indelibleApiKey,
           theme_mode: this.themeMode,
           upload_concurrency: this.uploadConcurrency,
+          prerelease_channel: this.prereleaseChannel,
         }
         await invoke('save_config', { config })
       } catch (e) {
@@ -115,6 +131,11 @@ export const useSettingsStore = defineStore('settings', {
 
     async setUploadConcurrency(n: number) {
       this.uploadConcurrency = clampConcurrency(n)
+      await this.saveConfig()
+    },
+
+    async setPrereleaseChannel(enabled: boolean) {
+      this.prereleaseChannel = enabled
       await this.saveConfig()
     },
 

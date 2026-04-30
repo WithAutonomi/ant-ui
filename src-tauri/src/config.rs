@@ -30,6 +30,11 @@ pub struct AppConfig {
     /// can tune up to 8 via Settings → Advanced.
     #[serde(default = "default_upload_concurrency")]
     pub upload_concurrency: u32,
+    /// Opt-in to pre-release auto-updates (rc / beta builds). Off by default;
+    /// internal-tester convenience. The endpoint URL is resolved once at app
+    /// init from this flag, so toggling requires an app restart to take effect.
+    #[serde(default)]
+    pub prerelease_channel: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -126,6 +131,7 @@ impl Default for AppConfig {
             indelible_api_key: None,
             theme_mode: default_theme_mode(),
             upload_concurrency: default_upload_concurrency(),
+            prerelease_channel: false,
         }
     }
 }

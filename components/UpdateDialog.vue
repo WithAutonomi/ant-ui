@@ -15,8 +15,14 @@
         <h2 id="update-dialog-title" class="text-lg font-medium">
           Update Available
         </h2>
-        <p class="mt-1 text-sm text-autonomi-muted">
-          v{{ updaterStore.version }} is ready to install
+        <p class="mt-1 flex items-center gap-2 text-sm text-autonomi-muted">
+          <span>v{{ updaterStore.version }} is ready to install</span>
+          <span
+            v-if="updaterStore.isPrerelease"
+            class="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-400"
+          >
+            Pre-release
+          </span>
         </p>
 
         <!-- Download size (shown during download if available) -->
