@@ -38,6 +38,12 @@
         @click="onUpdateClick"
       >
         <div class="min-w-0 flex-1">
+          <div
+            v-if="updaterStore.isPrerelease"
+            class="text-[10px] font-bold uppercase tracking-wider opacity-70"
+          >
+            Pre-Release
+          </div>
           <div class="text-xs font-bold uppercase tracking-wide">Update Available</div>
           <div class="truncate text-xs font-medium opacity-80">v{{ updaterStore.version }}</div>
         </div>
