@@ -190,16 +190,32 @@ pub async fn install_pending_update(app: AppHandle) -> Result<(), String> {
         },
     );
 
-    let bytes = tokio::select! {
+    let download_outcome = tokio::select! {
         res = download_fut => {
             // Clear cancel handle as soon as download resolves — install is
             // past the cancel window.
             *state.cancel_notify.write().await = None;
-            res.map_err(|e| format!("Update download failed: {e}"))?
+            res.map(Some).map_err(|e| format!("Update download failed: {e}"))
         }
         _ = cancel_notify.notified() => {
             *state.cancel_notify.write().await = None;
+            Ok(None)
+        }
+    };
+
+    // Restore the Update on cancel or download error so the user can retry
+    // from the same Update Available state without round-tripping through
+    // check_for_update_custom (which would otherwise hit "No pending update"
+    // because we take()'d it at the top of this function).
+    let bytes = match download_outcome {
+        Ok(Some(b)) => b,
+        Ok(None) => {
+            *state.pending_update.write().await = Some(update);
             return Err("CANCELLED".to_string());
+        }
+        Err(e) => {
+            *state.pending_update.write().await = Some(update);
+            return Err(e);
         }
     };
 
