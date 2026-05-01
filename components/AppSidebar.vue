@@ -31,7 +31,10 @@
       <!-- Update banner -->
       <button
         v-if="updaterStore.available"
-        class="mb-2 flex w-full items-center gap-2 rounded-lg bg-amber-400 px-3 py-2.5 text-left text-sm font-semibold text-gray-900 shadow-md shadow-amber-400/25 transition-all hover:bg-amber-300 active:scale-[0.98]"
+        class="mb-2 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-900 shadow-md transition-all active:scale-[0.98]"
+        :class="updaterStore.isPrerelease
+          ? 'bg-teal-400 shadow-teal-400/25 hover:bg-teal-300'
+          : 'bg-amber-400 shadow-amber-400/25 hover:bg-amber-300'"
         @click="onUpdateClick"
       >
         <div class="min-w-0 flex-1">

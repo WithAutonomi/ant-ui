@@ -19,7 +19,7 @@
           <span>v{{ updaterStore.version }} is ready to install</span>
           <span
             v-if="updaterStore.isPrerelease"
-            class="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-400"
+            class="rounded bg-teal-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-teal-400"
           >
             Pre-release
           </span>
