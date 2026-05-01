@@ -43,8 +43,8 @@
         <!-- Download progress -->
         <div v-if="updaterStore.installing" class="mt-4">
           <div class="flex items-center justify-between text-xs text-autonomi-muted">
-            <span>Downloading...</span>
-            <span v-if="updaterStore.downloadProgress !== null">{{ updaterStore.downloadProgress }}%</span>
+            <span>{{ downloadComplete ? 'Download succeeded, the app will restart shortly' : 'Downloading...' }}</span>
+            <span v-if="!downloadComplete && updaterStore.downloadProgress !== null">{{ updaterStore.downloadProgress }}%</span>
           </div>
           <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-autonomi-surface">
             <div
@@ -52,30 +52,46 @@
               :style="{ width: (updaterStore.downloadProgress ?? 0) + '%' }"
             />
           </div>
-          <p v-if="updaterStore.downloadTotal" class="mt-1 text-right text-[10px] text-autonomi-muted">
+          <p v-if="!downloadComplete && updaterStore.downloadTotal" class="mt-1 text-right text-[10px] text-autonomi-muted">
             {{ formatBytes(updaterStore.downloadedBytes) }} / {{ formatBytes(updaterStore.downloadTotal) }}
           </p>
-          <p class="mt-2 text-xs text-autonomi-muted">
+          <p v-if="!downloadComplete" class="mt-2 text-xs text-autonomi-muted">
             The app will restart automatically when complete.
           </p>
         </div>
 
         <!-- Actions -->
-        <div class="mt-5 flex justify-end gap-2">
+        <div class="mt-5 flex items-center justify-between gap-2">
+          <!-- Cancel Download (left) — only shown during install. Disabled
+               once download hits 100% because the install step that follows
+               is uncancellable (would brick the .app on macOS). -->
           <button
-            v-if="!updaterStore.installing"
-            class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
-            @click="close"
+            v-if="updaterStore.installing"
+            class="rounded-md border border-autonomi-error/50 px-3 py-1.5 text-sm text-autonomi-error hover:bg-autonomi-error/10 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+            :disabled="downloadComplete"
+            :title="downloadComplete ? 'Installing — please wait' : undefined"
+            @click="cancelDownload"
           >
-            Not Now
+            Cancel Download
           </button>
-          <button
-            v-if="!updaterStore.installing"
-            class="rounded-md bg-autonomi-blue px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
-            @click="confirm"
-          >
-            Update &amp; Restart
-          </button>
+          <span v-else />
+
+          <div class="flex justify-end gap-2">
+            <button
+              v-if="!updaterStore.installing"
+              class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
+              @click="close"
+            >
+              Not Now
+            </button>
+            <button
+              v-if="!updaterStore.installing"
+              class="rounded-md bg-autonomi-blue px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+              @click="confirm"
+            >
+              Update &amp; Restart
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -88,6 +104,8 @@ import { formatBytes } from '~/utils/formatters'
 
 const updaterStore = useUpdaterStore()
 
+const downloadComplete = computed(() => updaterStore.downloadProgress === 100)
+
 function close() {
   if (updaterStore.installing) return
   updaterStore.showDialog = false
@@ -95,6 +113,10 @@ function close() {
 
 function confirm() {
   updaterStore.installUpdate()
+}
+
+function cancelDownload() {
+  updaterStore.cancelInstall()
 }
 
 function renderMarkdown(text: string): string {

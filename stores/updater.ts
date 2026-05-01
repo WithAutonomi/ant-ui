@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { useToastStore } from './toasts'
 
 export interface CheckResult {
   ok: boolean
@@ -18,6 +19,10 @@ type DownloadEvent =
   | { event: 'Started'; data: { contentLength: number | null } }
   | { event: 'Progress'; data: { chunkLength: number } }
   | { event: 'Finished' }
+
+interface RestartFailedEvent {
+  version: string
+}
 
 // Inputs that the Rust side surfaces verbatim from tauri-plugin-updater's
 // errors. The plugin's wording is consistent across versions, so the same
@@ -51,6 +56,9 @@ export const useUpdaterStore = defineStore('updater', {
     /** Live listener for download progress while an install is in flight.
      *  Cleared on Finished or on install failure. */
     _downloadUnlisten: null as UnlistenFn | null,
+    /** Live listener for the Rust-side restart watchdog. Fires only on macOS/
+     *  Linux when `app.restart()` silently fails to terminate the process. */
+    _restartFailedUnlisten: null as UnlistenFn | null,
   }),
 
   getters: {
@@ -95,6 +103,8 @@ export const useUpdaterStore = defineStore('updater', {
       this.downloadedBytes = 0
       this.downloadTotal = null
 
+      const toasts = useToastStore()
+
       // Subscribe BEFORE invoking install so we don't lose the Started event
       // when the download is fast (small installer, warm CDN).
       this._downloadUnlisten = await listen<DownloadEvent>('update-download-event', (event) => {
@@ -107,15 +117,55 @@ export const useUpdaterStore = defineStore('updater', {
         // 'Finished' — Tauri will restart the app, no UI action needed.
       })
 
+      this._restartFailedUnlisten = await listen<RestartFailedEvent>('update-restart-failed', (event) => {
+        const v = event.payload.version
+        toasts.add(
+          `Update to v${v} installed but the app didn't restart. Quit and reopen Autonomi to finish updating.`,
+          'error',
+        )
+        this.installing = false
+        this._cleanupInstallListeners()
+      })
+
       try {
         await invoke('install_pending_update')
       } catch (e) {
-        console.error('Update install failed:', e)
-        this.installing = false
-        if (this._downloadUnlisten) {
-          this._downloadUnlisten()
-          this._downloadUnlisten = null
+        const raw = typeof e === 'string' ? e : ((e as any)?.message ?? String(e))
+        // The Rust side returns the literal string "CANCELLED" when the user
+        // hit Cancel Download — that's a normal exit, not an error to surface.
+        if (raw === 'CANCELLED') {
+          this.installing = false
+          this._cleanupInstallListeners()
+          return
         }
+        console.error('Update install failed:', e)
+        toasts.add(`Update install failed: ${raw}`, 'error')
+        this.installing = false
+        this._cleanupInstallListeners()
+      }
+    },
+
+    async cancelInstall() {
+      if (!this.installing) return
+      try {
+        await invoke('cancel_pending_install')
+      } catch (e) {
+        // No-op cases (already past the cancel window, no install in flight)
+        // surface as Err here. The user has already been waiting on the
+        // install screen — fall through; install_pending_update's own return
+        // path will resolve the dialog state.
+        console.warn('Cancel install failed (likely past cancel window):', e)
+      }
+    },
+
+    _cleanupInstallListeners() {
+      if (this._downloadUnlisten) {
+        this._downloadUnlisten()
+        this._downloadUnlisten = null
+      }
+      if (this._restartFailedUnlisten) {
+        this._restartFailedUnlisten()
+        this._restartFailedUnlisten = null
       }
     },
   },

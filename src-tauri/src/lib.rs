@@ -770,6 +770,7 @@ pub fn run() {
             autonomi_ops::get_connection_status,
             updater_channel::check_for_update_custom,
             updater_channel::install_pending_update,
+            updater_channel::cancel_pending_install,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
