@@ -43,8 +43,8 @@
         <!-- Download progress -->
         <div v-if="updaterStore.installing" class="mt-4">
           <div class="flex items-center justify-between text-xs text-autonomi-muted">
-            <span>Downloading...</span>
-            <span v-if="updaterStore.downloadProgress !== null">{{ updaterStore.downloadProgress }}%</span>
+            <span>{{ downloadComplete ? 'Download succeeded, the app will restart shortly' : 'Downloading...' }}</span>
+            <span v-if="!downloadComplete && updaterStore.downloadProgress !== null">{{ updaterStore.downloadProgress }}%</span>
           </div>
           <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-autonomi-surface">
             <div
@@ -52,10 +52,10 @@
               :style="{ width: (updaterStore.downloadProgress ?? 0) + '%' }"
             />
           </div>
-          <p v-if="updaterStore.downloadTotal" class="mt-1 text-right text-[10px] text-autonomi-muted">
+          <p v-if="!downloadComplete && updaterStore.downloadTotal" class="mt-1 text-right text-[10px] text-autonomi-muted">
             {{ formatBytes(updaterStore.downloadedBytes) }} / {{ formatBytes(updaterStore.downloadTotal) }}
           </p>
-          <p class="mt-2 text-xs text-autonomi-muted">
+          <p v-if="!downloadComplete" class="mt-2 text-xs text-autonomi-muted">
             The app will restart automatically when complete.
           </p>
         </div>
