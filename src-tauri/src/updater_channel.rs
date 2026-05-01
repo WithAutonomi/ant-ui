@@ -114,9 +114,14 @@ pub async fn check_for_update_custom(app: AppHandle) -> Result<Option<UpdateMeta
 }
 
 /// Download and install the update fetched by the most recent
-/// `check_for_update_custom` call. Tauri restarts the app automatically on
-/// completion. Emits `update-download-event` with `Started` / `Progress` /
-/// `Finished` payloads matching the JS plugin's event shape.
+/// `check_for_update_custom` call. Emits `update-download-event` with
+/// `Started` / `Progress` / `Finished` payloads matching the JS plugin's
+/// event shape, then restarts the app so the new binary is picked up.
+///
+/// `download_and_install` only restarts on Windows (the NSIS/MSI installer
+/// exits the running process as part of its own flow). On Linux (AppImage)
+/// and macOS the new binary is written to disk but the running process keeps
+/// going — we have to call `app.restart()` ourselves or the UI hangs at 100%.
 #[tauri::command]
 pub async fn install_pending_update(app: AppHandle) -> Result<(), String> {
     let state = app.state::<UpdaterChannelState>();
@@ -153,7 +158,7 @@ pub async fn install_pending_update(app: AppHandle) -> Result<(), String> {
         .await
         .map_err(|e| format!("Update install failed: {e}"))?;
 
-    Ok(())
+    app.restart()
 }
 
 /// Decide which endpoint to use for this check based on the persisted
