@@ -21,10 +21,11 @@
 use crate::config::AppConfig;
 use reqwest::Url;
 use serde::Serialize;
+use std::sync::Arc;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_updater::{Update, UpdaterExt};
-use tokio::sync::RwLock;
+use tokio::sync::{Notify, RwLock};
 
 const STABLE_ENDPOINT: &str =
     "https://github.com/WithAutonomi/ant-ui/releases/latest/download/latest.json";
@@ -41,6 +42,12 @@ pub struct UpdaterChannelState {
     /// `Update` instance from `@tauri-apps/plugin-updater` doesn't apply here
     /// (we built the `UpdaterBuilder` ourselves with custom endpoints).
     pending_update: RwLock<Option<Update>>,
+    /// Set while a download is in flight. [`cancel_pending_install`] notifies
+    /// waiters to break the `tokio::select!` in `install_pending_update`. Only
+    /// honoured during download — once `install` starts, cancel becomes a
+    /// no-op because aborting mid-install would leave the user's `.app` in a
+    /// tempdir on macOS and brick their install.
+    cancel_notify: RwLock<Option<Arc<Notify>>>,
 }
 
 impl UpdaterChannelState {
@@ -48,6 +55,7 @@ impl UpdaterChannelState {
         Self {
             cached_prerelease_endpoint: RwLock::new(None),
             pending_update: RwLock::new(None),
+            cancel_notify: RwLock::new(None),
         }
     }
 }
@@ -79,6 +87,16 @@ enum DownloadEvent {
     },
     Finished,
 }
+
+#[derive(Serialize, Clone)]
+struct RestartFailedEvent {
+    version: String,
+}
+
+/// How long to wait after `app.restart()` before assuming the restart silently
+/// failed. A successful restart terminates the process within ~1-2s, so 10s is
+/// a comfortable buffer that won't false-positive on a slow main loop.
+const RESTART_WATCHDOG_DELAY: Duration = Duration::from_secs(10);
 
 /// Check for an available update on the channel selected in `AppConfig`.
 /// Returns `None` if the running version is already current.
@@ -118,10 +136,23 @@ pub async fn check_for_update_custom(app: AppHandle) -> Result<Option<UpdateMeta
 /// `Started` / `Progress` / `Finished` payloads matching the JS plugin's
 /// event shape, then restarts the app so the new binary is picked up.
 ///
-/// `download_and_install` only restarts on Windows (the NSIS/MSI installer
-/// exits the running process as part of its own flow). On Linux (AppImage)
-/// and macOS the new binary is written to disk but the running process keeps
-/// going — we have to call `app.restart()` ourselves or the UI hangs at 100%.
+/// We deliberately split `download` from `install` (rather than calling the
+/// combined `download_and_install`) so [`cancel_pending_install`] can drop
+/// the in-flight download future via `tokio::select!`. Once `install` starts
+/// we're past the cancel window — on macOS `install_inner` moves the running
+/// `.app` to a temp backup before extracting the new bundle into place, and
+/// aborting between those steps would leave the user with no app.
+///
+/// The plugin only triggers a process restart on Windows (its NSIS/MSI path
+/// calls `process::exit(0)` directly). Linux (AppImage) and macOS write the
+/// new binary to disk and return, so we call `app.restart()` ourselves.
+///
+/// `app.restart()` can silently fail on macOS: when invoked from a non-main
+/// thread (Tauri commands run on the tokio runtime), it asks the main loop
+/// to exit and sleeps forever. If the main loop doesn't honour the exit, the
+/// task hangs and the frontend never hears back. The watchdog spawned just
+/// before the restart catches that case and emits `update-restart-failed` so
+/// the UI can prompt the user to quit and reopen manually.
 #[tauri::command]
 pub async fn install_pending_update(app: AppHandle) -> Result<(), String> {
     let state = app.state::<UpdaterChannelState>();
@@ -132,33 +163,81 @@ pub async fn install_pending_update(app: AppHandle) -> Result<(), String> {
         .take()
         .ok_or("No pending update — call check_for_update_custom first")?;
 
+    let cancel_notify = Arc::new(Notify::new());
+    *state.cancel_notify.write().await = Some(cancel_notify.clone());
+
     let app_for_chunk = app.clone();
     let app_for_finish = app.clone();
     let mut emitted_started = false;
+    let update_version = update.version.clone();
 
-    update
-        .download_and_install(
-            move |chunk_length, content_length| {
-                if !emitted_started {
-                    emitted_started = true;
-                    let _ = app_for_chunk.emit(
-                        "update-download-event",
-                        DownloadEvent::Started { content_length },
-                    );
-                }
+    let download_fut = update.download(
+        move |chunk_length, content_length| {
+            if !emitted_started {
+                emitted_started = true;
                 let _ = app_for_chunk.emit(
                     "update-download-event",
-                    DownloadEvent::Progress { chunk_length },
+                    DownloadEvent::Started { content_length },
                 );
-            },
-            move || {
-                let _ = app_for_finish.emit("update-download-event", DownloadEvent::Finished);
-            },
-        )
-        .await
+            }
+            let _ = app_for_chunk.emit(
+                "update-download-event",
+                DownloadEvent::Progress { chunk_length },
+            );
+        },
+        move || {
+            let _ = app_for_finish.emit("update-download-event", DownloadEvent::Finished);
+        },
+    );
+
+    let bytes = tokio::select! {
+        res = download_fut => {
+            // Clear cancel handle as soon as download resolves — install is
+            // past the cancel window.
+            *state.cancel_notify.write().await = None;
+            res.map_err(|e| format!("Update download failed: {e}"))?
+        }
+        _ = cancel_notify.notified() => {
+            *state.cancel_notify.write().await = None;
+            return Err("CANCELLED".to_string());
+        }
+    };
+
+    update
+        .install(bytes)
         .map_err(|e| format!("Update install failed: {e}"))?;
 
+    // Watchdog: if `app.restart()` actually terminates the process, this
+    // thread dies with it before the sleep ends. If we're still alive after
+    // the delay, restart silently failed — surface to the UI.
+    let app_for_watchdog = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(RESTART_WATCHDOG_DELAY);
+        let _ = app_for_watchdog.emit(
+            "update-restart-failed",
+            RestartFailedEvent {
+                version: update_version,
+            },
+        );
+    });
+
     app.restart()
+}
+
+/// Cancel an in-flight download started by [`install_pending_update`]. No-op
+/// if no download is in flight. Returns `Err` if the install has already
+/// crossed into the uncancellable `install` step.
+#[tauri::command]
+pub async fn cancel_pending_install(app: AppHandle) -> Result<(), String> {
+    let state = app.state::<UpdaterChannelState>();
+    let notify = state
+        .cancel_notify
+        .read()
+        .await
+        .clone()
+        .ok_or("No cancellable install in progress")?;
+    notify.notify_waiters();
+    Ok(())
 }
 
 /// Decide which endpoint to use for this check based on the persisted

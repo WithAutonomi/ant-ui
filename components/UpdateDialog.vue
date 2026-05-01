@@ -61,21 +61,37 @@
         </div>
 
         <!-- Actions -->
-        <div class="mt-5 flex justify-end gap-2">
+        <div class="mt-5 flex items-center justify-between gap-2">
+          <!-- Cancel Download (left) — only shown during install. Disabled
+               once download hits 100% because the install step that follows
+               is uncancellable (would brick the .app on macOS). -->
           <button
-            v-if="!updaterStore.installing"
-            class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
-            @click="close"
+            v-if="updaterStore.installing"
+            class="rounded-md border border-autonomi-error/50 px-3 py-1.5 text-sm text-autonomi-error hover:bg-autonomi-error/10 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+            :disabled="downloadComplete"
+            :title="downloadComplete ? 'Installing — please wait' : undefined"
+            @click="cancelDownload"
           >
-            Not Now
+            Cancel Download
           </button>
-          <button
-            v-if="!updaterStore.installing"
-            class="rounded-md bg-autonomi-blue px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
-            @click="confirm"
-          >
-            Update &amp; Restart
-          </button>
+          <span v-else />
+
+          <div class="flex justify-end gap-2">
+            <button
+              v-if="!updaterStore.installing"
+              class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
+              @click="close"
+            >
+              Not Now
+            </button>
+            <button
+              v-if="!updaterStore.installing"
+              class="rounded-md bg-autonomi-blue px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+              @click="confirm"
+            >
+              Update &amp; Restart
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -88,6 +104,8 @@ import { formatBytes } from '~/utils/formatters'
 
 const updaterStore = useUpdaterStore()
 
+const downloadComplete = computed(() => updaterStore.downloadProgress === 100)
+
 function close() {
   if (updaterStore.installing) return
   updaterStore.showDialog = false
@@ -95,6 +113,10 @@ function close() {
 
 function confirm() {
   updaterStore.installUpdate()
+}
+
+function cancelDownload() {
+  updaterStore.cancelInstall()
 }
 
 function renderMarkdown(text: string): string {
