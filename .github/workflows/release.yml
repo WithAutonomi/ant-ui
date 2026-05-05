@@ -46,7 +46,7 @@ jobs:
       ant_tag: ${{ steps.resolve.outputs.ant_tag }}
       ant_version: ${{ steps.resolve.outputs.ant_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: resolve version
         id: resolve
@@ -89,9 +89,9 @@ jobs:
             args: "--target x86_64-apple-darwin"
             slug: macos-x86_64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: lts/*
           cache: npm
@@ -323,9 +323,9 @@ jobs:
       SM_LOG_LEVEL: trace
       SM_LOG_FILE: ${{ github.workspace }}\smctl-signing.log
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: lts/*
           cache: npm
