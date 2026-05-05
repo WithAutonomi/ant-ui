@@ -1119,8 +1119,9 @@ fn expand_tilde(path: &str) -> PathBuf {
 ///
 /// Used by the "Download by datamap" flow: the user picks a `.datamap` file
 /// via the OS file dialog, and the frontend forwards the returned JSON to
-/// `download_file`. The path is trusted (chosen by the user through the
-/// native picker); we only validate that the file parses as UTF-8.
+/// `download_file`. Delegates format detection to `ant_core::data::read_datamap`
+/// (msgpack canonical, JSON legacy — sniffed by first byte), then re-encodes as
+/// JSON so the JS side keeps a single `data_map_json` contract.
 #[tauri::command]
 pub fn read_datamap_file(path: String) -> Result<String, String> {
     let canonical =
@@ -1128,7 +1129,10 @@ pub fn read_datamap_file(path: String) -> Result<String, String> {
     if !canonical.is_file() {
         return Err(format!("Not a regular file: {path}"));
     }
-    std::fs::read_to_string(&canonical).map_err(|e| format!("Failed to read {path}: {e}"))
+    let data_map = ant_core::data::read_datamap(&canonical)
+        .map_err(|e| format!("Failed to read datamap at {path}: {e}"))?;
+    serde_json::to_string(&data_map)
+        .map_err(|e| format!("Failed to encode datamap at {path}: {e}"))
 }
 
 /// Check if the data client is currently connected.
