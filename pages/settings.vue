@@ -332,6 +332,18 @@
               </select>
             </div>
             <div>
+              <label class="mb-1 block text-xs text-autonomi-muted">
+                RPC URL <span class="text-autonomi-muted/60">(optional)</span>
+              </label>
+              <input
+                v-model="directWalletRpcInput"
+                type="text"
+                autocomplete="off"
+                placeholder="Defaults to public RPC for the selected chain"
+                class="w-full rounded-md border border-autonomi-border bg-autonomi-dark px-3 py-1.5 font-mono text-xs text-autonomi-text placeholder-autonomi-muted focus:border-autonomi-blue focus:outline-none"
+              />
+            </div>
+            <div>
               <label class="mb-1 block text-xs text-autonomi-muted">Private Key</label>
               <input
                 v-model="directWalletKeyInput"
@@ -602,6 +614,11 @@ async function restartDaemon() {
 const editingDirectWallet = ref(false)
 const directWalletKeyInput = ref('')
 const directWalletNetwork = ref('arbitrum-sepolia')
+/** Optional user-provided RPC URL. When empty, the chain branch in
+ *  `connectDirectWallet` falls back to the public RPC (Sepolia rollup,
+ *  arb1.arbitrum.io). Lets paid-RPC users plug in their own endpoint
+ *  instead of being rate-limited by public infra during merkle uploads. */
+const directWalletRpcInput = ref('')
 const directWalletError = ref('')
 const directWalletActive = ref(false)
 
@@ -617,18 +634,19 @@ async function connectDirectWallet() {
 
     // Configure the network based on selection
     const isSepolia = directWalletNetwork.value === 'arbitrum-sepolia'
+    const rpcOverride = directWalletRpcInput.value.trim() || null
     setDevnetWalletKey(key)
     settingsStore._devnetWalletKeySet = true
     settingsStore.devnetActive = true
     if (isSepolia) {
       settingsStore.devnetChainId = arbitrumSepolia.id
-      settingsStore.devnetRpcUrl = 'https://sepolia-rollup.arbitrum.io/rpc'
+      settingsStore.devnetRpcUrl = rpcOverride ?? 'https://sepolia-rollup.arbitrum.io/rpc'
       settingsStore.devnetTokenAddress = '0x4bc1aCE0E66170375462cB4E6Af42Ad4D5EC689C'
       settingsStore.devnetVaultAddress = '0xd742E8CFEf27A9a884F3EFfA239Ee2F39c276522'
     } else {
       // Arbitrum One mainnet — use mainnet token/vault defaults via wallet-config.
       settingsStore.devnetChainId = arbitrum.id
-      settingsStore.devnetRpcUrl = null
+      settingsStore.devnetRpcUrl = rpcOverride
       settingsStore.devnetTokenAddress = null
       settingsStore.devnetVaultAddress = null
     }
@@ -662,13 +680,14 @@ async function connectDirectWallet() {
     directWalletActive.value = true
     editingDirectWallet.value = false
     directWalletKeyInput.value = ''
+    directWalletRpcInput.value = ''
     toasts.add(`Wallet connected: ${walletStore.paymentAddress}`, 'info')
   } catch (e: any) {
     directWalletError.value = e.message ?? 'Failed to import key'
   }
 }
 
-function disconnectDirectWallet() {
+async function disconnectDirectWallet() {
   walletStore.connected = false
   walletStore.paymentAddress = null
   walletStore.balance = null
@@ -677,6 +696,19 @@ function disconnectDirectWallet() {
   directWalletActive.value = false
   setDevnetWalletKey(null)
   settingsStore._devnetWalletKeySet = false
+  // Clear devnet-routing settings so the next upload falls back to the
+  // external-signer (WalletConnect) path. Leaving these set means the next
+  // upload still tries the direct-wallet route with no key and errors out
+  // with "Wallet not connected".
+  settingsStore.devnetActive = false
+  settingsStore.devnetChainId = null
+  settingsStore.devnetRpcUrl = null
+  settingsStore.devnetTokenAddress = null
+  settingsStore.devnetVaultAddress = null
+  // Drop the module-scope wagmi config + viem account so a re-import has to
+  // rebuild from scratch.
+  const { disposeDevnetWallet } = await import('~/composables/useDevnetWallet')
+  disposeDevnetWallet()
   toasts.add('Wallet disconnected', 'info')
 }
 

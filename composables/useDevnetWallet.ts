@@ -98,6 +98,15 @@ export function getDevnetAccount(): PrivateKeyAccount | null {
   return devnetAccount
 }
 
+/** Drop the cached devnet wagmi config + viem account so a subsequent
+ *  `initDevnetWallet` rebuilds from scratch. Called from
+ *  `disconnectDirectWallet` to prevent the next upload from routing through
+ *  the stale config after the user has cleared their key. */
+export function disposeDevnetWallet() {
+  devnetWagmiConfig = null
+  devnetAccount = null
+}
+
 /** Refresh balances for the devnet wallet. */
 async function refreshDevnetBalances() {
   const walletStore = useWalletStore()
