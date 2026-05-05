@@ -1131,8 +1131,7 @@ pub fn read_datamap_file(path: String) -> Result<String, String> {
     }
     let data_map = ant_core::data::read_datamap(&canonical)
         .map_err(|e| format!("Failed to read datamap at {path}: {e}"))?;
-    serde_json::to_string(&data_map)
-        .map_err(|e| format!("Failed to encode datamap at {path}: {e}"))
+    serde_json::to_string(&data_map).map_err(|e| format!("Failed to encode datamap at {path}: {e}"))
 }
 
 /// Check if the data client is currently connected.
