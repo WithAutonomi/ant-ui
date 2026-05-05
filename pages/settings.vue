@@ -674,6 +674,7 @@ function disconnectDirectWallet() {
   walletStore.balance = null
   walletStore.ethBalance = null
   walletStore.antBalance = null
+  walletStore.usdcBalance = null
   directWalletActive.value = false
   setDevnetWalletKey(null)
   settingsStore._devnetWalletKeySet = false
