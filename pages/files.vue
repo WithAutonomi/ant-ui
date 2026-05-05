@@ -91,10 +91,10 @@
                 <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('cost')">
                   Cost {{ uploadSortIndicator('cost') }}
                 </th>
-                <th class="px-4 py-2.5">Address</th>
                 <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('date')">
                   Date {{ uploadSortIndicator('date') }}
                 </th>
+                <th class="px-4 py-2.5">Address</th>
                 <th class="w-px px-2 py-2.5"><span class="sr-only">Actions</span></th>
               </tr>
             </thead>
@@ -134,6 +134,7 @@
                     <span v-if="file.gas_cost" class="block text-[10px] text-autonomi-muted/60">+ {{ file.gas_cost }} gas</span>
                   </template>
                 </td>
+                <td class="px-4 py-2.5 text-autonomi-muted">{{ formatDate(file.date) }}</td>
                 <td class="px-4 py-2.5">
                   <span
                     v-if="file.public_address"
@@ -177,7 +178,6 @@
                   </span>
                   <span v-else class="text-autonomi-muted">-</span>
                 </td>
-                <td class="px-4 py-2.5 text-autonomi-muted">{{ formatDate(file.date) }}</td>
                 <td class="px-2 py-2.5 text-right whitespace-nowrap">
                   <span v-if="isSettled(file)" class="inline-flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
