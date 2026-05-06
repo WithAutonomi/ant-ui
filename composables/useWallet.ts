@@ -2,7 +2,7 @@ import { getBalance, readContract } from '@wagmi/core'
 import { formatEther, formatUnits, erc20Abi } from 'viem'
 import { useWalletStore } from '~/stores/wallet'
 import { useSettingsStore } from '~/stores/settings'
-import { getTokenAddress, getActiveChainId } from '~/utils/wallet-config'
+import { getTokenAddress, getUsdcAddress, getActiveChainId, USDC_DECIMALS } from '~/utils/wallet-config'
 
 // Module-level guard so the AppKit→walletStore watcher is only installed once
 // across the app's lifetime, no matter how many call sites import useWallet().
@@ -47,8 +47,26 @@ export async function refreshBalances() {
       // ANT token read may fail on chains without the contract deployed.
     }
 
+    let usdcFormatted: string | null = null
+    const usdcAddr = getUsdcAddress()
+    if (usdcAddr) {
+      try {
+        const usdcResult = await readContract(config, {
+          address: usdcAddr,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [addr],
+          chainId: getActiveChainId(),
+        })
+        usdcFormatted = parseFloat(formatUnits(usdcResult as bigint, USDC_DECIMALS)).toFixed(2)
+      } catch {
+        // USDC read failed — leave null; the panel hides the row in that case.
+      }
+    }
+
     walletStore.ethBalance = `${ethFormatted} ETH`
     walletStore.antBalance = `${antFormatted} ANT`
+    walletStore.usdcBalance = usdcFormatted ? `${usdcFormatted} USDC` : ''
     walletStore.balance = `${ethFormatted} ETH / ${antFormatted} ANT`
   } catch (err) {
     console.error('Failed to fetch balances:', err)
@@ -95,6 +113,7 @@ async function syncFromAppKit() {
         walletStore.balance = null
         walletStore.ethBalance = null
         walletStore.antBalance = null
+        walletStore.usdcBalance = null
       }
     },
     { immediate: true },

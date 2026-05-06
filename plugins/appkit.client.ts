@@ -3,6 +3,17 @@ import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { arbitrumSepolia } from '@reown/appkit/networks'
 import { WALLETCONNECT_PROJECT_ID, SUPPORTED_CHAIN, APPKIT_METADATA } from '~/utils/wallet-config'
 
+// Default chain `name` values from @reown/appkit/networks (= viem) are
+// "Arbitrum One" and "Arbitrum Sepolia" — bare names with no Mainnet /
+// Testnet hint. The WalletConnect / AppKit chain picker renders this
+// `name` field directly, so non-crypto-native users on the wrong chain
+// can't tell at a glance which one is real money. Spread + override
+// before passing to AppKit so the picker shows the labelled version.
+// (The Settings direct-wallet dropdown is a separate <select> that
+// already has these labels hard-coded.)
+const labelledArbitrumOne = { ...SUPPORTED_CHAIN, name: 'Arbitrum One (Mainnet)' }
+const labelledArbitrumSepolia = { ...arbitrumSepolia, name: 'Arbitrum Sepolia (Testnet)' }
+
 export default defineNuxtPlugin(async () => {
   // In local Anvil devnet mode, skip AppKit entirely — use direct wagmi config.
   // Detected by VITE_DEVNET env var since manifest isn't loaded yet at plugin time.
@@ -22,12 +33,12 @@ export default defineNuxtPlugin(async () => {
     // The user's wallet determines which chain is active.
     const wagmiAdapter = new WagmiAdapter({
       projectId: WALLETCONNECT_PROJECT_ID,
-      networks: [SUPPORTED_CHAIN, arbitrumSepolia],
+      networks: [labelledArbitrumOne, labelledArbitrumSepolia],
     })
 
     const appkit = createAppKit({
       adapters: [wagmiAdapter],
-      networks: [SUPPORTED_CHAIN, arbitrumSepolia],
+      networks: [labelledArbitrumOne, labelledArbitrumSepolia],
       projectId: WALLETCONNECT_PROJECT_ID,
       metadata: APPKIT_METADATA,
       features: {

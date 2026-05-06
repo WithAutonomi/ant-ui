@@ -40,16 +40,29 @@
           </div>
 
           <!-- Payment mode — only shown once the network has quoted the files.
-               Never guessed from chunk count: that was a fallback lie. -->
+               Never guessed from chunk count: that was a fallback lie.
+               For mixed batches (some entries regular, some merkle) we don't
+               aggregate chunk counts — the wave-batch / merkle split is
+               per-file and pretending a single tx covers everything would
+               be the same kind of fallback lie we removed for chunk counts. -->
           <div v-if="effectivePaymentMode" class="flex items-baseline justify-between">
             <span class="text-sm text-autonomi-muted">Payment</span>
             <div class="text-right">
-              <span class="text-sm font-medium">{{ effectivePaymentMode === 'merkle' ? 'Merkle tree' : 'Regular' }}</span>
-              <p class="text-xs text-autonomi-muted">
-                {{ effectivePaymentMode === 'merkle'
-                  ? `Single transaction for ${quotedChunks} chunks — lower gas.`
-                  : `Per-batch payment for ${quotedChunks} chunk${quotedChunks !== 1 ? 's' : ''}.` }}
-              </p>
+              <template v-if="effectivePaymentMode === 'mixed' && paymentModeBreakdown">
+                <span class="text-sm font-medium">Mixed</span>
+                <p class="text-xs text-autonomi-muted">
+                  {{ paymentModeBreakdown.regular }} regular,
+                  {{ paymentModeBreakdown.merkle }} merkle — paid per file.
+                </p>
+              </template>
+              <template v-else>
+                <span class="text-sm font-medium">{{ effectivePaymentMode === 'merkle' ? 'Merkle tree' : 'Regular' }}</span>
+                <p class="text-xs text-autonomi-muted">
+                  {{ effectivePaymentMode === 'merkle'
+                    ? `Single transaction for ${quotedChunks} chunks — lower gas.`
+                    : `Per-batch payment for ${quotedChunks} chunk${quotedChunks !== 1 ? 's' : ''}.` }}
+                </p>
+              </template>
             </div>
           </div>
 
@@ -295,14 +308,29 @@ const quotedChunks = computed<number | null>(() => {
   return entries.value.reduce((sum, e) => sum + e.estimate!.chunk_count, 0)
 })
 
-/** Payment mode is reported by the network — we do not guess it from size.
- *  Null until all entries are quoted, so the template can hide the Payment
- *  row entirely instead of showing a misleading prediction. */
-const effectivePaymentMode = computed<'regular' | 'merkle' | null>(() => {
+/** Per-mode counts for the multi-file summary. Drives both `effectivePaymentMode`
+ *  and the "Mixed — N regular, M merkle" display string. Null until every entry
+ *  has been quoted. */
+const paymentModeBreakdown = computed<{ regular: number; merkle: number } | null>(() => {
   if (!allEstimated.value) return null
   const modes = entries.value.map(e => e.paymentMode).filter(Boolean) as ('regular' | 'merkle')[]
   if (modes.length !== entries.value.length) return null
-  return modes.includes('merkle') ? 'merkle' : 'regular'
+  return {
+    regular: modes.filter(m => m === 'regular').length,
+    merkle: modes.filter(m => m === 'merkle').length,
+  }
+})
+
+/** Payment mode is reported by the network — we do not guess it from size.
+ *  `'mixed'` is reserved for batches that contain both regular and merkle
+ *  files, so the summary can stop pretending the whole batch is homogeneous.
+ *  Null until all entries are quoted, so the template can hide the Payment
+ *  row entirely instead of showing a misleading prediction. */
+const effectivePaymentMode = computed<'regular' | 'merkle' | 'mixed' | null>(() => {
+  const b = paymentModeBreakdown.value
+  if (!b) return null
+  if (b.regular > 0 && b.merkle > 0) return 'mixed'
+  return b.merkle > 0 ? 'merkle' : 'regular'
 })
 
 const visibility = ref<'private' | 'public'>('private')
@@ -332,12 +360,15 @@ watch(
 
 function handleApprove() {
   if (!canApprove.value) return
-  // Fall back to 'regular' when the estimate failed — backend redetermines
-  // the real payment mode from the live quote's chunk count anyway, so the
-  // frontend's guess is only used for status display during paying.
+  // Fall back to 'regular' when the estimate failed or for mixed batches —
+  // backend redetermines the real payment mode from each file's live quote
+  // anyway, so the frontend's batch-wide guess is only used for status
+  // display during paying. For mixed, per-entry paymentMode (already stored
+  // on each FileEntry) drives the actual upload path.
+  const mode = effectivePaymentMode.value === 'merkle' ? 'merkle' : 'regular'
   emit('approve', {
     visibility: visibility.value,
-    paymentMode: effectivePaymentMode.value ?? 'regular',
+    paymentMode: mode,
   })
 }
 </script>

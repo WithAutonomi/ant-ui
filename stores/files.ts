@@ -740,7 +740,7 @@ export const useFilesStore = defineStore('files', {
         toasts.add(`Upload complete: ${entry.name}`, 'info')
       } catch (e: any) {
         this.updateEntry(id, { status: 'failed', error: e.message ?? String(e) })
-        toasts.add(`Upload failed: ${entry.name} — ${e.message}`, 'error')
+        toasts.add(`Upload failed: ${entry.name} — ${e.message ?? e}`, 'error')
       }
     },
 
@@ -778,7 +778,7 @@ export const useFilesStore = defineStore('files', {
         toasts.add(`Upload complete: ${entry.name}`, 'info')
       } catch (e: any) {
         this.updateEntry(id, { status: 'failed', error: e.message ?? String(e) })
-        toasts.add(`Upload failed: ${entry.name} — ${e.message}`, 'error')
+        toasts.add(`Upload failed: ${entry.name} — ${e.message ?? e}`, 'error')
       }
     },
 
@@ -882,7 +882,7 @@ export const useFilesStore = defineStore('files', {
         toasts.add(`Download complete: ${entry.name}`, 'info')
       } catch (e: any) {
         this.updateEntry(id, { status: 'failed', error: e.message ?? String(e) })
-        toasts.add(`Download failed: ${entry.name} — ${e.message}`, 'error')
+        toasts.add(`Download failed: ${entry.name} — ${e.message ?? e}`, 'error')
       }
     },
 

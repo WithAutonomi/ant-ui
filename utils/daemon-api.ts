@@ -4,7 +4,7 @@ import { useSettingsStore } from '~/stores/settings'
 
 // ── Types matching ant-core/src/node/types.rs ──
 
-export type NodeStatus =
+export type ApiNodeStatus =
   | 'stopped'
   | 'starting'
   | 'running'
@@ -30,10 +30,10 @@ export interface NodeConfig {
   bootstrap_peers: string[]
 }
 
-// NodeInfo: ant-core uses #[serde(flatten)] on config, so all NodeConfig
+// ApiNodeInfo: ant-core uses #[serde(flatten)] on config, so all NodeConfig
 // fields appear at the top level alongside status/pid/uptime_secs.
-export interface NodeInfo extends NodeConfig {
-  status: NodeStatus
+export interface ApiNodeInfo extends NodeConfig {
+  status: ApiNodeStatus
   pid: number | null
   uptime_secs: number | null
 }
@@ -42,7 +42,7 @@ export interface NodeStatusSummary {
   node_id: number
   name: string
   version: string
-  status: NodeStatus
+  status: ApiNodeStatus
   pid?: number
   uptime_secs?: number
   /** Set only when `status === 'upgrade_scheduled'`: the new version that the
@@ -170,7 +170,7 @@ export const daemonApi = {
   nodesStatus: () => request<NodeStatusResult>('GET', '/api/v1/nodes/status'),
 
   /** GET /api/v1/nodes/:id — full config + runtime state */
-  nodeDetail: (id: number) => request<NodeInfo>('GET', `/api/v1/nodes/${id}`),
+  nodeDetail: (id: number) => request<ApiNodeInfo>('GET', `/api/v1/nodes/${id}`),
 
   /** POST /api/v1/nodes */
   addNodes: (opts: AddNodeOpts) => request<AddNodeResult>('POST', '/api/v1/nodes', opts),

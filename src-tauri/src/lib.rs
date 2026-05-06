@@ -708,6 +708,20 @@ fn save_upload_history(entries: Vec<UploadHistoryEntry>) -> Result<(), String> {
 }
 
 pub fn run() {
+    // WebKitGTK's DMA-BUF renderer (default since 2.42) trips over recent Mesa
+    // and proprietary NVIDIA drivers, surfacing as "Could not create default
+    // EGL display: EGL_BAD_PARAMETER" and an immediate WebKitWebProcess SIGABRT
+    // before the window draws (see issue #63). Disabling the DMA-BUF path and
+    // falling back to the GLX/software compositor is the upstream-recommended
+    // workaround. We only set defaults — users can re-enable by exporting the
+    // var to "0" themselves.
+    #[cfg(target_os = "linux")]
+    {
+        if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+            std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+        }
+    }
+
     // Pipe ant-core / ant-node tracing events to stderr so the dev console
     // surfaces upload progress (encrypt → quote → store → finalize). Without
     // a subscriber installed every `tracing::info!()` from those crates is

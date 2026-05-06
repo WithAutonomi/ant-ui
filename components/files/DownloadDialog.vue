@@ -27,10 +27,14 @@
             v-model="filename"
             type="text"
             placeholder="myfile.dat"
-            class="w-full rounded-md border border-autonomi-border bg-autonomi-surface px-3 py-2 text-sm text-autonomi-text focus:border-autonomi-blue focus:outline-none"
+            :class="[
+              'w-full rounded-md border bg-autonomi-surface px-3 py-2 text-sm text-autonomi-text focus:outline-none',
+              filenameError ? 'border-red-500 focus:border-red-500' : 'border-autonomi-border focus:border-autonomi-blue',
+            ]"
             @input="onFilenameInput"
             @keyup.enter="confirm"
           />
+          <p v-if="filenameError" class="mt-1 text-xs text-red-400">{{ filenameError }}</p>
         </div>
 
         <div class="flex justify-end gap-2">
@@ -55,6 +59,7 @@
 
 <script setup lang="ts">
 import { useFilesStore } from '~/stores/files'
+import { filenameError as checkFilename } from '~/utils/validators'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{
@@ -71,10 +76,12 @@ const filename = ref('')
  *  so a subsequent address change doesn't clobber their typing. */
 const filenameDirty = ref(false)
 
+const filenameError = computed(() => checkFilename(filename.value))
+
 const valid = computed(() => {
   const addr = address.value.trim()
   const isHex = /^(0x)?[0-9a-fA-F]{8,}$/.test(addr)
-  return isHex && filename.value.trim().length > 0
+  return isHex && filename.value.trim().length > 0 && filenameError.value === null
 })
 
 /** Prior upload that matches the currently-typed address, if any. Drives

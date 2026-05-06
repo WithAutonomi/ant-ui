@@ -4,7 +4,7 @@ import { privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts'
 import { arbitrum, arbitrumSepolia } from 'viem/chains'
 import { useWalletStore } from '~/stores/wallet'
 import { useSettingsStore, getDevnetWalletKey } from '~/stores/settings'
-import { getTokenAddress, getActiveChainId } from '~/utils/wallet-config'
+import { getTokenAddress, getUsdcAddress, getActiveChainId, USDC_DECIMALS } from '~/utils/wallet-config'
 import { ANVIL_CHAIN_ID } from '~/utils/constants'
 import { formatEther, formatUnits, erc20Abi } from 'viem'
 import { getBalance, readContract } from '@wagmi/core'
@@ -98,6 +98,15 @@ export function getDevnetAccount(): PrivateKeyAccount | null {
   return devnetAccount
 }
 
+/** Drop the cached devnet wagmi config + viem account so a subsequent
+ *  `initDevnetWallet` rebuilds from scratch. Called from
+ *  `disconnectDirectWallet` to prevent the next upload from routing through
+ *  the stale config after the user has cleared their key. */
+export function disposeDevnetWallet() {
+  devnetWagmiConfig = null
+  devnetAccount = null
+}
+
 /** Refresh balances for the devnet wallet. */
 async function refreshDevnetBalances() {
   const walletStore = useWalletStore()
@@ -126,8 +135,26 @@ async function refreshDevnetBalances() {
       // Token contract may not exist on this chain
     }
 
+    let usdcFormatted: string | null = null
+    const usdcAddr = getUsdcAddress()
+    if (usdcAddr) {
+      try {
+        const usdcResult = await readContract(devnetWagmiConfig, {
+          address: usdcAddr,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [addr],
+          chainId: getActiveChainId(),
+        })
+        usdcFormatted = parseFloat(formatUnits(usdcResult as bigint, USDC_DECIMALS)).toFixed(2)
+      } catch {
+        // USDC may not be deployed on this chain — leave null.
+      }
+    }
+
     walletStore.ethBalance = `${ethFormatted} ETH`
     walletStore.antBalance = `${antFormatted} ANT`
+    walletStore.usdcBalance = usdcFormatted ? `${usdcFormatted} USDC` : ''
     walletStore.balance = `${ethFormatted} ETH / ${antFormatted} ANT`
   } catch (err) {
     console.error('Failed to fetch devnet balances:', err)
