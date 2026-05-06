@@ -115,6 +115,10 @@
             <span class="text-autonomi-muted">ANT Balance</span>
             <span class="font-mono text-xs text-autonomi-blue">{{ walletStore.antBalance ?? '...' }}</span>
           </div>
+          <div v-if="walletStore.usdcBalance !== ''" class="flex items-center justify-between text-sm">
+            <span class="text-autonomi-muted">USDC Balance</span>
+            <span class="font-mono text-xs">{{ walletStore.usdcBalance ?? '...' }}</span>
+          </div>
           <div class="flex gap-2">
             <button
               class="flex-1 rounded-md border border-autonomi-border py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
