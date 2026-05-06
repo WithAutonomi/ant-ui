@@ -15,10 +15,14 @@
             v-model="filename"
             type="text"
             placeholder="myfile.dat"
-            class="w-full rounded-md border border-autonomi-border bg-autonomi-surface px-3 py-2 text-sm text-autonomi-text focus:border-autonomi-blue focus:outline-none"
+            :class="[
+              'w-full rounded-md border bg-autonomi-surface px-3 py-2 text-sm text-autonomi-text focus:outline-none',
+              filenameError ? 'border-red-500 focus:border-red-500' : 'border-autonomi-border focus:border-autonomi-blue',
+            ]"
             @keyup.enter="confirm"
             @keyup.escape="$emit('close')"
           />
+          <p v-if="filenameError" class="mt-1 text-xs text-red-400">{{ filenameError }}</p>
         </div>
 
         <div class="flex justify-end gap-2">
@@ -52,10 +56,16 @@ const emit = defineEmits<{
   confirm: [filename: string]
 }>()
 
+import { filenameError as checkFilename } from '~/utils/validators'
+
 const inputEl = ref<HTMLInputElement | null>(null)
 const filename = ref('')
 
-const valid = computed(() => filename.value.trim().length > 0)
+const filenameError = computed(() => checkFilename(filename.value))
+
+const valid = computed(
+  () => filename.value.trim().length > 0 && filenameError.value === null,
+)
 
 watch(() => props.open, (val) => {
   if (val) {
