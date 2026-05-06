@@ -3,7 +3,7 @@ import { useToastStore } from './toasts'
 import { useSettingsStore } from './settings'
 import { invoke } from '@tauri-apps/api/core'
 import { daemonApi, connectSSE, disconnectSSE, type NodeEvent } from '~/utils/daemon-api'
-import type { NodeStatusSummary, NodeStatus as ApiNodeStatus, DaemonStatus } from '~/utils/daemon-api'
+import type { NodeStatusSummary, ApiNodeStatus, DaemonStatus } from '~/utils/daemon-api'
 import { POLL_INTERVAL, DETAIL_POLL_INTERVAL } from '~/utils/constants'
 import type { UnlistenFn } from '@tauri-apps/api/event'
 
