@@ -64,12 +64,32 @@ The app will open automatically. The node daemon is started on first launch.
 
 ## Building
 
+The Tauri bundle expects an `ant` daemon binary at
+`src-tauri/binaries/ant-<host-triple>` (its [externalBin sidecar][sidecar]).
+Fetch a prebuilt one from the latest [`ant-client`][ant-client] release before
+your first build:
+
+```bash
+# Linux/macOS
+scripts/download-sidecar.sh
+
+# Windows
+.\scripts\download-sidecar.ps1
+```
+
+Pin a specific version with `ANT_TAG=ant-cli-vX.Y.Z` if needed. If you have a
+local `ant-client` checkout next to this repo, `scripts/setup-sidecar.sh` (or
+`.ps1`) will build the binary from source instead.
+
 ```bash
 # Build for production
 npm run tauri build
 ```
 
 Produces platform-specific installers in `src-tauri/target/release/bundle/`.
+
+[sidecar]: https://v2.tauri.app/develop/sidecar/
+[ant-client]: https://github.com/WithAutonomi/ant-client/releases
 
 ## Project Structure
 
