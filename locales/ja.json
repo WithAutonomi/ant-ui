@@ -226,6 +226,23 @@
       "no_earnings_warning": "報酬アドレスが設定されていません。ノードを追加する前にウォレットページで設定してください。",
       "submit_one": "1 ノードを追加",
       "submit_many": "{count} ノードを追加"
+    },
+    "toast": {
+      "added": "{count} ノードを追加しました",
+      "add_failed": "ノードの追加に失敗: {error}",
+      "started": "ノード {id} を開始しました",
+      "start_failed": "ノード {id} の開始に失敗: {error}",
+      "stopped": "ノード {id} を停止しました",
+      "stop_failed": "ノード {id} の停止に失敗: {error}",
+      "removed": "ノード {id} を削除しました",
+      "remove_failed": "ノード {id} の削除に失敗: {error}",
+      "no_stopped": "開始できる停止中のノードがありません",
+      "no_running": "停止できる実行中のノードがありません",
+      "node_failed": "ノード {id} 失敗: {error}",
+      "started_count": "{count} ノードを開始しました",
+      "stopped_count": "{count} ノードを停止しました",
+      "start_all_failed": "すべての開始に失敗: {error}",
+      "stop_all_failed": "すべての停止に失敗: {error}"
     }
   },
   "files": {
@@ -288,7 +305,14 @@
       "public_address_copied": "公開アドレスをコピーしました — 他の人がこのファイルをダウンロードできるよう共有してください",
       "datamap_path_copied": "データマップパスをクリップボードにコピーしました",
       "already_stored_one": "1 ファイルが既に保存されています — データマップを保存中",
-      "already_stored_many": "{count} ファイルが既に保存されています — データマップを保存中"
+      "already_stored_many": "{count} ファイルが既に保存されています — データマップを保存中",
+      "upload_complete": "アップロード完了: {name}",
+      "upload_failed": "アップロード失敗: {name} — {error}",
+      "payment_failed": "支払い失敗: {error}",
+      "download_complete": "ダウンロード完了: {name}",
+      "download_failed": "ダウンロード失敗: {name} — {error}",
+      "datamap_missing": "ダウンロードできません: データマップファイルが見つからないか読み取れません",
+      "datamap_read_failed": "データマップを読み取れませんでした: {error}"
     },
     "error": {
       "wallet_not_connected": "ウォレットが接続されていません",
@@ -384,6 +408,34 @@
       "earnings_saved": "報酬アドレスを保存しました",
       "earnings_set_to_payment": "報酬アドレスを支払いウォレットに設定しました",
       "wallet_disconnected": "ウォレットを切断しました"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "アップデートあり",
+      "version_ready": "v{version} のインストール準備が完了",
+      "pre_release_badge": "プレリリース",
+      "download_size": "ダウンロードサイズ: {size}",
+      "release_notes": "リリースノート",
+      "no_release_notes": "このバージョンのリリースノートはありません。",
+      "downloading": "ダウンロード中…",
+      "download_complete": "ダウンロード成功 — 間もなくアプリが再起動します",
+      "auto_restart_hint": "完了するとアプリが自動的に再起動します。",
+      "cancel_download": "ダウンロードをキャンセル",
+      "installing_tooltip": "インストール中 — お待ちください",
+      "not_now": "後で",
+      "update_restart": "アップデートして再起動"
+    },
+    "toast": {
+      "install_no_restart": "v{version} のアップデートはインストールされましたが、アプリが再起動しませんでした。Autonomi を終了して開き直してください。",
+      "install_failed": "アップデートのインストールに失敗: {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "ファイル名に特殊文字を含めることはできません",
+      "ends_with_dot_or_space": "ファイル名はドットまたはスペースで終わることはできません",
+      "reserved_on_windows": "この名前は Windows の予約名です"
     }
   },
   "status": {

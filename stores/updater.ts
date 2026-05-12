@@ -2,6 +2,10 @@ import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { useToastStore } from './toasts'
+import { i18n } from '~/plugins/i18n.client'
+
+/** Module-scope translator — see stores/files.ts for the rationale. */
+const t = (key: string, params?: Record<string, unknown>) => i18n.global.t(key, params ?? {})
 
 export interface CheckResult {
   ok: boolean
@@ -119,10 +123,7 @@ export const useUpdaterStore = defineStore('updater', {
 
       this._restartFailedUnlisten = await listen<RestartFailedEvent>('update-restart-failed', (event) => {
         const v = event.payload.version
-        toasts.add(
-          `Update to v${v} installed but the app didn't restart. Quit and reopen Autonomi to finish updating.`,
-          'error',
-        )
+        toasts.add(t('updater.toast.install_no_restart', { version: v }), 'error')
         this.installing = false
         this._cleanupInstallListeners()
       })
@@ -139,7 +140,7 @@ export const useUpdaterStore = defineStore('updater', {
           return
         }
         console.error('Update install failed:', e)
-        toasts.add(`Update install failed: ${raw}`, 'error')
+        toasts.add(t('updater.toast.install_failed', { error: raw }), 'error')
         this.installing = false
         this._cleanupInstallListeners()
       }

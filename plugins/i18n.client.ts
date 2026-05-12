@@ -2,15 +2,21 @@ import { createI18n } from 'vue-i18n'
 import en from '~/locales/en.json'
 import ja from '~/locales/ja.json'
 
+/**
+ * Exported so non-component code (Pinia options-API stores, plain utility
+ * modules) can call `i18n.global.t(...)` without a setup context — `useI18n()`
+ * only works inside Vue setup, but options-API store actions don't qualify.
+ */
+export const i18n = createI18n({
+  legacy: false,
+  locale: 'en',
+  fallbackLocale: 'en',
+  messages: { en, ja },
+  missingWarn: true,
+  fallbackWarn: false,
+})
+
 export default defineNuxtPlugin((nuxtApp) => {
-  const i18n = createI18n({
-    legacy: false,
-    locale: 'en',
-    fallbackLocale: 'en',
-    messages: { en, ja },
-    missingWarn: true,
-    fallbackWarn: false,
-  })
   nuxtApp.vueApp.use(i18n)
 
   // Dev-only handle for manual locale-swap testing from DevTools console.

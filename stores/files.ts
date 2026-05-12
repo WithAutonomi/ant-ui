@@ -5,6 +5,12 @@ import { useToastStore } from './toasts'
 import { useSettingsStore } from './settings'
 import { payForQuotes, payForMerkleTree, formatNanoTokens, formatGasCost, type RawPayment, type SerializedPoolCommitment } from '~/utils/payment'
 import { indelibleApi } from '~/utils/indelible-api'
+import { i18n } from '~/plugins/i18n.client'
+
+/** Module-scope translator. Options-API store actions can't call useI18n() —
+ *  they run outside Vue's setup context — so we route through the global
+ *  composer the plugin already configured. */
+const t = (key: string, params?: Record<string, unknown>) => i18n.global.t(key, params ?? {})
 
 // ── Lightweight cost estimate (no chunks parked) ──
 // Matches ant_core::data::UploadCostEstimate.
@@ -620,10 +626,10 @@ export const useFilesStore = defineStore('files', {
             stageTotal: undefined,
           })
           await this.persistHistory()
-          toasts.add(`Upload complete: ${entry.name}`, 'info')
+          toasts.add(t('files.toast.upload_complete', { name: entry.name }), 'info')
         } catch (e: any) {
           this.updateEntry(id, { status: 'failed', error: e.message ?? String(e) })
-          toasts.add(`Upload failed: ${entry.name} — ${e.message ?? e}`, 'error')
+          toasts.add(t('files.toast.upload_failed', { name: entry.name, error: e.message ?? e }), 'error')
         }
         return
       }
@@ -706,7 +712,7 @@ export const useFilesStore = defineStore('files', {
             })
           } catch (e: any) {
             this.updateEntry(id, { status: 'failed', error: `Payment failed: ${e.message}` })
-            toasts.add(`Payment failed: ${e.message}`, 'error')
+            toasts.add(t('files.toast.payment_failed', { error: e.message }), 'error')
             return
           }
         } else {
@@ -723,7 +729,7 @@ export const useFilesStore = defineStore('files', {
               this.updateEntry(id, { gas_cost: formatGasCost(payResult.gasSpent.toString()) })
             } catch (e: any) {
               this.updateEntry(id, { status: 'failed', error: `Payment failed: ${e.message}` })
-              toasts.add(`Payment failed: ${e.message}`, 'error')
+              toasts.add(t('files.toast.payment_failed', { error: e.message }), 'error')
               return
             }
           }
@@ -752,10 +758,10 @@ export const useFilesStore = defineStore('files', {
         }
 
         await this.persistHistory()
-        toasts.add(`Upload complete: ${entry.name}`, 'info')
+        toasts.add(t('files.toast.upload_complete', { name: entry.name }), 'info')
       } catch (e: any) {
         this.updateEntry(id, { status: 'failed', error: e.message ?? String(e) })
-        toasts.add(`Upload failed: ${entry.name} — ${e.message ?? e}`, 'error')
+        toasts.add(t('files.toast.upload_failed', { name: entry.name, error: e.message ?? e }), 'error')
       }
     },
 
@@ -790,10 +796,10 @@ export const useFilesStore = defineStore('files', {
         })
 
         await this.persistHistory()
-        toasts.add(`Upload complete: ${entry.name}`, 'info')
+        toasts.add(t('files.toast.upload_complete', { name: entry.name }), 'info')
       } catch (e: any) {
         this.updateEntry(id, { status: 'failed', error: e.message ?? String(e) })
-        toasts.add(`Upload failed: ${entry.name} — ${e.message ?? e}`, 'error')
+        toasts.add(t('files.toast.upload_failed', { name: entry.name, error: e.message ?? e }), 'error')
       }
     },
 
@@ -852,7 +858,7 @@ export const useFilesStore = defineStore('files', {
           this.updateEntry(id, { data_map_json: json })
         } catch (e: any) {
           this.updateEntry(id, { status: 'failed', error: `Failed to read datamap: ${e.message ?? e}` })
-          toasts.add('Cannot download: datamap file missing or unreadable', 'error')
+          toasts.add(t('files.toast.datamap_missing'), 'error')
           return
         }
       }
@@ -894,10 +900,10 @@ export const useFilesStore = defineStore('files', {
           stageDone: undefined,
           stageTotal: undefined,
         })
-        toasts.add(`Download complete: ${entry.name}`, 'info')
+        toasts.add(t('files.toast.download_complete', { name: entry.name }), 'info')
       } catch (e: any) {
         this.updateEntry(id, { status: 'failed', error: e.message ?? String(e) })
-        toasts.add(`Download failed: ${entry.name} — ${e.message ?? e}`, 'error')
+        toasts.add(t('files.toast.download_failed', { name: entry.name, error: e.message ?? e }), 'error')
       }
     },
 
@@ -938,7 +944,7 @@ export const useFilesStore = defineStore('files', {
       try {
         json = await invoke<string>('read_datamap_file', { path: datamapPath })
       } catch (e: any) {
-        toasts.add(`Could not read datamap: ${e.message ?? e}`, 'error')
+        toasts.add(t('files.toast.datamap_read_failed', { error: e.message ?? e }), 'error')
         return null
       }
 
