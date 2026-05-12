@@ -22,7 +22,7 @@
             @keyup.enter="confirm"
             @keyup.escape="$emit('close')"
           />
-          <p v-if="filenameError" class="mt-1 text-xs text-red-400">{{ filenameError }}</p>
+          <p v-if="filenameError" class="mt-1 text-xs text-red-400">{{ $t(filenameError) }}</p>
         </div>
 
         <div class="flex justify-end gap-2">

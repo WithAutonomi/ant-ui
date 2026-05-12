@@ -13,21 +13,21 @@
       >
         <!-- Header -->
         <h2 id="update-dialog-title" class="text-lg font-medium">
-          Update Available
+          {{ $t('updater.dialog.title') }}
         </h2>
         <p class="mt-1 flex items-center gap-2 text-sm text-autonomi-muted">
-          <span>v{{ updaterStore.version }} is ready to install</span>
+          <span>{{ $t('updater.dialog.version_ready', { version: updaterStore.version }) }}</span>
           <span
             v-if="updaterStore.isPrerelease"
             class="rounded bg-teal-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-teal-400"
           >
-            Pre-release
+            {{ $t('updater.dialog.pre_release_badge') }}
           </span>
         </p>
 
         <!-- Download size (shown during download if available) -->
         <p v-if="updaterStore.downloadTotal" class="mt-1 text-xs text-autonomi-muted">
-          Download size: {{ formatBytes(updaterStore.downloadTotal) }}
+          {{ $t('updater.dialog.download_size', { size: formatBytes(updaterStore.downloadTotal) }) }}
         </p>
 
         <!-- Release notes -->
@@ -35,15 +35,15 @@
           v-if="!updaterStore.installing"
           class="mt-4 max-h-56 overflow-auto rounded-md bg-autonomi-surface p-3"
         >
-          <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-autonomi-muted">Release Notes</h3>
+          <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-autonomi-muted">{{ $t('updater.dialog.release_notes') }}</h3>
           <div v-if="updaterStore.body" class="prose-sm text-xs leading-relaxed text-autonomi-text" v-html="renderMarkdown(updaterStore.body)" />
-          <p v-else class="text-xs text-autonomi-muted">No release notes available for this version.</p>
+          <p v-else class="text-xs text-autonomi-muted">{{ $t('updater.dialog.no_release_notes') }}</p>
         </div>
 
         <!-- Download progress -->
         <div v-if="updaterStore.installing" class="mt-4">
           <div class="flex items-center justify-between text-xs text-autonomi-muted">
-            <span>{{ downloadComplete ? 'Download succeeded, the app will restart shortly' : 'Downloading...' }}</span>
+            <span>{{ downloadComplete ? $t('updater.dialog.download_complete') : $t('updater.dialog.downloading') }}</span>
             <span v-if="!downloadComplete && updaterStore.downloadProgress !== null">{{ updaterStore.downloadProgress }}%</span>
           </div>
           <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-autonomi-surface">
@@ -56,7 +56,7 @@
             {{ formatBytes(updaterStore.downloadedBytes) }} / {{ formatBytes(updaterStore.downloadTotal) }}
           </p>
           <p v-if="!downloadComplete" class="mt-2 text-xs text-autonomi-muted">
-            The app will restart automatically when complete.
+            {{ $t('updater.dialog.auto_restart_hint') }}
           </p>
         </div>
 
@@ -69,10 +69,10 @@
             v-if="updaterStore.installing"
             class="rounded-md border border-autonomi-error/50 px-3 py-1.5 text-sm text-autonomi-error hover:bg-autonomi-error/10 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
             :disabled="downloadComplete"
-            :title="downloadComplete ? 'Installing — please wait' : undefined"
+            :title="downloadComplete ? $t('updater.dialog.installing_tooltip') : undefined"
             @click="cancelDownload"
           >
-            Cancel Download
+            {{ $t('updater.dialog.cancel_download') }}
           </button>
           <span v-else />
 
@@ -82,14 +82,14 @@
               class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
               @click="close"
             >
-              Not Now
+              {{ $t('updater.dialog.not_now') }}
             </button>
             <button
               v-if="!updaterStore.installing"
               class="rounded-md bg-autonomi-blue px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
               @click="confirm"
             >
-              Update &amp; Restart
+              {{ $t('updater.dialog.update_restart') }}
             </button>
           </div>
         </div>

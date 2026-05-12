@@ -225,6 +225,23 @@
       "no_earnings_warning": "No earnings address configured. Set one in the Wallet page before adding nodes.",
       "submit_one": "Add 1 Node",
       "submit_many": "Add {count} Nodes"
+    },
+    "toast": {
+      "added": "Added {count} node(s)",
+      "add_failed": "Failed to add nodes: {error}",
+      "started": "Node {id} started",
+      "start_failed": "Failed to start node {id}: {error}",
+      "stopped": "Node {id} stopped",
+      "stop_failed": "Failed to stop node {id}: {error}",
+      "removed": "Node {id} removed",
+      "remove_failed": "Failed to remove node {id}: {error}",
+      "no_stopped": "No stopped nodes to start",
+      "no_running": "No running nodes to stop",
+      "node_failed": "Node {id} failed: {error}",
+      "started_count": "Started {count} node(s)",
+      "stopped_count": "Stopped {count} node(s)",
+      "start_all_failed": "Failed to start all: {error}",
+      "stop_all_failed": "Failed to stop all: {error}"
     }
   },
   "files": {
@@ -287,7 +304,14 @@
       "public_address_copied": "Public address copied — share to let others download this file",
       "datamap_path_copied": "Datamap path copied to clipboard",
       "already_stored_one": "1 file already stored — saving datamap",
-      "already_stored_many": "{count} files already stored — saving datamap"
+      "already_stored_many": "{count} files already stored — saving datamap",
+      "upload_complete": "Upload complete: {name}",
+      "upload_failed": "Upload failed: {name} — {error}",
+      "payment_failed": "Payment failed: {error}",
+      "download_complete": "Download complete: {name}",
+      "download_failed": "Download failed: {name} — {error}",
+      "datamap_missing": "Cannot download: datamap file missing or unreadable",
+      "datamap_read_failed": "Could not read datamap: {error}"
     },
     "error": {
       "wallet_not_connected": "Wallet not connected",
@@ -383,6 +407,34 @@
       "earnings_saved": "Earnings address saved",
       "earnings_set_to_payment": "Earnings address set to payment wallet",
       "wallet_disconnected": "Wallet disconnected"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "Update Available",
+      "version_ready": "v{version} is ready to install",
+      "pre_release_badge": "Pre-release",
+      "download_size": "Download size: {size}",
+      "release_notes": "Release Notes",
+      "no_release_notes": "No release notes available for this version.",
+      "downloading": "Downloading…",
+      "download_complete": "Download succeeded, the app will restart shortly",
+      "auto_restart_hint": "The app will restart automatically when complete.",
+      "cancel_download": "Cancel Download",
+      "installing_tooltip": "Installing — please wait",
+      "not_now": "Not Now",
+      "update_restart": "Update & Restart"
+    },
+    "toast": {
+      "install_no_restart": "Update to v{version} installed but the app didn't restart. Quit and reopen Autonomi to finish updating.",
+      "install_failed": "Update install failed: {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "Filename cannot contain special characters",
+      "ends_with_dot_or_space": "Filename cannot end with a dot or space",
+      "reserved_on_windows": "That name is reserved on Windows"
     }
   },
   "status": {
