@@ -143,6 +143,64 @@ pub(crate) fn config_path() -> PathBuf {
         .join("ant-gui")
 }
 
+/// User-addressable directory for persisted datamap files on **fresh
+/// installs**. Lives under `~/Documents/Autonomi/Datamaps/` (or the
+/// platform equivalent of Documents) so the OS file picker can navigate
+/// to them — fixes the macOS gap where `~/Library` is hidden by default
+/// in NSOpenPanel.
+///
+/// Existing installs keep writing into `config_path()` via
+/// `resolve_datamap_output_dir()` so the upgrade does not split their
+/// datamaps across two locations. Only callers that need the "where do
+/// new writes go" answer should use `resolve_datamap_output_dir()`;
+/// this function is the new-install default.
+///
+/// Falls back to `<home>/Documents/Autonomi/Datamaps` if `dirs::document_dir`
+/// can't resolve the platform path (very unusual), and to `./Autonomi/Datamaps`
+/// only if even `dirs::home_dir` fails (effectively a no-home embedded env).
+pub fn datamap_dir() -> PathBuf {
+    dirs::document_dir()
+        .or_else(|| dirs::home_dir().map(|h| h.join("Documents")))
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("Autonomi")
+        .join("Datamaps")
+}
+
+/// Decide where the *next* datamap write should land. Existing installs
+/// (those whose `config_path()` already contains one or more `.datamap`
+/// files) keep writing into the legacy location so a single user does not
+/// end up with their datamaps scattered across two directories after the
+/// upgrade. Fresh installs go to `datamap_dir()` so the OS file picker can
+/// reach them.
+///
+/// Detection is stateless: on every write, we look at the legacy dir's
+/// current contents. After the first new-install write the rule continues
+/// to return `datamap_dir()` because the legacy dir never gains a
+/// `.datamap` file. After the first existing-install write the rule
+/// continues to return `config_path()` because the legacy dir still has
+/// the original `.datamap` files alongside the new one.
+fn resolve_datamap_output_dir() -> PathBuf {
+    let legacy = config_path();
+    let has_legacy_datamaps = legacy
+        .read_dir()
+        .ok()
+        .map(|entries| {
+            entries.filter_map(|e| e.ok()).any(|entry| {
+                entry
+                    .path()
+                    .extension()
+                    .and_then(|s| s.to_str())
+                    == Some("datamap")
+            })
+        })
+        .unwrap_or(false);
+    if has_legacy_datamaps {
+        legacy
+    } else {
+        datamap_dir()
+    }
+}
+
 /// Resolve the OS-appropriate default downloads directory. Returns
 /// `~/Downloads` on macOS/Linux and `C:\Users\<name>\Downloads` on Windows,
 /// falling back to `<home>/Downloads` if the platform-specific lookup fails.
@@ -217,7 +275,8 @@ pub fn get_file_metas(paths: &[String]) -> Result<Vec<FileMetaResult>, String> {
         .collect()
 }
 
-/// Persist a serialized DataMap JSON string alongside `upload_history.json`.
+/// Persist a serialized DataMap JSON string in the user-addressable datamap
+/// directory (`~/Documents/Autonomi/Datamaps/`).
 ///
 /// The file is named after the upload's original basename (with its extension
 /// stripped) plus `.datamap` — e.g. `test.pdf` becomes `test.datamap`. When a
@@ -227,8 +286,8 @@ pub fn get_file_metas(paths: &[String]) -> Result<Vec<FileMetaResult>, String> {
 /// Returns the absolute path to the written file.
 pub fn write_datamap_for(original_name: &str, json: &str) -> Result<PathBuf, String> {
     let stem = sanitize_stem(original_name);
-    let dir = config_path();
-    std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create config dir: {e}"))?;
+    let dir = resolve_datamap_output_dir();
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create datamap dir: {e}"))?;
 
     // Cap the number of collision attempts at a generous-but-finite limit so a
     // pathological state (e.g. thousands of collisions) yields an error rather
