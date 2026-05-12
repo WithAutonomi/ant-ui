@@ -775,7 +775,7 @@ async function pickStorageDir() {
     }
     settingsStore.storageDirProbeError = null
     await settingsStore.setStorageDir(path)
-    toasts.add('Storage directory verified', 'info')
+    toasts.add('Storage directory verified', 'success')
   } catch (e) {
     toasts.add('Failed to select directory', 'error')
   }
