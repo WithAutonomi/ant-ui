@@ -35,7 +35,10 @@ onMounted(async () => {
   await settingsStore.loadConfig()
   await settingsStore.loadDevnetManifest()
   nodesStore.init()
-  filesStore.loadHistory()
+  // Await: any persistHistory triggered before this resolves would otherwise
+  // run against an empty `files` array, and the fail-closed guard in the
+  // store only kicks in once loadHistory has flipped its failure flag.
+  await filesStore.loadHistory()
   filesStore.setupProgressListeners()
   updaterStore.checkForUpdate()
   settingsStore.reconnectIndelible()
