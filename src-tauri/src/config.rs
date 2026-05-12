@@ -30,6 +30,11 @@ pub struct AppConfig {
     /// init from this flag, so toggling requires an app restart to take effect.
     #[serde(default)]
     pub prerelease_channel: bool,
+    /// User-chosen UI locale (e.g. "en", "ja"). `None` means "follow system":
+    /// the frontend reads the OS locale via tauri-plugin-os and falls back to
+    /// English if it doesn't match a shipped locale.
+    #[serde(default)]
+    pub i18n_locale: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -127,6 +132,7 @@ impl Default for AppConfig {
             theme_mode: default_theme_mode(),
             upload_concurrency: default_upload_concurrency(),
             prerelease_channel: false,
+            i18n_locale: None,
         }
     }
 }
