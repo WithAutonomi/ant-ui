@@ -3,15 +3,15 @@
     <td :colspan="colspan" class="px-4 py-4">
       <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
         <div>
-          <span class="text-autonomi-muted">Node ID</span>
+          <span class="text-autonomi-muted">{{ $t('nodes.field.node_id') }}</span>
           <p class="font-mono text-xs">{{ node.id }}</p>
         </div>
         <div>
-          <span class="text-autonomi-muted">Status</span>
+          <span class="text-autonomi-muted">{{ $t('nodes.field.status') }}</span>
           <p><StatusBadge :status="node.status" /></p>
         </div>
         <div>
-          <span class="text-autonomi-muted">Version</span>
+          <span class="text-autonomi-muted">{{ $t('nodes.field.version') }}</span>
           <p>
             {{ node.version }}<span
               v-if="node.pending_version"
@@ -20,27 +20,27 @@
           </p>
         </div>
         <div>
-          <span class="text-autonomi-muted">PID</span>
+          <span class="text-autonomi-muted">{{ $t('nodes.field.pid') }}</span>
           <p class="font-mono text-xs">{{ node.pid ?? '-' }}</p>
         </div>
         <div>
-          <span class="text-autonomi-muted">Uptime</span>
+          <span class="text-autonomi-muted">{{ $t('nodes.field.uptime') }}</span>
           <p>{{ node.uptime_secs ? formatUptime(node.uptime_secs) : '-' }}</p>
         </div>
         <div>
-          <span class="text-autonomi-muted">Storage</span>
+          <span class="text-autonomi-muted">{{ $t('nodes.field.storage') }}</span>
           <p>{{ node.storage_bytes != null ? formatBytes(node.storage_bytes) : '-' }}</p>
         </div>
         <div class="col-span-2">
-          <span class="text-autonomi-muted">Data Directory</span>
+          <span class="text-autonomi-muted">{{ $t('nodes.field.data_directory') }}</span>
           <p class="font-mono text-xs">{{ node.data_dir }}</p>
         </div>
         <div class="col-span-2">
-          <span class="text-autonomi-muted">Log Directory</span>
+          <span class="text-autonomi-muted">{{ $t('nodes.field.log_directory') }}</span>
           <p class="font-mono text-xs">{{ node.log_dir }}</p>
         </div>
         <div v-if="node.rewards_address" class="col-span-2">
-          <span class="text-autonomi-muted">Rewards Address</span>
+          <span class="text-autonomi-muted">{{ $t('nodes.field.rewards_address') }}</span>
           <p class="font-mono text-xs">{{ node.rewards_address }}</p>
         </div>
       </div>
@@ -51,21 +51,21 @@
           class="rounded-md bg-autonomi-blue px-3 py-1 text-xs font-medium text-white hover:opacity-90"
           @click="$emit('start', node.id)"
         >
-          Start
+          {{ $t('common.start') }}
         </button>
         <button
           v-if="node.status === 'running'"
           class="rounded-md border border-autonomi-border px-3 py-1 text-xs text-autonomi-muted hover:text-autonomi-text"
           @click="$emit('stop', node.id)"
         >
-          Stop
+          {{ $t('common.stop') }}
         </button>
         <button
           v-if="node.status === 'stopped' || node.status === 'errored'"
           class="rounded-md border border-autonomi-border px-3 py-1 text-xs text-autonomi-muted hover:text-autonomi-text"
           @click="$emit('remove', node.id)"
         >
-          Remove
+          {{ $t('common.remove') }}
         </button>
       </div>
     </td>

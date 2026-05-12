@@ -7,13 +7,13 @@
           class="rounded-md bg-autonomi-blue px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
           @click="uploadFiles"
         >
-          Upload File(s)
+          {{ $t('files.upload_button') }}
         </button>
         <button
           class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
           @click="estimateCost"
         >
-          Estimate Cost
+          {{ $t('files.estimate_button') }}
         </button>
       </div>
 
@@ -22,13 +22,13 @@
           class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
           @click="showDownloadDialog = true"
         >
-          Download by Address
+          {{ $t('files.download_by_address') }}
         </button>
         <button
           class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
           @click="openDownloadByDatamap"
         >
-          Download by Datamap
+          {{ $t('files.download_by_datamap') }}
         </button>
       </div>
     </div>
@@ -36,7 +36,7 @@
     <!-- Uploads table + drop zone -->
     <section class="mb-6">
       <div class="mb-2 flex items-center justify-between">
-        <h2 class="text-sm font-medium text-autonomi-text">Uploads</h2>
+        <h2 class="text-sm font-medium text-autonomi-text">{{ $t('files.uploads_heading') }}</h2>
         <!-- Bulk "Clear history" lives in Settings → Storage now (V2-232).
              Per-row × on hover handles the common case of trimming a single
              failed/complete entry; bulk wipe is gated behind a confirmation
@@ -61,7 +61,7 @@
               <svg class="mx-auto mb-2 h-8 w-8 text-autonomi-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
-              <p class="text-sm font-medium text-autonomi-blue">Drop files to upload</p>
+              <p class="text-sm font-medium text-autonomi-blue">{{ $t('files.drop_files') }}</p>
             </div>
           </div>
         </Transition>
@@ -73,8 +73,8 @@
           <svg class="mb-3 h-8 w-8 text-autonomi-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
           </svg>
-          <p class="text-sm text-autonomi-muted">No uploads yet</p>
-          <p class="mt-1 text-xs text-autonomi-muted">Drag files here, or use the buttons above</p>
+          <p class="text-sm text-autonomi-muted">{{ $t('files.uploads_empty_title') }}</p>
+          <p class="mt-1 text-xs text-autonomi-muted">{{ $t('files.uploads_empty_hint') }}</p>
         </div>
 
         <div v-else class="overflow-hidden rounded-lg border border-autonomi-border">
@@ -82,20 +82,20 @@
             <thead class="bg-autonomi-surface">
               <tr class="text-left text-xs uppercase tracking-wider text-autonomi-muted">
                 <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('name')">
-                  Name {{ uploadSortIndicator('name') }}
+                  {{ $t('files.table.name') }} {{ uploadSortIndicator('name') }}
                 </th>
-                <th class="px-4 py-2.5">Status</th>
+                <th class="px-4 py-2.5">{{ $t('files.table.status') }}</th>
                 <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('size_bytes')">
-                  Size {{ uploadSortIndicator('size_bytes') }}
+                  {{ $t('files.table.size') }} {{ uploadSortIndicator('size_bytes') }}
                 </th>
                 <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('cost')">
-                  Cost {{ uploadSortIndicator('cost') }}
+                  {{ $t('files.table.cost') }} {{ uploadSortIndicator('cost') }}
                 </th>
                 <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('date')">
-                  Date {{ uploadSortIndicator('date') }}
+                  {{ $t('files.table.date') }} {{ uploadSortIndicator('date') }}
                 </th>
-                <th class="px-4 py-2.5">Address</th>
-                <th class="w-px px-2 py-2.5"><span class="sr-only">Actions</span></th>
+                <th class="px-4 py-2.5">{{ $t('files.table.address') }}</th>
+                <th class="w-px px-2 py-2.5"><span class="sr-only">{{ $t('files.table.actions') }}</span></th>
               </tr>
             </thead>
             <tbody class="divide-y divide-autonomi-border">
@@ -130,11 +130,11 @@
                 <td class="px-4 py-2.5 text-autonomi-muted">{{ file.size_bytes ? formatBytes(file.size_bytes) : '-' }}</td>
                 <td class="px-4 py-2.5 text-autonomi-muted">
                   <template v-if="file.alreadyStored">
-                    <span class="text-green-400">Free — already stored</span>
+                    <span class="text-green-400">{{ $t('files.row.free_already_stored') }}</span>
                   </template>
                   <template v-else>
                     <span>{{ file.cost ?? '-' }}</span>
-                    <span v-if="file.gas_cost" class="block text-[10px] text-autonomi-muted/60">+ {{ file.gas_cost }} gas</span>
+                    <span v-if="file.gas_cost" class="block text-[10px] text-autonomi-muted/60">{{ $t('files.row.gas_suffix', { gas: file.gas_cost }) }}</span>
                   </template>
                 </td>
                 <td class="px-4 py-2.5 text-autonomi-muted">{{ formatDate(file.date) }}</td>
@@ -142,10 +142,10 @@
                   <span
                     v-if="file.public_address"
                     class="inline-flex cursor-pointer items-center gap-1.5 font-mono text-xs text-autonomi-blue hover:text-autonomi-blue/80"
-                    title="Public upload — click to copy the shareable network address"
+                    :title="$t('files.row.public_tooltip')"
                     @click.stop="copyPublicAddress(file.public_address)"
                   >
-                    <span class="rounded bg-autonomi-blue/15 px-1 py-px text-[9px] font-sans uppercase tracking-wider">Public</span>
+                    <span class="rounded bg-autonomi-blue/15 px-1 py-px text-[9px] font-sans uppercase tracking-wider">{{ $t('files.row.public_badge') }}</span>
                     {{ truncateAddress(file.public_address, 8, 6) }}
                   </span>
                   <div
@@ -154,7 +154,7 @@
                   >
                     <span
                       class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue hover:underline"
-                      title="Reveal datamap file in Finder/Explorer"
+                      :title="$t('files.row.reveal_datamap_tooltip')"
                       @click.stop="openFolder(file.data_map_file)"
                     >
                       {{ datamapBasename(file.data_map_file) }}
@@ -162,7 +162,7 @@
                     <button
                       type="button"
                       class="rounded p-0.5 text-autonomi-muted/60 hover:text-autonomi-blue hover:bg-autonomi-surface"
-                      title="Copy datamap file path"
+                      :title="$t('files.row.copy_datamap_tooltip')"
                       @click.stop="copyDatamapPath(file.data_map_file!)"
                     >
                       <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -174,7 +174,7 @@
                   <span
                     v-else-if="file.address"
                     class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue"
-                    title="Copy network address"
+                    :title="$t('files.row.copy_address_tooltip')"
                     @click.stop="copyAddress(file.address)"
                   >
                     {{ truncateAddress(file.address, 8, 6) }}
@@ -186,14 +186,14 @@
                     <button
                       v-if="canRetry(file)"
                       class="rounded px-1.5 py-0.5 text-[11px] text-autonomi-muted hover:bg-autonomi-surface hover:text-autonomi-blue"
-                      title="Retry upload"
+                      :title="$t('files.row.retry_tooltip')"
                       @click.stop="onRetry(file)"
                     >
-                      ↻ Retry
+                      {{ $t('files.row.retry') }}
                     </button>
                     <button
                       class="rounded px-1.5 py-0.5 text-[11px] text-autonomi-muted hover:bg-autonomi-surface hover:text-autonomi-error"
-                      title="Remove from list"
+                      :title="$t('files.row.remove_tooltip')"
                       @click.stop="onRemove(file)"
                     >
                       ✕
@@ -210,13 +210,13 @@
     <!-- Downloads table -->
     <section>
       <div class="mb-2 flex items-center justify-between">
-        <h2 class="text-sm font-medium text-autonomi-text">Downloads</h2>
+        <h2 class="text-sm font-medium text-autonomi-text">{{ $t('files.downloads_heading') }}</h2>
         <button
           v-if="hasSettledDownloads"
           class="text-xs text-autonomi-muted hover:text-autonomi-text"
           @click="filesStore.clearDownloads()"
         >
-          Clear
+          {{ $t('files.clear') }}
         </button>
       </div>
 
@@ -227,8 +227,8 @@
         <svg class="mb-3 h-8 w-8 text-autonomi-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
         </svg>
-        <p class="text-sm text-autonomi-muted">No downloads yet</p>
-        <p class="mt-1 text-xs text-autonomi-muted">Use "Download by Address" or "Download by Datamap"</p>
+        <p class="text-sm text-autonomi-muted">{{ $t('files.downloads_empty_title') }}</p>
+        <p class="mt-1 text-xs text-autonomi-muted">{{ $t('files.downloads_empty_hint') }}</p>
       </div>
 
       <div v-else class="overflow-hidden rounded-lg border border-autonomi-border">
@@ -236,17 +236,17 @@
           <thead class="bg-autonomi-surface">
             <tr class="text-left text-xs uppercase tracking-wider text-autonomi-muted">
               <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleDownloadSort('name')">
-                Name {{ downloadSortIndicator('name') }}
+                {{ $t('files.table.name') }} {{ downloadSortIndicator('name') }}
               </th>
-              <th class="px-4 py-2.5">Status</th>
+              <th class="px-4 py-2.5">{{ $t('files.table.status') }}</th>
               <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleDownloadSort('size_bytes')">
-                Size {{ downloadSortIndicator('size_bytes') }}
+                {{ $t('files.table.size') }} {{ downloadSortIndicator('size_bytes') }}
               </th>
-              <th class="px-4 py-2.5">Saved to</th>
+              <th class="px-4 py-2.5">{{ $t('files.table.saved_to') }}</th>
               <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleDownloadSort('date')">
-                Date {{ downloadSortIndicator('date') }}
+                {{ $t('files.table.date') }} {{ downloadSortIndicator('date') }}
               </th>
-              <th class="w-px px-2 py-2.5"><span class="sr-only">Actions</span></th>
+              <th class="w-px px-2 py-2.5"><span class="sr-only">{{ $t('files.table.actions') }}</span></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-autonomi-border">
@@ -286,7 +286,7 @@
                 <span v-if="isSettled(file)" class="inline-flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                   <button
                     class="rounded px-1.5 py-0.5 text-[11px] text-autonomi-muted hover:bg-autonomi-surface hover:text-autonomi-error"
-                    title="Remove from list"
+                    :title="$t('files.row.remove_tooltip')"
                     @click.stop="onRemove(file)"
                   >
                     ✕
@@ -344,12 +344,15 @@ import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { open as openFileDialog } from '@tauri-apps/plugin-dialog'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
+import { useI18n } from 'vue-i18n'
 import { useFilesStore, type FileEntry } from '~/stores/files'
 import { formatBytes, truncateAddress } from '~/utils/formatters'
 import { formatNanoTokens, formatGasCost } from '~/utils/payment'
 import { useSettingsStore } from '~/stores/settings'
 import { useToastStore } from '~/stores/toasts'
 import { useConnectionStore } from '~/stores/connection'
+
+const { t } = useI18n()
 
 interface FileMeta {
   path: string
@@ -521,15 +524,15 @@ function stageDetail(file: FileEntry): string | null {
   switch (file.stage) {
     case 'encrypting':
       // Encryption has no total until it finishes — fall back to a spinner.
-      return 'Encrypting…'
+      return t('files.stage.encrypting')
     case 'quoting':
-      return pct !== null ? `Quoting · ${pct}%` : 'Quoting…'
+      return pct !== null ? t('files.stage.quoting_pct', { pct }) : t('files.stage.quoting_indeterminate')
     case 'uploading':
-      return pct !== null ? `Storing · ${pct}%` : 'Storing…'
+      return pct !== null ? t('files.stage.storing_pct', { pct }) : t('files.stage.storing_indeterminate')
     case 'resolving':
-      return pct !== null ? `Resolving datamap · ${pct}%` : 'Resolving datamap…'
+      return pct !== null ? t('files.stage.resolving_pct', { pct }) : t('files.stage.resolving_indeterminate')
     case 'downloading':
-      return pct !== null ? `Downloading · ${pct}%` : 'Downloading…'
+      return pct !== null ? t('files.stage.downloading_pct', { pct }) : t('files.stage.downloading_indeterminate')
     default:
       return null
   }
@@ -663,7 +666,7 @@ async function uploadFiles() {
   try {
     const selected = await openFileDialog({
       multiple: true,
-      title: 'Select files to upload',
+      title: t('files.picker.upload_title'),
     })
     if (!selected) return
     const paths = Array.isArray(selected) ? selected : [selected]
@@ -771,9 +774,9 @@ function kickScheduler() {
     if (!wagmiConfig) {
       filesStore.updateEntry(uploadHead.id, {
         status: 'failed',
-        error: 'Wallet not connected',
+        error: t('files.error.wallet_not_connected'),
       })
-      toastStore.add('Upload requires a wallet', 'warning')
+      toastStore.add(t('files.toast.upload_requires_wallet'), 'warning')
       continue
     }
 
@@ -817,7 +820,7 @@ watch(
     showUploadConfirm.value = false
     selectedFileIds.value = []
     toastStore.add(
-      `${n} file${n !== 1 ? 's' : ''} already stored — saving datamap`,
+      n === 1 ? t('files.toast.already_stored_one') : t('files.toast.already_stored_many', { count: n }),
       'info',
     )
   },
@@ -897,8 +900,8 @@ async function browseForDatamap() {
   try {
     selected = await openFileDialog({
       multiple: false,
-      title: 'Select a datamap file to download',
-      filters: [{ name: 'Datamap', extensions: ['datamap'] }],
+      title: t('files.picker.datamap_title'),
+      filters: [{ name: t('files.picker.datamap_filter'), extensions: ['datamap'] }],
     })
   } catch (err) {
     console.error('File dialog error:', err)
@@ -930,8 +933,8 @@ async function startDatamapDownload(filename: string) {
     invoke('retry_autonomi_client').catch(() => {})
     const connected = await waitForConnection()
     if (!connected) {
-      filesStore.updateEntry(id, { status: 'failed', error: 'Not connected to network' })
-      toastStore.add('Download requires network connection', 'warning')
+      filesStore.updateEntry(id, { status: 'failed', error: t('files.error.not_connected_to_network') })
+      toastStore.add(t('files.toast.download_requires_network'), 'warning')
       return
     }
   }
@@ -951,8 +954,8 @@ async function handleDownload(address: string, filename: string) {
     invoke('retry_autonomi_client').catch(() => {})
     const connected = await waitForConnection()
     if (!connected) {
-      filesStore.updateEntry(id, { status: 'failed', error: 'Not connected to network' })
-      toastStore.add('Download requires network connection', 'warning')
+      filesStore.updateEntry(id, { status: 'failed', error: t('files.error.not_connected_to_network') })
+      toastStore.add(t('files.toast.download_requires_network'), 'warning')
       return
     }
   }
@@ -971,7 +974,7 @@ async function estimateCost() {
   try {
     const selected = await openFileDialog({
       multiple: true,
-      title: 'Select files to estimate cost',
+      title: t('files.picker.estimate_title'),
     })
     if (!selected) return
 
@@ -1056,23 +1059,23 @@ async function openFolder(path: string) {
   try {
     await revealItemInDir(path)
   } catch {
-    toastStore.add('Could not open folder', 'warning')
+    toastStore.add(t('files.toast.open_folder_failed'), 'warning')
   }
 }
 
 function copyAddress(addr: string) {
   navigator.clipboard.writeText(addr)
-  toastStore.add('Address copied to clipboard', 'info')
+  toastStore.add(t('files.toast.address_copied'), 'info')
 }
 
 function copyPublicAddress(addr: string) {
   navigator.clipboard.writeText(addr)
-  toastStore.add('Public address copied — share to let others download this file', 'info')
+  toastStore.add(t('files.toast.public_address_copied'), 'info')
 }
 
 function copyDatamapPath(path: string) {
   navigator.clipboard.writeText(path)
-  toastStore.add('Datamap path copied to clipboard', 'info')
+  toastStore.add(t('files.toast.datamap_path_copied'), 'info')
 }
 
 function datamapBasename(path: string): string {
