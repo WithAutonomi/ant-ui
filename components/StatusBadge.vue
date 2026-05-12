@@ -15,35 +15,43 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ status: string }>()
+import { useI18n } from 'vue-i18n'
 
-const statusMap: Record<string, { dot: string; label: string; color: string }> = {
+const props = defineProps<{ status: string }>()
+const { t } = useI18n()
+
+// Static-status entries keyed by the backend's status string. `labelKey`
+// resolves to the localized label; dynamic statuses (percentages, "Failed:",
+// "Quote:") bypass this map and surface their raw text — those are
+// untranslated by design until the source emits structured tokens we can
+// interpolate.
+const statusMap: Record<string, { dot: string; labelKey: string; color: string }> = {
   // Node statuses (lowercase, matching ant-core)
-  running: { dot: '●', label: 'Running', color: 'text-autonomi-success' },
-  stopped: { dot: '○', label: 'Stopped', color: 'text-autonomi-muted' },
-  starting: { dot: '◐', label: 'Starting', color: 'text-autonomi-warning' },
-  stopping: { dot: '◐', label: 'Stopping', color: 'text-autonomi-warning' },
-  adding: { dot: '◐', label: 'Adding...', color: 'text-autonomi-warning' },
-  errored: { dot: '●', label: 'Error', color: 'text-autonomi-error' },
-  upgrade_scheduled: { dot: '◐', label: 'Upgrading', color: 'text-autonomi-blue' },
+  running: { dot: '●', labelKey: 'status.node.running', color: 'text-autonomi-success' },
+  stopped: { dot: '○', labelKey: 'status.node.stopped', color: 'text-autonomi-muted' },
+  starting: { dot: '◐', labelKey: 'status.node.starting', color: 'text-autonomi-warning' },
+  stopping: { dot: '◐', labelKey: 'status.node.stopping', color: 'text-autonomi-warning' },
+  adding: { dot: '◐', labelKey: 'status.node.adding', color: 'text-autonomi-warning' },
+  errored: { dot: '●', labelKey: 'status.node.errored', color: 'text-autonomi-error' },
+  upgrade_scheduled: { dot: '◐', labelKey: 'status.node.upgrade_scheduled', color: 'text-autonomi-blue' },
   // File transfer statuses
-  Pending: { dot: '○', label: 'Pending', color: 'text-autonomi-muted' },
-  Quoting: { dot: '◐', label: 'Quoting', color: 'text-autonomi-warning' },
-  'Encrypting…': { dot: '◐', label: 'Encrypting…', color: 'text-autonomi-warning' },
-  'Resolving datamap': { dot: '◐', label: 'Resolving datamap', color: 'text-autonomi-warning' },
-  'Queued: quoting': { dot: '○', label: 'Queued: quoting', color: 'text-autonomi-muted' },
-  'Queued: uploading': { dot: '○', label: 'Queued: uploading', color: 'text-autonomi-muted' },
-  'Connecting to network…': { dot: '◐', label: 'Connecting to network…', color: 'text-autonomi-warning' },
-  'Obtaining quote…': { dot: '◐', label: 'Obtaining quote…', color: 'text-autonomi-warning' },
-  'Saving datamap…': { dot: '◐', label: 'Saving datamap…', color: 'text-autonomi-warning' },
-  'Network unavailable': { dot: '✖', label: 'Network unavailable', color: 'text-autonomi-error' },
-  'Ready to approve': { dot: '●', label: 'Ready to approve', color: 'text-autonomi-blue' },
-  'Awaiting approval': { dot: '◐', label: 'Awaiting approval', color: 'text-autonomi-warning' },
-  Uploading: { dot: '●', label: 'Uploading', color: 'text-autonomi-blue' },
-  Downloading: { dot: '●', label: 'Downloading', color: 'text-autonomi-blue' },
-  Complete: { dot: '●', label: 'Done', color: 'text-autonomi-success' },
-  Done: { dot: '●', label: 'Done', color: 'text-autonomi-success' },
-  Downloaded: { dot: '↓', label: 'Downloaded — click to open', color: 'text-autonomi-blue' },
+  Pending: { dot: '○', labelKey: 'status.file.pending', color: 'text-autonomi-muted' },
+  Quoting: { dot: '◐', labelKey: 'status.file.quoting', color: 'text-autonomi-warning' },
+  'Encrypting…': { dot: '◐', labelKey: 'status.file.encrypting', color: 'text-autonomi-warning' },
+  'Resolving datamap': { dot: '◐', labelKey: 'status.file.resolving_datamap', color: 'text-autonomi-warning' },
+  'Queued: quoting': { dot: '○', labelKey: 'status.file.queued_quoting', color: 'text-autonomi-muted' },
+  'Queued: uploading': { dot: '○', labelKey: 'status.file.queued_uploading', color: 'text-autonomi-muted' },
+  'Connecting to network…': { dot: '◐', labelKey: 'status.file.connecting_to_network', color: 'text-autonomi-warning' },
+  'Obtaining quote…': { dot: '◐', labelKey: 'status.file.obtaining_quote', color: 'text-autonomi-warning' },
+  'Saving datamap…': { dot: '◐', labelKey: 'status.file.saving_datamap', color: 'text-autonomi-warning' },
+  'Network unavailable': { dot: '✖', labelKey: 'status.file.network_unavailable', color: 'text-autonomi-error' },
+  'Ready to approve': { dot: '●', labelKey: 'status.file.ready_to_approve', color: 'text-autonomi-blue' },
+  'Awaiting approval': { dot: '◐', labelKey: 'status.file.awaiting_approval', color: 'text-autonomi-warning' },
+  Uploading: { dot: '●', labelKey: 'status.file.uploading', color: 'text-autonomi-blue' },
+  Downloading: { dot: '●', labelKey: 'status.file.downloading', color: 'text-autonomi-blue' },
+  Complete: { dot: '●', labelKey: 'status.file.done', color: 'text-autonomi-success' },
+  Done: { dot: '●', labelKey: 'status.file.done', color: 'text-autonomi-success' },
+  Downloaded: { dot: '↓', labelKey: 'status.file.downloaded', color: 'text-autonomi-blue' },
 }
 
 const entry = computed(() => {
@@ -58,7 +66,7 @@ const entry = computed(() => {
     return { dot: '●', label: props.status, color: 'text-autonomi-blue', error: false }
   }
   const mapped = statusMap[props.status]
-  if (mapped) return { ...mapped, error: false }
+  if (mapped) return { dot: mapped.dot, label: t(mapped.labelKey), color: mapped.color, error: false }
   return { dot: '?', label: props.status, color: 'text-autonomi-muted', error: false }
 })
 

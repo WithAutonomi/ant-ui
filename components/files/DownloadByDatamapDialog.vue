@@ -6,9 +6,9 @@
       @click.self="$emit('close')"
     >
       <div role="dialog" aria-modal="true" aria-labelledby="datamap-download-title" class="w-[32rem] rounded-lg border border-autonomi-border bg-autonomi-dark p-6 shadow-xl">
-        <h2 id="datamap-download-title" class="mb-1 text-lg font-medium">Download by Datamap</h2>
+        <h2 id="datamap-download-title" class="mb-1 text-lg font-medium">{{ $t('files.download_by_datamap') }}</h2>
         <p class="mb-4 text-xs text-autonomi-muted">
-          Pick a previous upload to re-download, or browse for a datamap file you received from elsewhere.
+          {{ $t('files.datamap_picker.description') }}
         </p>
 
         <div v-if="candidates.length" class="mb-4 max-h-72 overflow-y-auto rounded-md border border-autonomi-border">
@@ -33,7 +33,7 @@
           </ul>
         </div>
         <div v-else class="mb-4 rounded-md border border-dashed border-autonomi-border px-3 py-6 text-center text-xs text-autonomi-muted">
-          No previous uploads with a saved datamap yet.
+          {{ $t('files.datamap_picker.empty') }}
         </div>
 
         <div class="flex items-center justify-between gap-2">
@@ -41,13 +41,13 @@
             class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
             @click="$emit('browse')"
           >
-            Browse for datamap file…
+            {{ $t('files.datamap_picker.browse_button') }}
           </button>
           <button
             class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
             @click="$emit('close')"
           >
-            Cancel
+            {{ $t('common.cancel') }}
           </button>
         </div>
       </div>

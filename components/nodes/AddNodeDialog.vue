@@ -6,10 +6,10 @@
       @click.self="$emit('close')"
     >
       <div role="dialog" aria-modal="true" aria-labelledby="add-node-title" class="w-96 rounded-lg border border-autonomi-border bg-autonomi-dark p-6 shadow-xl">
-        <h2 id="add-node-title" class="mb-4 text-lg font-medium">Add Nodes</h2>
+        <h2 id="add-node-title" class="mb-4 text-lg font-medium">{{ $t('nodes.add_dialog.title') }}</h2>
 
         <div class="mb-4">
-          <label class="mb-1 block text-xs text-autonomi-muted">Number of nodes</label>
+          <label class="mb-1 block text-xs text-autonomi-muted">{{ $t('nodes.add_dialog.number_label') }}</label>
           <input
             ref="inputEl"
             v-model.number="count"
@@ -20,12 +20,12 @@
             @keyup.enter="confirm"
             @keyup.escape="$emit('close')"
           />
-          <p class="mt-1 text-xs text-autonomi-muted">Between 1 and 50</p>
+          <p class="mt-1 text-xs text-autonomi-muted">{{ $t('nodes.add_dialog.range_hint') }}</p>
         </div>
 
         <div v-if="!earningsSet" class="mb-4 rounded-md border border-autonomi-warning/30 bg-yellow-950/30 p-3">
           <p class="text-xs text-autonomi-warning">
-            No earnings address configured. Set one in the Wallet page before adding nodes.
+            {{ $t('nodes.add_dialog.no_earnings_warning') }}
           </p>
         </div>
 
@@ -34,14 +34,14 @@
             class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
             @click="$emit('close')"
           >
-            Cancel
+            {{ $t('common.cancel') }}
           </button>
           <button
             class="rounded-md bg-autonomi-blue px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
             :disabled="!valid"
             @click="confirm"
           >
-            Add {{ count }} Node{{ count !== 1 ? 's' : '' }}
+            {{ count === 1 ? $t('nodes.add_dialog.submit_one') : $t('nodes.add_dialog.submit_many', { count }) }}
           </button>
         </div>
       </div>

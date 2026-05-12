@@ -6,15 +6,15 @@
       @click.self="$emit('close')"
     >
       <div role="dialog" aria-modal="true" aria-labelledby="datamap-saveas-title" class="w-[26rem] rounded-lg border border-autonomi-border bg-autonomi-dark p-6 shadow-xl">
-        <h2 id="datamap-saveas-title" class="mb-4 text-lg font-medium">Save downloaded file as</h2>
+        <h2 id="datamap-saveas-title" class="mb-4 text-lg font-medium">{{ $t('files.datamap_saveas.title') }}</h2>
 
         <div class="mb-4">
-          <label class="mb-1 block text-xs text-autonomi-muted">Filename</label>
+          <label class="mb-1 block text-xs text-autonomi-muted">{{ $t('files.datamap_saveas.filename_label') }}</label>
           <input
             ref="inputEl"
             v-model="filename"
             type="text"
-            placeholder="myfile.dat"
+            :placeholder="$t('files.datamap_saveas.filename_placeholder')"
             :class="[
               'w-full rounded-md border bg-autonomi-surface px-3 py-2 text-sm text-autonomi-text focus:outline-none',
               filenameError ? 'border-red-500 focus:border-red-500' : 'border-autonomi-border focus:border-autonomi-blue',
@@ -30,14 +30,14 @@
             class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
             @click="$emit('close')"
           >
-            Cancel
+            {{ $t('common.cancel') }}
           </button>
           <button
             class="rounded-md bg-autonomi-blue px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
             :disabled="!valid"
             @click="confirm"
           >
-            Download
+            {{ $t('common.download') }}
           </button>
         </div>
       </div>

@@ -8,7 +8,7 @@
     @click="$emit('select', node.id)"
   >
     <!-- Status indicator dot -->
-    <div class="absolute left-3 top-3" :aria-label="`Status: ${node.status}`" role="img">
+    <div class="absolute left-3 top-3" :aria-label="$t('nodes.field.status_aria', { status: node.status })" role="img">
       <span class="relative flex h-2.5 w-2.5">
         <span
           v-if="node.status === 'running' || node.status === 'adding' || node.status === 'upgrade_scheduled'"
@@ -21,7 +21,7 @@
 
     <!-- Node name / ID -->
     <div class="mb-3 mt-1 pl-5">
-      <p class="text-sm font-medium text-autonomi-text">{{ node.name || `Node ${node.id}` }}</p>
+      <p class="text-sm font-medium text-autonomi-text">{{ node.name || $t('nodes.node_fallback_name', { id: node.id }) }}</p>
       <p v-if="node.version" class="text-[10px] text-autonomi-muted">
         v{{ node.version }}<span
           v-if="node.pending_version"
@@ -33,15 +33,15 @@
     <!-- Stats grid -->
     <div class="grid grid-cols-2 gap-x-3 gap-y-1.5">
       <div>
-        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">PID</p>
+        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">{{ $t('nodes.field.pid') }}</p>
         <p class="text-sm font-mono text-autonomi-text">{{ node.pid ?? '-' }}</p>
       </div>
       <div>
-        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Uptime</p>
+        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">{{ $t('nodes.field.uptime') }}</p>
         <p class="text-sm font-mono text-autonomi-text">{{ node.uptime_secs ? formatUptime(node.uptime_secs) : '-' }}</p>
       </div>
       <div>
-        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Storage</p>
+        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">{{ $t('nodes.field.storage') }}</p>
         <p class="text-sm font-mono text-autonomi-text">{{ node.storage_bytes != null ? formatBytes(node.storage_bytes) : '-' }}</p>
       </div>
     </div>

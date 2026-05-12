@@ -6,6 +6,149 @@
       "description": "UI 表示言語",
       "system_default": "システムのデフォルト: {name}",
       "system_default_pending": "システムのデフォルト"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "管理ストレージゲートウェイに接続済み",
+      "subtitle_setup": "管理ストレージ用のセルフホスト Indelible ゲートウェイに接続",
+      "connected_badge": "接続済み",
+      "server_label": "サーバー",
+      "signed_in_as": "サインインユーザー",
+      "disconnect": "切断",
+      "server_url_label": "サーバー URL",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "API キー",
+      "api_key_placeholder": "API トークン",
+      "test_connect": "テストして接続",
+      "testing": "テスト中…",
+      "configure": "接続を設定"
+    },
+    "storage": {
+      "title": "ストレージディレクトリ",
+      "description": "ノードデータを保存するディスク上の場所",
+      "default": "デフォルト",
+      "browse": "参照",
+      "warning": "新しく追加するノードにのみ適用されます。既存のノードは現在のディレクトリを使い続けます。"
+    },
+    "downloads": {
+      "title": "ダウンロードディレクトリ",
+      "description": "ダウンロードしたファイルの保存先",
+      "not_set": "未設定",
+      "browse": "参照"
+    },
+    "alert": {
+      "title": "アラート音",
+      "description": "重大なノード障害時に音を鳴らす",
+      "aria_toggle": "アラート音を切り替え"
+    },
+    "theme": {
+      "title": "ライトモード",
+      "description": "ダーク/ライトテーマを切り替え",
+      "aria_toggle": "ライトモードを切り替え"
+    },
+    "advanced": {
+      "hide": "▾ 詳細設定を隠す",
+      "show": "▸ 詳細設定を表示"
+    },
+    "daemon": {
+      "title": "ノードデーモン",
+      "description": "ノードを管理するバックグラウンドサービスを再起動します。稼働中のノードはそのまま動き続け、スーパーバイザのみが入れ替わります。",
+      "restart": "デーモンを再起動",
+      "restarting": "再起動中…"
+    },
+    "concurrency": {
+      "title": "アップロード並列数",
+      "description_1": "同時に実行できる見積もり/アップロードの数を制御します。",
+      "description_2": "パフォーマンスに大きく影響します。"
+    },
+    "prerelease": {
+      "title": "プレリリースビルド",
+      "description": "安定版に加えて、プレリリースビルド (rc / beta) の自動更新を受け取ります。デフォルトはオフです。",
+      "restart_required": "この変更を反映するにはアプリを再起動してください。",
+      "restart_now": "今すぐ再起動"
+    },
+    "direct_wallet": {
+      "title": "ダイレクトウォレット",
+      "description": "秘密鍵で接続 (WalletConnect を使わない)",
+      "connected_badge": "接続済み",
+      "address_label": "アドレス",
+      "disconnect": "切断",
+      "network_label": "ネットワーク",
+      "network_sepolia_option": "Arbitrum Sepolia (テストネット)",
+      "network_arbitrum_option": "Arbitrum One (メインネット)",
+      "rpc_url_label": "RPC URL",
+      "rpc_url_optional": "(任意)",
+      "rpc_url_placeholder": "選択したチェーンの公開 RPC をデフォルトで使用",
+      "private_key_label": "秘密鍵",
+      "private_key_placeholder": "0x... または 16 進文字列",
+      "connect": "接続",
+      "import_button": "秘密鍵をインポート"
+    },
+    "diagnostics": {
+      "title": "診断情報",
+      "summary": "{entries} 件のログ ({errors} 件のエラー)",
+      "copy_button": "クリップボードにコピー",
+      "clear_button": "クリア",
+      "empty": "ログエントリがありません",
+      "hide_log": "▾ ログを隠す",
+      "show_log": "▸ ログを表示"
+    },
+    "upload_history": {
+      "title": "アップロード履歴",
+      "summary_one": "upload_history.json に {count} 件の確定済みエントリ。ディスク上のデータマップとネットワーク上のチャンクは影響を受けません。",
+      "summary_many": "upload_history.json に {count} 件の確定済みエントリ。ディスク上のデータマップとネットワーク上のチャンクは影響を受けません。",
+      "clear_button": "履歴をクリア",
+      "confirm_one": "アップロード履歴から 1 件のエントリをクリアしますか？\n\nローカルの行と保存記録が削除されます。ディスク上のデータマップとネットワーク上のチャンクは影響を受けません。",
+      "confirm_many": "アップロード履歴から {count} 件のエントリをクリアしますか？\n\nローカルの行と保存記録が削除されます。ディスク上のデータマップとネットワーク上のチャンクは影響を受けません。"
+    },
+    "software": {
+      "title": "ソフトウェア",
+      "version_label": "バージョン",
+      "last_checked": "最終確認 {label}",
+      "check_button": "アップデートを確認",
+      "checking": "確認中…"
+    },
+    "about": {
+      "title": "情報",
+      "node_version_label": "ノードデーモンバージョン"
+    },
+    "relative_time": {
+      "just_now": "たった今",
+      "seconds_ago": "{n} 秒前",
+      "minutes_ago": "{n} 分前",
+      "hours_ago": "{n} 時間前",
+      "days_ago": "{n} 日前"
+    },
+    "picker": {
+      "storage_title": "ストレージディレクトリを選択",
+      "downloads_title": "ダウンロードディレクトリを選択"
+    },
+    "error": {
+      "private_key_invalid": "秘密鍵が無効です — 64 桁の 16 進文字が必要です",
+      "invalid_eth_address": "EVM アドレスの形式が無効です"
+    },
+    "toast": {
+      "upload_history_cleared": "アップロード履歴をクリアしました",
+      "update_check_failed": "アップデート確認に失敗しました",
+      "update_available": "アップデートあり: v{version}",
+      "on_latest_version": "最新バージョンを使用中 (v{version})",
+      "daemon_restarted": "デーモンを再起動しました",
+      "daemon_restart_failed": "デーモンの再起動に失敗: {error}",
+      "storage_dir_updated": "ストレージディレクトリを更新しました",
+      "storage_dir_verified": "ストレージディレクトリを確認しました",
+      "storage_dir_unwritable": "そのフォルダはノードストレージに使用できません",
+      "select_directory_failed": "ディレクトリの選択に失敗しました",
+      "downloads_dir_updated": "ダウンロードディレクトリを更新しました",
+      "earnings_updated": "報酬アドレスを更新しました",
+      "daemon_url_updated": "デーモン URL を更新しました",
+      "diagnostics_copied": "診断情報をクリップボードにコピーしました",
+      "diagnostics_copy_failed": "クリップボードへのコピーに失敗しました",
+      "log_cleared": "ログをクリアしました",
+      "indelible_connected": "Indelible に接続しました",
+      "indelible_disconnected": "Indelible から切断しました",
+      "wallet_connected": "ウォレット接続: {address}",
+      "wallet_disconnected": "ウォレットを切断しました",
+      "wallet_attach_failed": "ウォレット接続 (Rust 側) に失敗: {error}"
     }
   },
   "nav": {
@@ -31,5 +174,245 @@
     "update_pre_release_tag": "プレリリース",
     "network_devnet": "DEVNET",
     "network_sepolia": "SEPOLIA テストネット"
+  },
+  "common": {
+    "cancel": "キャンセル",
+    "confirm": "確定",
+    "close": "閉じる",
+    "download": "ダウンロード",
+    "start": "開始",
+    "stop": "停止",
+    "remove": "削除",
+    "close_panel": "パネルを閉じる"
+  },
+  "nodes": {
+    "add_button": "+ ノードを追加",
+    "start_all": "すべて開始",
+    "stop_all": "すべて停止",
+    "running_count": "{count} 実行中",
+    "stopped_count": "{count} 停止中",
+    "errored_count": "{count} エラー",
+    "filter_placeholder": "フィルター…",
+    "filter_aria_label": "ノードをフィルター",
+    "starting_daemon": "ノードデーモンを起動中…",
+    "restarting_daemon": "ノードデーモンを再起動中…",
+    "nodes_keep_running": "ノードは稼働を継続します。",
+    "daemon_disconnected": "ノードデーモンに接続できません",
+    "daemon_retrying": "自動的に再試行中…",
+    "empty_title": "ノードがまだありません",
+    "empty_hint": "「+ ノードを追加」をクリックして開始",
+    "confirm_action": "操作を確認",
+    "remove_node_message": "ノード {id} を削除しますか？すべてのデータが削除されます。",
+    "stop_all_message": "実行中のノード {count} 件をすべて停止しますか？",
+    "node_fallback_name": "ノード {id}",
+    "field": {
+      "node_id": "ノード ID",
+      "status": "ステータス",
+      "version": "バージョン",
+      "pid": "PID",
+      "uptime": "稼働時間",
+      "storage": "ストレージ",
+      "data_directory": "データディレクトリ",
+      "log_directory": "ログディレクトリ",
+      "port": "ポート",
+      "binary": "バイナリ",
+      "rewards_address": "報酬アドレス",
+      "status_aria": "ステータス: {status}"
+    },
+    "add_dialog": {
+      "title": "ノードを追加",
+      "number_label": "ノード数",
+      "range_hint": "1〜50 の範囲",
+      "no_earnings_warning": "報酬アドレスが設定されていません。ノードを追加する前にウォレットページで設定してください。",
+      "submit_one": "1 ノードを追加",
+      "submit_many": "{count} ノードを追加"
+    }
+  },
+  "files": {
+    "upload_button": "ファイルをアップロード",
+    "estimate_button": "コストを見積もる",
+    "download_by_address": "アドレスからダウンロード",
+    "download_by_datamap": "データマップからダウンロード",
+    "uploads_heading": "アップロード",
+    "downloads_heading": "ダウンロード",
+    "clear": "クリア",
+    "drop_files": "ファイルをドロップしてアップロード",
+    "uploads_empty_title": "アップロードがまだありません",
+    "uploads_empty_hint": "ここにファイルをドラッグするか、上のボタンを使用してください",
+    "downloads_empty_title": "ダウンロードがまだありません",
+    "downloads_empty_hint": "「アドレスからダウンロード」または「データマップからダウンロード」を使用してください",
+    "table": {
+      "name": "名前",
+      "status": "ステータス",
+      "size": "サイズ",
+      "cost": "コスト",
+      "date": "日付",
+      "address": "アドレス",
+      "saved_to": "保存先",
+      "actions": "操作"
+    },
+    "row": {
+      "free_already_stored": "無料 — 保存済み",
+      "gas_suffix": "+ {gas} gas",
+      "public_badge": "公開",
+      "retry": "↻ 再試行",
+      "public_tooltip": "公開アップロード — クリックして共有可能なネットワークアドレスをコピー",
+      "reveal_datamap_tooltip": "データマップファイルを Finder/Explorer で表示",
+      "copy_datamap_tooltip": "データマップファイルパスをコピー",
+      "copy_address_tooltip": "ネットワークアドレスをコピー",
+      "retry_tooltip": "アップロードを再試行",
+      "remove_tooltip": "リストから削除"
+    },
+    "stage": {
+      "encrypting": "暗号化中…",
+      "quoting_pct": "見積もり中 · {pct}%",
+      "quoting_indeterminate": "見積もり中…",
+      "storing_pct": "保存中 · {pct}%",
+      "storing_indeterminate": "保存中…",
+      "resolving_pct": "データマップを解決中 · {pct}%",
+      "resolving_indeterminate": "データマップを解決中…",
+      "downloading_pct": "ダウンロード中 · {pct}%",
+      "downloading_indeterminate": "ダウンロード中…"
+    },
+    "picker": {
+      "upload_title": "アップロードするファイルを選択",
+      "datamap_title": "ダウンロードするデータマップファイルを選択",
+      "estimate_title": "コストを見積もるファイルを選択",
+      "datamap_filter": "データマップ"
+    },
+    "toast": {
+      "upload_requires_wallet": "アップロードにはウォレットが必要です",
+      "download_requires_network": "ダウンロードにはネットワーク接続が必要です",
+      "open_folder_failed": "フォルダを開けませんでした",
+      "address_copied": "アドレスをクリップボードにコピーしました",
+      "public_address_copied": "公開アドレスをコピーしました — 他の人がこのファイルをダウンロードできるよう共有してください",
+      "datamap_path_copied": "データマップパスをクリップボードにコピーしました",
+      "already_stored_one": "1 ファイルが既に保存されています — データマップを保存中",
+      "already_stored_many": "{count} ファイルが既に保存されています — データマップを保存中"
+    },
+    "error": {
+      "wallet_not_connected": "ウォレットが接続されていません",
+      "not_connected_to_network": "ネットワークに接続されていません"
+    },
+    "network": {
+      "unavailable": "Autonomi ネットワークに接続されていません — コスト見積もりを取得できません。",
+      "retry_connection": "再接続",
+      "connecting": "Autonomi ネットワークに接続中…",
+      "obtaining_quote": "ネットワークから見積もりを取得中…",
+      "obtaining_quotes": "ネットワークから見積もりを取得中…"
+    },
+    "datamap_saveas": {
+      "title": "ダウンロードファイルの保存名",
+      "filename_label": "ファイル名",
+      "filename_placeholder": "myfile.dat"
+    },
+    "download_dialog": {
+      "title": "ファイルをダウンロード",
+      "address_label": "ファイルアドレス",
+      "address_placeholder": "ファイルアドレス (16 進)",
+      "filename_label": "保存ファイル名",
+      "filename_placeholder": "myfile.dat"
+    },
+    "datamap_picker": {
+      "description": "以前のアップロードから再ダウンロードするものを選ぶか、他から受け取ったデータマップファイルを参照してください。",
+      "empty": "保存されたデータマップを持つアップロードがまだありません。",
+      "browse_button": "データマップファイルを参照…"
+    },
+    "cost_estimate": {
+      "title": "アップロードコスト見積もり",
+      "loading": "コストを見積もり中…",
+      "no_files": "ファイルが選択されていません",
+      "footnote": "Autonomi ネットワークから取得したコストです。ストレージコストに加えてガス料金 (ETH) がかかります。"
+    },
+    "upload_confirm": {
+      "title": "アップロードを確認",
+      "info_banner": "このウィンドウは閉じても見積もりが届いたら戻ってこれます。承認またはキャンセルするまでアップロードは保留されます。",
+      "already_stored_badge": "保存済み",
+      "payment_label": "支払い",
+      "payment_mixed": "混在",
+      "payment_mixed_detail": "通常 {regular} 件、Merkle {merkle} 件 — ファイルごとに支払い。",
+      "payment_merkle": "Merkle ツリー",
+      "payment_regular": "通常",
+      "payment_merkle_detail": "{count} チャンクを 1 トランザクションで処理 — ガス代を削減。",
+      "payment_regular_detail_one": "1 チャンクのバッチ支払い。",
+      "payment_regular_detail_many": "{count} チャンクのバッチ支払い。",
+      "free_title": "ネットワークに保存済み — 無料",
+      "free_detail": "すべてのチャンクが既に存在します。ANT もガスも消費されません。",
+      "cost_label": "ネットワークストレージコスト",
+      "gas_label": "推定ガス代",
+      "some_already_stored": "一部のファイルは既に保存されています — その分は無料です。",
+      "visibility_label": "公開設定",
+      "visibility_private": "プライベート",
+      "visibility_private_desc": "暗号化され、データマップでのみアクセス可能です。あなただけがこのファイルを取得できます。",
+      "visibility_public": "公開",
+      "visibility_public_desc": "データマップがネットワークに公開されます。1 つのアドレスを共有して誰でもファイルを取得できるようにします。",
+      "regular_footnote": "ネットワークから 1 回見積もり — 最終コストはわずかに変動する可能性があります。ガス代が別途かかります。",
+      "cancel_upload": "アップロードをキャンセル",
+      "ready_count": "準備完了: {total} 件中 {ready} 件",
+      "approve_button_one": "アップロードを承認",
+      "approve_button_many": "{count} 件のアップロードを承認"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "報酬アドレス",
+    "earnings_description": "ノードの報酬の送信先",
+    "earnings_not_configured": "未設定",
+    "edit": "編集",
+    "save": "保存",
+    "earnings_use_payment_prompt": "接続中のウォレットアドレスを報酬用に使いますか？",
+    "earnings_use_payment_button": "{address} を使う",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "管理ストレージ",
+    "managed_storage_org": "{org} が管理するストレージ",
+    "managed_storage_description": "アップロードは組織の Indelible ゲートウェイ経由で処理されます。ローカルウォレットは不要です。",
+    "payment_wallet_heading": "支払いウォレット",
+    "payment_optional_hint": "任意 — ファイルアップロードには必要",
+    "connect_prompt": "ファイルストレージ料金の支払い用ウォレットを接続",
+    "network_arbitrum_sepolia": "Arbitrum Sepolia テストネット",
+    "network_arbitrum_one": "Arbitrum One ネットワークが必要",
+    "import_key_hint": "または {link} で秘密鍵をインポート",
+    "import_key_hint_link_text": "設定 > 詳細設定",
+    "address_label": "アドレス",
+    "eth_balance_label": "ETH 残高",
+    "ant_balance_label": "ANT 残高",
+    "usdc_balance_label": "USDC 残高",
+    "refresh_balances": "残高を更新",
+    "disconnect": "切断",
+    "toast": {
+      "import_key_in_settings": "設定 > 詳細設定で秘密鍵をインポートしてください",
+      "invalid_address": "アドレスが無効です: 0x + 40 桁の 16 進文字が必要です",
+      "earnings_saved": "報酬アドレスを保存しました",
+      "earnings_set_to_payment": "報酬アドレスを支払いウォレットに設定しました",
+      "wallet_disconnected": "ウォレットを切断しました"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "実行中",
+      "stopped": "停止",
+      "starting": "起動中",
+      "stopping": "停止中",
+      "adding": "追加中…",
+      "errored": "エラー",
+      "upgrade_scheduled": "アップグレード中"
+    },
+    "file": {
+      "pending": "待機中",
+      "quoting": "見積もり中",
+      "encrypting": "暗号化中…",
+      "resolving_datamap": "データマップを解決中",
+      "queued_quoting": "キュー: 見積もり中",
+      "queued_uploading": "キュー: アップロード中",
+      "connecting_to_network": "ネットワークに接続中…",
+      "obtaining_quote": "見積もりを取得中…",
+      "saving_datamap": "データマップを保存中…",
+      "network_unavailable": "ネットワーク利用不可",
+      "ready_to_approve": "承認の準備完了",
+      "awaiting_approval": "承認待ち",
+      "uploading": "アップロード中",
+      "downloading": "ダウンロード中",
+      "done": "完了",
+      "downloaded": "ダウンロード完了 — クリックして開く"
+    }
   }
 }
