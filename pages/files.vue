@@ -107,16 +107,19 @@
                 @click="onRowClick(file)"
               >
                 <td class="px-4 py-2.5">
-                  <div>{{ file.name }}</div>
-                  <ProgressLine
-                    v-if="showsProgressBar(file)"
-                    :percent="file.progress"
-                    :kind="file.kind"
-                    :status="file.status"
-                    :stage="file.stage"
-                    :stage-done="file.stageDone"
-                    :stage-total="file.stageTotal"
-                  />
+                  <div class="flex flex-col gap-1.5">
+                    <div>{{ file.name }}</div>
+                    <ProgressLine
+                      v-if="showsProgressBar(file)"
+                      :percent="file.progress"
+                      :kind="file.kind"
+                      :status="file.status"
+                      :stage="file.stage"
+                      :stage-done="file.stageDone"
+                      :stage-total="file.stageTotal"
+                      :indeterminate="isIndeterminateUpload(file)"
+                    />
+                  </div>
                 </td>
                 <td class="px-4 py-2.5 align-top">
                   <div><StatusBadge :status="statusLabel(file)" /></div>
@@ -221,6 +224,9 @@
         v-if="sortedDownloads.length === 0"
         class="flex flex-col items-center justify-center rounded-lg border border-dashed border-autonomi-border py-12"
       >
+        <svg class="mb-3 h-8 w-8 text-autonomi-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+        </svg>
         <p class="text-sm text-autonomi-muted">No downloads yet</p>
         <p class="mt-1 text-xs text-autonomi-muted">Use "Download by Address" or "Download by Datamap"</p>
       </div>
@@ -252,16 +258,18 @@
               @click="onRowClick(file)"
             >
               <td class="px-4 py-2.5">
-                <div>{{ file.name }}</div>
-                <ProgressLine
-                  v-if="showsProgressBar(file)"
-                  :percent="file.progress"
-                  :kind="file.kind"
-                  :status="file.status"
-                  :stage="file.stage"
-                  :stage-done="file.stageDone"
-                  :stage-total="file.stageTotal"
-                />
+                <div class="flex flex-col gap-1.5">
+                  <div>{{ file.name }}</div>
+                  <ProgressLine
+                    v-if="showsProgressBar(file)"
+                    :percent="file.progress"
+                    :kind="file.kind"
+                    :status="file.status"
+                    :stage="file.stage"
+                    :stage-done="file.stageDone"
+                    :stage-total="file.stageTotal"
+                  />
+                </div>
               </td>
               <td class="px-4 py-2.5 align-top">
                 <div><StatusBadge :status="statusLabel(file)" /></div>
@@ -543,6 +551,19 @@ function showsProgressBar(file: FileEntry): boolean {
     || file.status === 'paying'
     || file.status === 'uploading'
     || file.status === 'downloading'
+  )
+}
+
+/** True when the segmented quote/pay/store bar would never advance — the
+ *  Indelible backend ships no per-chunk progress events, so the row would
+ *  sit on three empty segments for the whole transfer. Fall back to the
+ *  indeterminate single-bar pulse so the user at least sees motion. */
+function isIndeterminateUpload(file: FileEntry): boolean {
+  return (
+    file.kind === 'upload'
+    && file.status === 'uploading'
+    && settingsStore.indelibleConnected
+    && !settingsStore.devnetActive
   )
 }
 
