@@ -33,6 +33,7 @@ interface AppConfig {
   theme_mode: string
   upload_concurrency: number
   prerelease_channel: boolean
+  i18n_locale: string | null
 }
 
 /** Allowed range for upload_concurrency (see AppConfig in Rust). */
@@ -67,6 +68,8 @@ export const useSettingsStore = defineStore('settings', {
     /** Snapshot of `prereleaseChannel` at app boot — drives the "restart to
      *  apply" hint banner. Set once during loadConfig. */
     prereleaseChannelBootValue: false,
+    /** Persisted UI locale choice. `null` = follow the OS. */
+    i18nLocale: null as string | null,
     loaded: false,
     /** Set by `revalidateStorageDir()` on startup if the saved storage_dir is
      *  no longer writable (USB unplugged, OneDrive offline, ACL changed).
@@ -105,6 +108,7 @@ export const useSettingsStore = defineStore('settings', {
         this.themeMode = config.theme_mode === 'light' ? 'light' : 'dark'
         this.uploadConcurrency = clampConcurrency(config.upload_concurrency)
         this.prereleaseChannel = config.prerelease_channel ?? false
+        this.i18nLocale = config.i18n_locale ?? null
         // Capture once on first load — represents the value the Rust side
         // resolved its updater endpoint URL from. Subsequent toggles diverge
         // from this until the next app restart.
@@ -128,6 +132,7 @@ export const useSettingsStore = defineStore('settings', {
           theme_mode: this.themeMode,
           upload_concurrency: this.uploadConcurrency,
           prerelease_channel: this.prereleaseChannel,
+          i18n_locale: this.i18nLocale,
         }
         await invoke('save_config', { config })
       } catch (e) {
@@ -204,6 +209,12 @@ export const useSettingsStore = defineStore('settings', {
 
     async setThemeMode(mode: ThemeMode) {
       this.themeMode = mode
+      await this.saveConfig()
+    },
+
+    /** Persist UI-locale choice. `null` means "follow the OS locale". */
+    async setI18nLocale(locale: string | null) {
+      this.i18nLocale = locale
       await this.saveConfig()
     },
 

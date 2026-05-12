@@ -110,6 +110,23 @@
       </button>
     </div>
 
+    <!-- Language -->
+    <div class="flex items-center justify-between rounded-lg border border-autonomi-border p-4">
+      <div class="min-w-0 flex-1">
+        <h3 class="text-sm font-medium">{{ $t('settings.language.label') }}</h3>
+        <p class="text-xs text-autonomi-muted">{{ $t('settings.language.description') }}</p>
+      </div>
+      <select
+        v-model="localeChoice"
+        :aria-label="$t('settings.language.label')"
+        class="ml-3 shrink-0 rounded-md border border-autonomi-border bg-autonomi-dark px-3 py-1.5 text-xs text-autonomi-text focus:border-autonomi-blue focus:outline-none"
+      >
+        <option value="system">{{ systemDefaultLabel }}</option>
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+      </select>
+    </div>
+
     <!-- Advanced -->
     <div>
       <button
@@ -509,6 +526,7 @@ import { openUrl as tauriOpenUrl } from '@tauri-apps/plugin-opener'
 import { arbitrum, arbitrumSepolia } from 'viem/chains'
 import { setDevnetWalletKey, UPLOAD_CONCURRENCY_MIN, UPLOAD_CONCURRENCY_MAX } from '~/stores/settings'
 import { useSettingsStore } from '~/stores/settings'
+import { useLocale, SUPPORTED_LOCALES, NATIVE_LOCALE_NAMES, type SupportedLocale } from '~/composables/useLocale'
 import { isValidEthAddress } from '~/utils/validators'
 import { useToastStore } from '~/stores/toasts'
 import { useErrorLogStore } from '~/stores/errorlog'
@@ -516,6 +534,31 @@ import { useUpdaterStore } from '~/stores/updater'
 import { useFilesStore } from '~/stores/files'
 
 const settingsStore = useSettingsStore()
+const { setLocale, osLocale, t } = useLocale()
+
+/** Bound to the Language <select>. `'system'` is the sentinel for "follow
+ *  the OS locale" (persisted as null in config.toml). */
+const localeChoice = computed<'system' | SupportedLocale>({
+  get: () => {
+    const persisted = settingsStore.i18nLocale
+    return persisted && (SUPPORTED_LOCALES as readonly string[]).includes(persisted)
+      ? (persisted as SupportedLocale)
+      : 'system'
+  },
+  set: (value) => {
+    setLocale(value === 'system' ? null : value)
+  },
+})
+
+/** Label for the "Follow system" option. Shows the detected OS-locale's
+ *  native name once detection resolves (e.g. "System default: English"),
+ *  falling back to the bare label during the brief pre-detection window. */
+const systemDefaultLabel = computed(() =>
+  osLocale.value
+    ? t('settings.language.system_default', { name: NATIVE_LOCALE_NAMES[osLocale.value] })
+    : t('settings.language.system_default_pending'),
+)
+
 const walletStore = useWalletStore()
 const nodesStore = useNodesStore()
 const toasts = useToastStore()

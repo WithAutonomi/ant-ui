@@ -17,15 +17,15 @@
         v-if="isPrereleaseBuild"
         class="mb-2 rounded-md bg-teal-500/10 border border-teal-500/20 px-3 py-1.5 text-center text-xs font-medium text-teal-400"
       >
-        PRE-RELEASE
+        {{ $t('sidebar.pre_release') }}
       </div>
 
       <!-- Network mode indicator -->
       <div
-        v-if="settingsStore.devnetActive && networkLabel"
+        v-if="settingsStore.devnetActive && networkLabelKey"
         class="mb-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 text-center text-xs font-medium text-amber-400"
       >
-        {{ networkLabel }}
+        {{ $t(networkLabelKey) }}
       </div>
 
       <!-- Update banner -->
@@ -42,9 +42,9 @@
             v-if="updaterStore.isPrerelease"
             class="text-[10px] font-bold uppercase tracking-wider opacity-70"
           >
-            Pre-Release
+            {{ $t('sidebar.update_pre_release_tag') }}
           </div>
-          <div class="text-xs font-bold uppercase tracking-wide">Update Available</div>
+          <div class="text-xs font-bold uppercase tracking-wide">{{ $t('sidebar.update_available') }}</div>
           <div class="truncate text-xs font-medium opacity-80">v{{ updaterStore.version }}</div>
         </div>
         <span v-if="updaterStore.installing" class="h-4 w-4 animate-spin rounded-full border-2 border-gray-900/30 border-t-gray-900" />
@@ -60,7 +60,7 @@
           : 'text-autonomi-muted hover:bg-autonomi-border/50 hover:text-autonomi-text'"
       >
         <span class="text-base">{{ item.icon }}</span>
-        <span>{{ item.label }}</span>
+        <span>{{ $t(item.labelKey) }}</span>
       </NuxtLink>
     </nav>
 
@@ -74,7 +74,7 @@
           : 'text-autonomi-muted hover:bg-autonomi-border/50 hover:text-autonomi-text'"
       >
         <span class="text-base">⚙</span>
-        <span>Settings</span>
+        <span>{{ $t('nav.settings') }}</span>
       </NuxtLink>
     </div>
   </aside>
@@ -109,18 +109,18 @@ const isPrereleaseBuild = computed(() =>
   /-(?:rc|beta|alpha)\./.test(currentVersion.value ?? ''),
 )
 
-const networkLabel = computed<string | null>(() => {
+const networkLabelKey = computed<string | null>(() => {
   switch (settingsStore.devnetChainId) {
-    case arbitrumSepolia.id: return 'SEPOLIA TESTNET'
-    case ANVIL_CHAIN_ID: return 'DEVNET'
+    case arbitrumSepolia.id: return 'sidebar.network_sepolia'
+    case ANVIL_CHAIN_ID: return 'sidebar.network_devnet'
     default: return null  // mainnet or unset — no badge
   }
 })
 
 const mainNav = computed(() => [
-  { path: '/', label: 'Nodes', icon: '⬡' },
-  { path: '/files', label: 'Files', icon: '◫' },
-  { path: '/wallet', label: 'Wallet', icon: '◎' },
+  { path: '/', labelKey: 'nav.nodes', icon: '⬡' },
+  { path: '/files', labelKey: 'nav.files', icon: '◫' },
+  { path: '/wallet', labelKey: 'nav.wallet', icon: '◎' },
 ])
 
 function isActive(path: string) {

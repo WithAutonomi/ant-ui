@@ -1,7 +1,7 @@
 <template>
   <header class="flex h-12 items-center justify-between border-b border-autonomi-border bg-autonomi-surface px-4">
     <!-- Page title -->
-    <h1 class="text-sm font-medium text-autonomi-text">{{ pageTitle }}</h1>
+    <h1 class="text-sm font-medium text-autonomi-text">{{ $t(pageTitleKey) }}</h1>
 
     <!-- Right side: status indicators + wallet -->
     <div class="flex items-center gap-4">
@@ -9,7 +9,7 @@
       <div v-if="filesStore.hasActiveTransfers" class="flex items-center gap-2 text-xs">
         <span class="text-autonomi-blue">↑↓</span>
         <span class="text-autonomi-muted">
-          {{ filesStore.pinnedFiles.length }} active
+          {{ $t('header.active_transfers', { count: filesStore.pinnedFiles.length }) }}
         </span>
       </div>
 
@@ -17,27 +17,27 @@
       <div
         v-if="connectionStore.isConnecting"
         class="flex items-center gap-2 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted"
-        title="Connecting to the Autonomi network"
+        :title="$t('header.connecting_tooltip')"
       >
         <div class="h-2.5 w-2.5 animate-spin rounded-full border-2 border-yellow-500 border-t-transparent" />
-        <span>Connecting</span>
+        <span>{{ $t('header.connecting') }}</span>
       </div>
       <div
         v-else-if="connectionStore.isConnected"
         class="flex items-center gap-2 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-text"
-        title="Connected to the Autonomi network"
+        :title="$t('header.connected_tooltip')"
       >
         <span class="text-autonomi-success">●</span>
-        <span>Network</span>
+        <span>{{ $t('header.connected') }}</span>
       </div>
       <button
         v-else-if="connectionStore.hasFailed"
         class="flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/5 px-2.5 py-1 text-xs text-red-400 hover:bg-red-500/10"
-        title="Connection failed — click to retry"
+        :title="$t('header.offline_tooltip')"
         @click="connectionStore.retry()"
       >
         <span>●</span>
-        <span>Offline · Retry</span>
+        <span>{{ $t('header.offline') }}</span>
       </button>
 
       <!-- Indelible indicator (replaces wallet when connected) -->
@@ -64,7 +64,7 @@
           class="rounded-md bg-autonomi-blue px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"
           @click="openModal"
         >
-          Connect Wallet
+          {{ $t('header.connect_wallet') }}
         </button>
       </template>
     </div>
@@ -98,14 +98,14 @@ function openModal() {
   }
 }
 
-const pageTitle = computed(() => {
-  const titles: Record<string, string> = {
-    '/': 'Nodes',
-    '/files': 'Files',
-    '/wallet': 'Wallet',
-    '/settings': 'Settings',
+const pageTitleKey = computed(() => {
+  const keys: Record<string, string> = {
+    '/': 'nav.nodes',
+    '/files': 'nav.files',
+    '/wallet': 'nav.wallet',
+    '/settings': 'nav.settings',
   }
-  return titles[route.path] ?? 'Autonomi'
+  return keys[route.path] ?? 'header.title'
 })
 
 </script>

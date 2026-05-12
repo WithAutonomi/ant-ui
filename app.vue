@@ -6,6 +6,7 @@
 
 <script setup lang="ts">
 import { invoke } from '@tauri-apps/api/core'
+import { useLocale } from '~/composables/useLocale'
 import { useWallet } from '~/composables/useWallet'
 import { useTheme } from '~/composables/useTheme'
 import { useSettingsStore } from '~/stores/settings'
@@ -31,8 +32,14 @@ const nodesStore = useNodesStore()
 const filesStore = useFilesStore()
 const connectionStore = useConnectionStore()
 
+const { init: initLocale } = useLocale()
+
 onMounted(async () => {
+  // Config first — useLocale.init() reads the persisted choice from
+  // settingsStore.i18nLocale, so the store must be hydrated before we resolve.
   await settingsStore.loadConfig()
+  await initLocale()
+
   await settingsStore.loadDevnetManifest()
   nodesStore.init()
   // Re-probe the saved storage_dir if any — surfaces a banner if it's no
