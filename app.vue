@@ -35,6 +35,11 @@ onMounted(async () => {
   await settingsStore.loadConfig()
   await settingsStore.loadDevnetManifest()
   nodesStore.init()
+  // Re-probe the saved storage_dir if any — surfaces a banner if it's no
+  // longer writable (USB unplugged, OneDrive offline, perms changed). Don't
+  // await: the probe is a single fs round-trip and we don't want it to
+  // sequence in front of unrelated startup work.
+  settingsStore.revalidateStorageDir()
   // Await: any persistHistory triggered before this resolves would otherwise
   // run against an empty `files` array, and the fail-closed guard in the
   // store only kicks in once loadHistory has flipped its failure flag.
