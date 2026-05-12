@@ -91,7 +91,13 @@ export const useNodesStore = defineStore('nodes', {
       }
 
       try {
-        await this.fetchDaemonStatus()
+        // `ensure_daemon_running` waits for the port file but the daemon's
+        // HTTP server may take another ~100–500 ms after that to bind. A
+        // single status fetch loses this race on cold boot and the UI flashes
+        // "Cannot connect to node daemon" for ~10 s while `scheduleReconnect`
+        // ticks. Retry briefly here so `initializing` stays true and the
+        // user sees "Starting node daemon..." through the boot race.
+        await this.fetchDaemonStatusWithRetry({ attempts: 20, delayMs: 250 })
         this.daemonConnected = true
         await this.fetchNodes()
         this.startPolling()
@@ -111,6 +117,27 @@ export const useNodesStore = defineStore('nodes', {
       const status = await daemonApi.status()
       this.daemonStatus = status
       this.daemonConnected = status.running
+    },
+
+    /** Like `fetchDaemonStatus` but retries on failure for up to
+     *  `attempts × delayMs` (default ~5 s). Used at boot and on reconnect
+     *  so a brief unbound-port window after daemon spawn doesn't flip the
+     *  UI through a transient "Cannot connect" state. The last failure is
+     *  rethrown so the caller's catch path runs normally. */
+    async fetchDaemonStatusWithRetry({ attempts, delayMs }: { attempts: number; delayMs: number }) {
+      let lastErr: unknown
+      for (let i = 0; i < attempts; i++) {
+        try {
+          await this.fetchDaemonStatus()
+          return
+        } catch (e) {
+          lastErr = e
+          if (i < attempts - 1) {
+            await new Promise<void>(r => setTimeout(r, delayMs))
+          }
+        }
+      }
+      throw lastErr
     },
 
     /** Fetch all node statuses from daemon */

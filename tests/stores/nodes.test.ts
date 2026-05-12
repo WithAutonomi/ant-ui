@@ -78,6 +78,43 @@ describe('nodes store', () => {
       expect(nodesStore.initializing).toBe(false)
     })
 
+    it('retries the status fetch when the daemon races boot', async () => {
+      // Repros the V2-218 boot race: `ensure_daemon_running` returns after
+      // the port file is written, but the daemon's HTTP server hasn't bound
+      // the port yet. The first status() throws; the next succeeds. The
+      // store should ride out the failure inside `initializing` and end up
+      // connected — no transient `daemonConnected=false` exposed.
+      const { daemonApi } = await import('~/utils/daemon-api')
+      vi.useFakeTimers()
+
+      setMockInvokeHandler((cmd) => {
+        if (cmd === 'ensure_daemon_running') return 'http://127.0.0.1:55555'
+        if (cmd === 'connect_daemon_sse') return undefined
+      })
+
+      vi.mocked(daemonApi.status)
+        .mockRejectedValueOnce(new Error('connection refused'))
+        .mockResolvedValueOnce({
+          running: true, pid: 1, port: 55555, uptime_secs: 0,
+          nodes_total: 0, nodes_running: 0, nodes_stopped: 0, nodes_errored: 0,
+        })
+
+      vi.mocked(daemonApi.nodesStatus).mockResolvedValue({
+        nodes: [], total_running: 0, total_stopped: 0,
+      })
+
+      const initPromise = nodesStore.init()
+      // Advance past the 250 ms retry delay so the second status() runs.
+      await vi.advanceTimersByTimeAsync(300)
+      await initPromise
+
+      expect(nodesStore.daemonConnected).toBe(true)
+      expect(nodesStore.initializing).toBe(false)
+      expect(daemonApi.status).toHaveBeenCalledTimes(2)
+
+      vi.useRealTimers()
+    })
+
     it('updates daemon URL when port changes', async () => {
       const { daemonApi } = await import('~/utils/daemon-api')
 
