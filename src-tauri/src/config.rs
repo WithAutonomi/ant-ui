@@ -185,13 +185,9 @@ fn resolve_datamap_output_dir() -> PathBuf {
         .read_dir()
         .ok()
         .map(|entries| {
-            entries.filter_map(|e| e.ok()).any(|entry| {
-                entry
-                    .path()
-                    .extension()
-                    .and_then(|s| s.to_str())
-                    == Some("datamap")
-            })
+            entries
+                .filter_map(|e| e.ok())
+                .any(|entry| entry.path().extension().and_then(|s| s.to_str()) == Some("datamap"))
         })
         .unwrap_or(false);
     if has_legacy_datamaps {
