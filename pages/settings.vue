@@ -48,6 +48,9 @@
       <p class="mt-2 text-xs text-autonomi-warning">
         Only applies to newly added nodes. Existing nodes keep their current directory.
       </p>
+      <p v-if="settingsStore.storageDirProbeError" class="mt-2 rounded border border-autonomi-error/40 bg-autonomi-error/10 px-2 py-1.5 text-xs text-autonomi-error">
+        {{ settingsStore.storageDirProbeError }}
+      </p>
     </div>
 
     <!-- Downloads Directory -->
@@ -757,10 +760,22 @@ onMounted(async () => {
 async function pickStorageDir() {
   try {
     const selected = await open({ directory: true, title: 'Select Storage Directory' })
-    if (selected) {
-      await settingsStore.setStorageDir(selected as string)
-      toasts.add('Storage directory updated', 'info')
+    if (!selected) return
+    const path = selected as string
+    // Probe before persist — a path that's writable in Explorer can still be
+    // unwritable to the daemon process (USB read-only volume, OneDrive
+    // placeholder, restrictive ACL on a second drive). Write the failure to
+    // the store-level probe error so the global banner and this card both
+    // reflect the same state.
+    const result = await settingsStore.probeStorageDir(path)
+    if (!result.ok) {
+      settingsStore.storageDirProbeError = result.error
+      toasts.add('Cannot use that folder for node storage', 'error')
+      return
     }
+    settingsStore.storageDirProbeError = null
+    await settingsStore.setStorageDir(path)
+    toasts.add('Storage directory verified', 'info')
   } catch (e) {
     toasts.add('Failed to select directory', 'error')
   }

@@ -602,6 +602,41 @@ fn get_default_download_dir() -> Result<String, String> {
         .ok_or_else(|| "Could not determine default download directory".to_string())
 }
 
+/// Check whether the user-chosen directory is actually writable by the app
+/// process. Used to gate the Settings → Storage Directory save so a
+/// volume-readonly / OneDrive-placeholder / restrictive-ACL path doesn't
+/// surface as the daemon's "Access is denied (os error 5)" on the next Add
+/// Node (Windows USB / second-drive / network-share categories).
+///
+/// Writes a tiny sentinel, fsyncs it, then deletes it. Returns Ok(()) on
+/// success; on failure returns the raw OS error message prefixed with the
+/// path so the UI can surface it directly. The sentinel filename is fixed
+/// (`.ant-gui-write-probe`) so a crash mid-probe leaves at most one stray
+/// file rather than collision-suffixed garbage.
+#[tauri::command]
+fn probe_writable(path: String) -> Result<(), String> {
+    use std::io::Write;
+    let dir = std::path::Path::new(&path);
+    if !dir.is_dir() {
+        return Err(format!("{path}: not a directory"));
+    }
+    let probe = dir.join(".ant-gui-write-probe");
+    let result: std::io::Result<()> = (|| {
+        let mut f = std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&probe)?;
+        f.write_all(b"ant-gui write probe")?;
+        f.sync_all()?;
+        Ok(())
+    })();
+    // Always attempt cleanup, even if the write failed (the file may have been
+    // partially created).
+    let _ = std::fs::remove_file(&probe);
+    result.map_err(|e| format!("{path}: {e}"))
+}
+
 /// Get the size of a single file in bytes.
 #[tauri::command]
 fn get_file_size(path: String) -> Result<u64, String> {
@@ -761,6 +796,7 @@ pub fn run() {
             get_dir_size,
             get_node_data_dir,
             get_default_download_dir,
+            probe_writable,
             read_file_bytes,
             load_upload_history,
             save_upload_history,
