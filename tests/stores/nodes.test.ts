@@ -19,10 +19,24 @@ describe('nodes store', () => {
   let settingsStore: ReturnType<typeof useSettingsStore>
 
   beforeEach(() => {
+    // Reset both the Tauri invoke mock AND the vue-i18n / daemon-api module
+    // mocks — without `vi.clearAllMocks`, a `mockResolvedValue` (default
+    // fallback) set by an earlier test leaks into later ones and silently
+    // satisfies status() calls the test never set up.
+    vi.clearAllMocks()
+    vi.useRealTimers()
     resetTauriMocks()
+
     settingsStore = useSettingsStore()
     settingsStore.$reset()
     nodesStore = useNodesStore()
+    // Pinia's $reset clears state references (`_pollTimer`, `_reconnectTimer`)
+    // but does not call clearInterval / clearTimeout on the underlying JS
+    // timers. Drop them explicitly so a previous test's polling or reconnect
+    // schedule can't fire `fetchNodes` / `fetchDaemonStatus` against the new
+    // test's mocks.
+    nodesStore.stopPolling()
+    nodesStore.cancelReconnect()
     nodesStore.$reset()
   })
 
@@ -92,12 +106,21 @@ describe('nodes store', () => {
         if (cmd === 'connect_daemon_sse') return undefined
       })
 
-      vi.mocked(daemonApi.status)
-        .mockRejectedValueOnce(new Error('connection refused'))
-        .mockResolvedValueOnce({
+      // Counter-based implementation rather than `mockRejectedValueOnce
+      // → mockResolvedValueOnce`. The Once-queue pattern depends on every
+      // call beyond the queue falling back to a default, which silently
+      // varies depending on what the previous test in this file set up;
+      // a counter is self-contained and the assertion below can verify
+      // both the retry behaviour and that no unexpected extra calls leak in.
+      let statusCallCount = 0
+      vi.mocked(daemonApi.status).mockImplementation(async () => {
+        statusCallCount++
+        if (statusCallCount === 1) throw new Error('connection refused')
+        return {
           running: true, pid: 1, port: 55555, uptime_secs: 0,
           nodes_total: 0, nodes_running: 0, nodes_stopped: 0, nodes_errored: 0,
-        })
+        }
+      })
 
       vi.mocked(daemonApi.nodesStatus).mockResolvedValue({
         nodes: [], total_running: 0, total_stopped: 0,
@@ -112,6 +135,10 @@ describe('nodes store', () => {
       expect(nodesStore.initializing).toBe(false)
       expect(daemonApi.status).toHaveBeenCalledTimes(2)
 
+      // Stop polling / reconnect explicitly before useRealTimers so the
+      // following test's beforeEach doesn't have to clean them up.
+      nodesStore.stopPolling()
+      nodesStore.cancelReconnect()
       vi.useRealTimers()
     })
 
