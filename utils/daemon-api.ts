@@ -156,10 +156,24 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     })
     return JSON.parse(text) as T
   } catch (e: any) {
-    // Tauri invoke errors come as strings
-    const msg = typeof e === 'string' ? e : e.message ?? String(e)
-    throw new DaemonApiError(0, msg)
+    // Tauri invoke errors come as strings. The Rust proxy forwards the daemon's
+    // response body verbatim for 4xx/5xx, which is the ant-core JSON envelope
+    // `{"error":"<message>"}`. Surfacing the whole envelope in a toast looks
+    // broken to users — unwrap to the inner message before throwing.
+    const raw = typeof e === 'string' ? e : e.message ?? String(e)
+    throw new DaemonApiError(0, unwrapDaemonError(raw))
   }
+}
+
+/** Try to extract `.error` from a daemon JSON envelope. Falls back to the raw
+ *  string when the body isn't JSON or doesn't have the expected shape, so
+ *  network / Tauri errors pass through unchanged. */
+function unwrapDaemonError(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed.error === 'string') return parsed.error
+  } catch { /* not JSON — use raw */ }
+  return raw
 }
 
 export const daemonApi = {
