@@ -3,6 +3,9 @@
   "version": "0.7.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "nuxt dev --port 1420 --no-fork",
     "build": "nuxt generate",
@@ -32,7 +35,7 @@
   "devDependencies": {
     "@nuxt/test-utils": "^3.23.0",
     "@tauri-apps/cli": "^2.0.0",
-    "@vue/test-utils": "^2.4.6",
+    "@vue/test-utils": "^2.4.9",
     "autoprefixer": "^10.4.27",
     "happy-dom": "^20.8.9",
     "postcss": "^8.5.8",
