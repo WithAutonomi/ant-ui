@@ -68,6 +68,12 @@ export const useSettingsStore = defineStore('settings', {
      *  apply" hint banner. Set once during loadConfig. */
     prereleaseChannelBootValue: false,
     loaded: false,
+    /** Set by `revalidateStorageDir()` on startup if the saved storage_dir is
+     *  no longer writable (USB unplugged, OneDrive offline, ACL changed).
+     *  Drives the global banner in the default layout + the inline error on
+     *  the Settings page. `null` means either no storage_dir is set or the
+     *  last probe succeeded. */
+    storageDirProbeError: null as string | null,
     // Devnet/testnet/direct-key mode (set by manifest or settings form).
     // devnetChainId picks the chain:
     //   - null / not set   → production mainnet (WalletConnect)
@@ -142,6 +148,38 @@ export const useSettingsStore = defineStore('settings', {
     async setStorageDir(path: string) {
       this.storageDir = path
       await this.saveConfig()
+    },
+
+    /** Probe whether `path` is writable by the app process before persisting
+     *  it as the node storage directory. The daemon process spawned by the
+     *  app inherits this user, so a path that fails here will also fail at
+     *  Add Node time.
+     *
+     *  Returns `{ ok: true }` on success or `{ ok: false, error }` with the
+     *  raw OS message so the UI can surface it inline. Does not mutate
+     *  state — the caller decides whether to call `setStorageDir` after. */
+    async probeStorageDir(path: string): Promise<{ ok: true } | { ok: false; error: string }> {
+      try {
+        await invoke('probe_writable', { path })
+        return { ok: true }
+      } catch (e: any) {
+        return { ok: false, error: typeof e === 'string' ? e : (e.message ?? String(e)) }
+      }
+    },
+
+    /** Re-probe the currently saved `storage_dir` (if any) on app startup.
+     *  Catches the case where the user previously picked a path that's now
+     *  unwritable: USB unplugged, OneDrive went offline, ACL changed. Sets
+     *  `storageDirProbeError` so the layout banner and the Settings page
+     *  both surface the same warning. Does not clear the saved path — the
+     *  user picks the next step. */
+    async revalidateStorageDir() {
+      if (!this.storageDir) {
+        this.storageDirProbeError = null
+        return
+      }
+      const result = await this.probeStorageDir(this.storageDir)
+      this.storageDirProbeError = result.ok ? null : result.error
     },
 
     async setDownloadDir(path: string) {
