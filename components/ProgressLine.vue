@@ -1,11 +1,25 @@
 <template>
+  <!-- Indeterminate single-bar override: used when the upload backend gives
+       us no progress signal at all (Indelible has no per-chunk event stream,
+       so the segmented quote/pay/store bar would stay empty for the entire
+       transfer). The pulsing single bar at least confirms the row is alive. -->
+  <div
+    v-if="indeterminate"
+    class="h-1 w-full min-w-[8rem] overflow-hidden rounded bg-autonomi-surface"
+    role="progressbar"
+    aria-valuemin="0"
+    aria-valuemax="100"
+  >
+    <div class="h-full w-1/3 animate-pulse bg-autonomi-blue/60" />
+  </div>
+
   <!-- Segmented bar for uploads: [quote] · [pay] · [store]
        For downloads: a single bar (no payment phase).
        Stage detail text is rendered separately by the parent (next to the
        status badge), not here — this component is purely the bar. -->
   <div
-    v-if="kind === 'upload'"
-    class="mt-1 flex w-full min-w-[8rem] items-center gap-1.5"
+    v-else-if="kind === 'upload'"
+    class="flex w-full min-w-[8rem] items-center gap-1.5"
     role="progressbar"
     :aria-valuenow="overallPercent"
     aria-valuemin="0"
@@ -18,7 +32,7 @@
 
   <div
     v-else
-    class="mt-1 h-1 w-full min-w-[8rem] overflow-hidden rounded bg-autonomi-surface"
+    class="h-1 w-full min-w-[8rem] overflow-hidden rounded bg-autonomi-surface"
     role="progressbar"
     :aria-valuenow="overallPercent"
     aria-valuemin="0"
@@ -50,6 +64,10 @@ const props = defineProps<{
   stage: TransferStage | undefined
   stageDone: number | undefined
   stageTotal: number | undefined
+  /** Render the indeterminate single bar regardless of `kind`. Used when the
+   *  backend produces no progress events (e.g. Indelible). Optional; defaults
+   *  to false for backwards compatibility with existing callers. */
+  indeterminate?: boolean
 }>()
 
 function clamp(p: number) {

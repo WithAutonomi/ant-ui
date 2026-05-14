@@ -23,13 +23,13 @@
         <!-- Suggest using payment wallet address (local mode only) -->
         <div
           v-if="!settingsStore.indelibleConnected && walletStore.connected && walletStore.paymentAddress && walletStore.earningsAddress !== walletStore.paymentAddress"
-          class="mt-3 flex items-center gap-3 rounded-md border border-autonomi-blue/20 bg-autonomi-blue/5 px-3 py-2"
+          class="mt-3 flex items-center justify-between gap-3 rounded-md border border-autonomi-blue/20 bg-autonomi-blue/5 px-3 py-2"
         >
           <span class="text-xs text-autonomi-muted">
             Use your connected wallet address for earnings?
           </span>
           <button
-            class="rounded-md bg-autonomi-blue px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"
+            class="shrink-0 rounded-md bg-autonomi-blue px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"
             @click="usePaymentAsEarnings"
           >
             Use {{ truncateAddress(walletStore.paymentAddress) }}
