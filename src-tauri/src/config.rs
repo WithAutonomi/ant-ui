@@ -193,7 +193,14 @@ impl UploadHistory {
         let dir = config_path();
         std::fs::create_dir_all(&dir)?;
         let content = serde_json::to_string_pretty(self)?;
-        std::fs::write(Self::history_file(), content)?;
+        // Write to a tempfile alongside the target then rename. A crash or
+        // short write that hits the tempfile leaves the live history file
+        // intact — `std::fs::write` would truncate it before failing, and
+        // every prior upload's datamap on disk would lose its index entry.
+        let final_path = Self::history_file();
+        let tmp_path = dir.join("upload_history.json.tmp");
+        std::fs::write(&tmp_path, content)?;
+        std::fs::rename(&tmp_path, &final_path)?;
         Ok(())
     }
 }
