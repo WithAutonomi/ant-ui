@@ -784,7 +784,7 @@ pub async fn confirm_upload(
     let data_map_json = serde_json::to_string(&result.data_map)
         .map_err(|e| format!("Failed to serialize DataMap: {e}"))?;
     let address = format!("0x{:x}", Sha256::digest(data_map_json.as_bytes()));
-    let data_map_file = crate::config::write_datamap_for(&file_name, &data_map_json)?
+    let data_map_file = crate::config::write_datamap_for(&file_name, &result.data_map)?
         .to_string_lossy()
         .into_owned();
     let public_address = result
@@ -850,7 +850,7 @@ pub async fn confirm_upload_merkle(
     let data_map_json = serde_json::to_string(&result.data_map)
         .map_err(|e| format!("Failed to serialize DataMap: {e}"))?;
     let address = format!("0x{:x}", Sha256::digest(data_map_json.as_bytes()));
-    let data_map_file = crate::config::write_datamap_for(&file_name, &data_map_json)?
+    let data_map_file = crate::config::write_datamap_for(&file_name, &result.data_map)?
         .to_string_lossy()
         .into_owned();
     let public_address = result
@@ -979,7 +979,7 @@ pub async fn wallet_upload(
     let data_map_json = serde_json::to_string(&result.data_map)
         .map_err(|e| format!("Failed to serialize DataMap: {e}"))?;
     let address = format!("0x{:x}", Sha256::digest(data_map_json.as_bytes()));
-    let data_map_file = crate::config::write_datamap_for(&file_name, &data_map_json)?
+    let data_map_file = crate::config::write_datamap_for(&file_name, &result.data_map)?
         .to_string_lossy()
         .into_owned();
     let public_address = result
