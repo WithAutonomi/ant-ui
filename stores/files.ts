@@ -170,6 +170,11 @@ export const useFilesStore = defineStore('files', {
     files: [] as FileEntry[],
     nextId: 1,
     historyLoaded: false,
+    /** True if loadHistory threw and we never populated `files` from disk.
+     *  persistHistory must refuse to write while this is set — otherwise the
+     *  next upload-complete/remove/clear would overwrite the on-disk file
+     *  with an empty array, orphaning every prior datamap entry. */
+    historyLoadFailed: false,
     /** True once the Rust progress event listeners have been wired up.
      *  Idempotent — safe to call setupProgressListeners() multiple times. */
     _progressListenersStarted: false,
@@ -257,13 +262,23 @@ export const useFilesStore = defineStore('files', {
           })
         }
         this.historyLoaded = true
+        this.historyLoadFailed = false
       } catch (e) {
         console.error('Failed to load upload history:', e)
         this.historyLoaded = true
+        this.historyLoadFailed = true
       }
     },
 
     async persistHistory() {
+      // Fail-closed: if we never successfully loaded the history, refuse to
+      // write. Otherwise a load error would set `files = []` and the next
+      // upload-complete/remove/clear would clobber upload_history.json,
+      // orphaning every prior datamap on disk.
+      if (this.historyLoadFailed) {
+        console.warn('Skipping upload history save — initial load failed; not overwriting on-disk file.')
+        return
+      }
       // Only uploads are persisted — downloads are intentionally in-memory
       // so the table starts fresh each session.
       const entries: UploadHistoryEntry[] = this.files
