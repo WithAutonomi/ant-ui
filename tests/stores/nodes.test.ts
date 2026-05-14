@@ -19,10 +19,24 @@ describe('nodes store', () => {
   let settingsStore: ReturnType<typeof useSettingsStore>
 
   beforeEach(() => {
+    // Reset both the Tauri invoke mock AND the vue-i18n / daemon-api module
+    // mocks — without `vi.clearAllMocks`, a `mockResolvedValue` (default
+    // fallback) set by an earlier test leaks into later ones and silently
+    // satisfies status() calls the test never set up.
+    vi.clearAllMocks()
+    vi.useRealTimers()
     resetTauriMocks()
+
     settingsStore = useSettingsStore()
     settingsStore.$reset()
     nodesStore = useNodesStore()
+    // Pinia's $reset clears state references (`_pollTimer`, `_reconnectTimer`)
+    // but does not call clearInterval / clearTimeout on the underlying JS
+    // timers. Drop them explicitly so a previous test's polling or reconnect
+    // schedule can't fire `fetchNodes` / `fetchDaemonStatus` against the new
+    // test's mocks.
+    nodesStore.stopPolling()
+    nodesStore.cancelReconnect()
     nodesStore.$reset()
   })
 
@@ -76,6 +90,56 @@ describe('nodes store', () => {
 
       expect(nodesStore.daemonConnected).toBe(false)
       expect(nodesStore.initializing).toBe(false)
+    })
+
+    it('retries the status fetch when the daemon races boot', async () => {
+      // Repros the V2-218 boot race: `ensure_daemon_running` returns after
+      // the port file is written, but the daemon's HTTP server hasn't bound
+      // the port yet. The first status() throws; the next succeeds. The
+      // store should ride out the failure inside `initializing` and end up
+      // connected — no transient `daemonConnected=false` exposed.
+      const { daemonApi } = await import('~/utils/daemon-api')
+      vi.useFakeTimers()
+
+      setMockInvokeHandler((cmd) => {
+        if (cmd === 'ensure_daemon_running') return 'http://127.0.0.1:55555'
+        if (cmd === 'connect_daemon_sse') return undefined
+      })
+
+      // Counter-based implementation rather than `mockRejectedValueOnce
+      // → mockResolvedValueOnce`. The Once-queue pattern depends on every
+      // call beyond the queue falling back to a default, which silently
+      // varies depending on what the previous test in this file set up;
+      // a counter is self-contained and the assertion below can verify
+      // both the retry behaviour and that no unexpected extra calls leak in.
+      let statusCallCount = 0
+      vi.mocked(daemonApi.status).mockImplementation(async () => {
+        statusCallCount++
+        if (statusCallCount === 1) throw new Error('connection refused')
+        return {
+          running: true, pid: 1, port: 55555, uptime_secs: 0,
+          nodes_total: 0, nodes_running: 0, nodes_stopped: 0, nodes_errored: 0,
+        }
+      })
+
+      vi.mocked(daemonApi.nodesStatus).mockResolvedValue({
+        nodes: [], total_running: 0, total_stopped: 0,
+      })
+
+      const initPromise = nodesStore.init()
+      // Advance past the 250 ms retry delay so the second status() runs.
+      await vi.advanceTimersByTimeAsync(300)
+      await initPromise
+
+      expect(nodesStore.daemonConnected).toBe(true)
+      expect(nodesStore.initializing).toBe(false)
+      expect(daemonApi.status).toHaveBeenCalledTimes(2)
+
+      // Stop polling / reconnect explicitly before useRealTimers so the
+      // following test's beforeEach doesn't have to clean them up.
+      nodesStore.stopPolling()
+      nodesStore.cancelReconnect()
+      vi.useRealTimers()
     })
 
     it('updates daemon URL when port changes', async () => {
