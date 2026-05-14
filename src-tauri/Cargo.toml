@@ -1,6 +1,6 @@
 [package]
 name = "ant-gui"
-version = "0.7.0"
+version = "0.7.1-rc.1"
 edition = "2021"
 
 [lib]
