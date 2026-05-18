@@ -11,11 +11,20 @@ env:
 jobs:
   frontend:
     name: frontend (typecheck + test)
-    # Skip on version-bump commits — release.yml does its own validation on the
-    # tag push. The bump commit only edits version strings, so re-running
-    # typecheck/vitest here is a no-op signal. PRs are unaffected (head_commit
-    # is absent on pull_request events).
-    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release): bump version to ') }}
+    # Skip on:
+    # - version-bump commits — release.yml does its own validation on the tag
+    #   push, and the bump commit only edits version strings.
+    # - docs-only changes — `docs:` and `docs(scope):` conventional-commit
+    #   prefixes on push and on PR title. typecheck/vitest don't exercise
+    #   markdown, so running them on README/CONTRIBUTING edits is no-op signal.
+    # `startsWith(null, ...)` returns false, so each absent context evaluates
+    # safely — on push events `pull_request.title` is null and vice versa.
+    if: >-
+      !startsWith(github.event.head_commit.message, 'chore(release): bump version to ')
+      && !startsWith(github.event.head_commit.message, 'docs:')
+      && !startsWith(github.event.head_commit.message, 'docs(')
+      && !startsWith(github.event.pull_request.title, 'docs:')
+      && !startsWith(github.event.pull_request.title, 'docs(')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -35,7 +44,12 @@ jobs:
 
   rust:
     name: rust (${{ matrix.check }})
-    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release): bump version to ') }}
+    if: >-
+      !startsWith(github.event.head_commit.message, 'chore(release): bump version to ')
+      && !startsWith(github.event.head_commit.message, 'docs:')
+      && !startsWith(github.event.head_commit.message, 'docs(')
+      && !startsWith(github.event.pull_request.title, 'docs:')
+      && !startsWith(github.event.pull_request.title, 'docs(')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
