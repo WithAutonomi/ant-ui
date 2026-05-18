@@ -304,7 +304,7 @@ jobs:
           ls -l "$stage"
 
       - name: upload release assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: release-assets-${{ matrix.slug }}
           path: release-assets/
@@ -510,7 +510,7 @@ jobs:
           ls -l "$stage"
 
       - name: upload release assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: release-assets-windows
           path: release-assets/
@@ -519,7 +519,7 @@ jobs:
 
       - name: upload signing logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: signing-logs
           path: ${{ github.workspace }}\smctl-signing.log
@@ -531,7 +531,7 @@ jobs:
     needs: [release-meta, build-linux-macos, build-windows]
     steps:
       - name: download all build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           # Download every artifact uploaded by the build jobs
           # (release-assets-linux, release-assets-macos-aarch64,
