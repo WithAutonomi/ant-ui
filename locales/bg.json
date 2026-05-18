@@ -103,14 +103,14 @@
     },
     "software": {
       "title": "Софтуер",
-      "version_label": "Версия",
+      "app_version_label": "Версия на приложението",
+      "node_version_label": "Версия на нод",
       "last_checked": "Последна проверка {label}",
       "check_button": "Проверка за актуализации",
       "checking": "Проверяване…"
     },
     "about": {
-      "title": "Информация",
-      "node_version_label": "Версия на демона на нод"
+      "title": "Информация"
     },
     "relative_time": {
       "just_now": "току-що",

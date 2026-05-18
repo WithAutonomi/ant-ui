@@ -483,8 +483,12 @@
         <div class="min-w-0 flex-1">
           <h3 class="text-sm font-medium">{{ $t('settings.software.title') }}</h3>
           <div class="mt-1 flex items-baseline gap-2 text-xs">
-            <span class="text-autonomi-muted">{{ $t('settings.software.version_label') }}</span>
+            <span class="text-autonomi-muted">{{ $t('settings.software.app_version_label') }}</span>
             <span class="font-mono">{{ appVersion }}</span>
+          </div>
+          <div class="mt-0.5 flex items-baseline gap-2 text-xs">
+            <span class="text-autonomi-muted">{{ $t('settings.software.node_version_label') }}</span>
+            <span class="font-mono">{{ nodeVersion }}</span>
           </div>
           <p v-if="lastCheckedLabel" class="mt-0.5 text-xs text-autonomi-muted">
             {{ $t('settings.software.last_checked', { label: lastCheckedLabel }) }}
@@ -503,12 +507,6 @@
     <!-- About -->
     <div class="rounded-lg border border-autonomi-border p-4">
       <h3 class="text-sm font-medium">{{ $t('settings.about.title') }}</h3>
-      <div class="mt-3 space-y-1.5 text-xs">
-        <div class="flex justify-between">
-          <span class="text-autonomi-muted">{{ $t('settings.about.node_version_label') }}</span>
-          <span class="font-mono">{{ nodeVersion }}</span>
-        </div>
-      </div>
       <div class="mt-3 flex gap-3">
         <button class="text-xs text-autonomi-blue hover:underline" @click="tauriOpenUrl('https://autonomi.com')">
           autonomi.com
