@@ -156,6 +156,33 @@ Uploads automatically select the payment method based on file size:
 - **Regular (wave-batch)**: Files under ~16MB (< 64 chunks). Pays per batch of chunks.
 - **Merkle tree**: Files over ~16MB (>= 64 chunks). Single transaction for all chunks, lower gas.
 
+## Localization
+
+The app ships with two locales today — English and Japanese (machine-translated
+baseline, see [`locales/ja.json`](./locales/ja.json)'s `_translator_notes`
+field). Strings live in JSON files under [`locales/`](./locales/) and are wired
+to [vue-i18n](https://vue-i18n.intlify.dev) via
+[`plugins/i18n.client.ts`](./plugins/i18n.client.ts).
+
+**How the active locale is chosen**, in order:
+
+1. The `i18n_locale` field in the user's `config.toml` (set via Settings →
+   Language).
+2. The OS locale, via `tauri-plugin-os` (e.g. `ja-JP` matches `ja`).
+3. English.
+
+The user can override at any time with **Settings → Language → System default**
+or pick a specific locale.
+
+**Linux CJK rendering note.** The AppImage / `.deb` does not bundle Noto CJK
+(~80 MB). On a clean Linux desktop without `noto-cjk` installed, Japanese
+renders as tofu boxes. Install your distro's `fonts-noto-cjk` /
+`noto-fonts-cjk` package, or stay on English. A runtime probe + install
+banner is a planned follow-up.
+
+To add a new locale or polish translations, see
+[`CONTRIBUTING-i18n.md`](./CONTRIBUTING-i18n.md).
+
 ## Related
 
 - [ant-client](https://github.com/WithAutonomi/ant-client) — Node management daemon + data client library
