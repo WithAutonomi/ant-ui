@@ -107,7 +107,7 @@
                 @click="onRowClick(file)"
               >
                 <td class="px-4 py-2.5">
-                  <div class="flex flex-col gap-1.5">
+                  <div class="flex flex-col gap-2">
                     <div>{{ file.name }}</div>
                     <ProgressLine
                       v-if="showsProgressBar(file)"
@@ -258,7 +258,7 @@
               @click="onRowClick(file)"
             >
               <td class="px-4 py-2.5">
-                <div class="flex flex-col gap-1.5">
+                <div class="flex flex-col gap-2">
                   <div>{{ file.name }}</div>
                   <ProgressLine
                     v-if="showsProgressBar(file)"
