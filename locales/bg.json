@@ -1,0 +1,470 @@
+{
+  "_translator_notes": "Machine-translated baseline. Community polish via PR welcome.",
+  "settings": {
+    "language": {
+      "label": "Език",
+      "description": "Език на потребителския интерфейс",
+      "system_default": "Системен по подразбиране: {name}",
+      "system_default_pending": "Системен по подразбиране"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "Свързано с управлявания шлюз за съхранение",
+      "subtitle_setup": "Свържете се със самостоятелно хостван Indelible шлюз за управлявано съхранение",
+      "connected_badge": "Свързано",
+      "server_label": "Сървър",
+      "signed_in_as": "Влязъл като",
+      "disconnect": "Прекъсване",
+      "server_url_label": "URL на сървъра",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "API ключ",
+      "api_key_placeholder": "Вашият API токен",
+      "test_connect": "Тестване и свързване",
+      "testing": "Тестване…",
+      "configure": "Конфигуриране на връзката"
+    },
+    "storage": {
+      "title": "Директория за съхранение",
+      "description": "Място за съхранение на данните на нодите на диска",
+      "default": "По подразбиране",
+      "browse": "Преглед",
+      "warning": "Прилага се само за новодобавени ноди. Съществуващите ноди запазват текущата си директория."
+    },
+    "downloads": {
+      "title": "Директория за изтегляния",
+      "description": "Място, където се запазват изтеглените файлове",
+      "not_set": "Не е зададено",
+      "browse": "Преглед"
+    },
+    "alert": {
+      "title": "Звук за предупреждение",
+      "description": "Възпроизвеждане на звук при критични грешки на ноди",
+      "aria_toggle": "Превключване на звука за предупреждение"
+    },
+    "theme": {
+      "title": "Светъл режим",
+      "description": "Превключване между тъмна и светла тема",
+      "aria_toggle": "Превключване на светъл режим"
+    },
+    "advanced": {
+      "hide": "▾ Скриване на разширени",
+      "show": "▸ Показване на разширени"
+    },
+    "daemon": {
+      "title": "Демон на нод",
+      "description": "Рестартирайте фоновата услуга, която управлява вашите ноди. Работещите ноди продължават да работят — само супервайзорът се сменя.",
+      "restart": "Рестартиране на демона",
+      "restarting": "Рестартиране…"
+    },
+    "concurrency": {
+      "title": "Паралелност при качване",
+      "description_1": "Контролира колко оферти/качвания могат да се изпълняват едновременно.",
+      "description_2": "Обърнете внимание, че това има голямо влияние върху производителността."
+    },
+    "prerelease": {
+      "title": "Предварителни версии",
+      "description": "Получаване на автоматични актуализации за предварителни версии (rc / beta) наред със стабилните. По подразбиране изключено.",
+      "restart_required": "Рестартирайте приложението, за да приложите тази промяна.",
+      "restart_now": "Рестартиране сега"
+    },
+    "direct_wallet": {
+      "title": "Директен портфейл",
+      "description": "Свързване с частен ключ (заобикаля WalletConnect)",
+      "connected_badge": "Свързано",
+      "address_label": "Адрес",
+      "disconnect": "Прекъсване",
+      "network_label": "Мрежа",
+      "network_sepolia_option": "Arbitrum Sepolia (тестова мрежа)",
+      "network_arbitrum_option": "Arbitrum One (основна мрежа)",
+      "rpc_url_label": "RPC URL",
+      "rpc_url_optional": "(по избор)",
+      "rpc_url_placeholder": "По подразбиране публичният RPC за избраната верига",
+      "private_key_label": "Частен ключ",
+      "private_key_placeholder": "0x... или необработен hex",
+      "connect": "Свързване",
+      "import_button": "Импортиране на частен ключ"
+    },
+    "diagnostics": {
+      "title": "Диагностика",
+      "summary": "{entries} записа в дневника ({errors} грешки)",
+      "copy_button": "Копиране в клипборда",
+      "clear_button": "Изчистване",
+      "empty": "Няма записи в дневника",
+      "hide_log": "▾ Скриване на дневника",
+      "show_log": "▸ Показване на дневника"
+    },
+    "upload_history": {
+      "title": "История на качванията",
+      "summary_one": "{count} финализиран запис в upload_history.json. DataMap-овете на диска и chunk-овете в мрежата остават незасегнати.",
+      "summary_many": "{count} финализирани записа в upload_history.json. DataMap-овете на диска и chunk-овете в мрежата остават незасегнати.",
+      "clear_button": "Изчистване на историята",
+      "confirm_one": "Изчистване на 1 запис за качване от историята?\n\nТова премахва локалния ред + запаметения запис. DataMap-овете на диска и chunk-овете в мрежата не са засегнати.",
+      "confirm_many": "Изчистване на {count} записа за качване от историята?\n\nТова премахва локалните редове + запаметените записи. DataMap-овете на диска и chunk-овете в мрежата не са засегнати."
+    },
+    "software": {
+      "title": "Софтуер",
+      "version_label": "Версия",
+      "last_checked": "Последна проверка {label}",
+      "check_button": "Проверка за актуализации",
+      "checking": "Проверяване…"
+    },
+    "about": {
+      "title": "Информация",
+      "node_version_label": "Версия на демона на нод"
+    },
+    "relative_time": {
+      "just_now": "току-що",
+      "seconds_ago": "преди {n} сек",
+      "minutes_ago": "преди {n} мин",
+      "hours_ago": "преди {n} ч",
+      "days_ago": "преди {n} д"
+    },
+    "picker": {
+      "storage_title": "Избор на директория за съхранение",
+      "downloads_title": "Избор на директория за изтегляния"
+    },
+    "error": {
+      "private_key_invalid": "Невалиден частен ключ — трябва да съдържа 64 шестнадесетични знака",
+      "invalid_eth_address": "Невалиден формат на EVM адрес"
+    },
+    "toast": {
+      "upload_history_cleared": "Историята на качванията е изчистена",
+      "update_check_failed": "Проверката за актуализации е неуспешна",
+      "update_available": "Налична е актуализация: v{version}",
+      "on_latest_version": "Използвате най-новата версия (v{version})",
+      "daemon_restarted": "Демонът е рестартиран",
+      "daemon_restart_failed": "Неуспешно рестартиране на демона: {error}",
+      "storage_dir_updated": "Директорията за съхранение е актуализирана",
+      "storage_dir_verified": "Директорията за съхранение е проверена",
+      "storage_dir_unwritable": "Тази папка не може да се използва за съхранение на нодите",
+      "select_directory_failed": "Неуспешен избор на директория",
+      "downloads_dir_updated": "Директорията за изтегляния е актуализирана",
+      "earnings_updated": "Адресът за приходи е актуализиран",
+      "daemon_url_updated": "URL на демона е актуализиран",
+      "diagnostics_copied": "Диагностиката е копирана в клипборда",
+      "diagnostics_copy_failed": "Неуспешно копиране в клипборда",
+      "log_cleared": "Дневникът е изчистен",
+      "indelible_connected": "Свързано с Indelible",
+      "indelible_disconnected": "Прекъсната връзка с Indelible",
+      "wallet_connected": "Портфейлът е свързан: {address}",
+      "wallet_disconnected": "Портфейлът е разкачен",
+      "wallet_attach_failed": "Неуспешно прикачване на портфейл (откъм Rust): {error}"
+    }
+  },
+  "nav": {
+    "nodes": "Ноди",
+    "files": "Файлове",
+    "wallet": "Портфейл",
+    "settings": "Настройки"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} активни",
+    "connecting": "Свързване",
+    "connecting_tooltip": "Свързване с мрежата Autonomi",
+    "connected": "Мрежа",
+    "connected_tooltip": "Свързано с мрежата Autonomi",
+    "offline": "Офлайн · Опит",
+    "offline_tooltip": "Връзката е неуспешна — щракнете за повторен опит",
+    "connect_wallet": "Свържи портфейл"
+  },
+  "sidebar": {
+    "pre_release": "ПРЕДВАРИТЕЛНА",
+    "update_available": "Налична актуализация",
+    "update_pre_release_tag": "Предварителна",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA ТЕСТОВА МРЕЖА"
+  },
+  "common": {
+    "cancel": "Отказ",
+    "confirm": "Потвърди",
+    "close": "Затвори",
+    "download": "Изтегли",
+    "start": "Старт",
+    "stop": "Стоп",
+    "remove": "Премахни",
+    "close_panel": "Затвори панела"
+  },
+  "nodes": {
+    "add_button": "+ Добавяне на ноди",
+    "start_all": "Стартиране на всички",
+    "stop_all": "Спиране на всички",
+    "running_count": "{count} работят",
+    "stopped_count": "{count} спрени",
+    "errored_count": "{count} с грешка",
+    "filter_placeholder": "Филтър...",
+    "filter_aria_label": "Филтриране на нодите",
+    "starting_daemon": "Стартиране на демона на нод…",
+    "restarting_daemon": "Рестартиране на демона на нод…",
+    "nodes_keep_running": "Вашите ноди продължават да работят.",
+    "daemon_disconnected": "Не може да се свърже с демона на нод",
+    "daemon_retrying": "Автоматично повторение…",
+    "empty_title": "Все още няма ноди",
+    "empty_hint": "Щракнете върху „+ Добавяне на ноди“, за да започнете",
+    "confirm_action": "Потвърждение на действието",
+    "remove_node_message": "Премахване на нод {id}? Всичките му данни ще бъдат изтрити.",
+    "stop_all_message": "Спиране на всички {count} работещи ноди?",
+    "node_fallback_name": "Нод {id}",
+    "field": {
+      "node_id": "ID на нод",
+      "status": "Статус",
+      "version": "Версия",
+      "pid": "PID",
+      "uptime": "Време на работа",
+      "storage": "Съхранение",
+      "data_directory": "Директория с данни",
+      "log_directory": "Директория с дневници",
+      "port": "Порт",
+      "binary": "Изпълним файл",
+      "rewards_address": "Адрес за награди",
+      "status_aria": "Статус: {status}"
+    },
+    "add_dialog": {
+      "title": "Добавяне на ноди",
+      "number_label": "Брой ноди",
+      "range_hint": "Между 1 и 50",
+      "no_earnings_warning": "Не е конфигуриран адрес за приходи. Задайте такъв в страницата „Портфейл“, преди да добавяте ноди.",
+      "submit_one": "Добави 1 нод",
+      "submit_many": "Добави {count} ноди"
+    },
+    "toast": {
+      "added": "Добавени са {count} ноди",
+      "add_failed": "Неуспешно добавяне на ноди: {error}",
+      "started": "Нод {id} е стартиран",
+      "start_failed": "Неуспешно стартиране на нод {id}: {error}",
+      "stopped": "Нод {id} е спрян",
+      "stop_failed": "Неуспешно спиране на нод {id}: {error}",
+      "removed": "Нод {id} е премахнат",
+      "remove_failed": "Неуспешно премахване на нод {id}: {error}",
+      "no_stopped": "Няма спрени ноди за стартиране",
+      "no_running": "Няма работещи ноди за спиране",
+      "node_failed": "Нод {id} грешка: {error}",
+      "started_count": "Стартирани са {count} ноди",
+      "stopped_count": "Спрени са {count} ноди",
+      "start_all_failed": "Неуспешно стартиране на всички: {error}",
+      "stop_all_failed": "Неуспешно спиране на всички: {error}"
+    }
+  },
+  "files": {
+    "upload_button": "Качване на файл(ове)",
+    "estimate_button": "Оценка на разходите",
+    "download_by_address": "Изтегляне по адрес",
+    "download_by_datamap": "Изтегляне по DataMap",
+    "uploads_heading": "Качвания",
+    "downloads_heading": "Изтегляния",
+    "clear": "Изчисти",
+    "drop_files": "Пуснете файлове, за да ги качите",
+    "uploads_empty_title": "Все още няма качвания",
+    "uploads_empty_hint": "Влачете файлове тук или използвайте бутоните по-горе",
+    "downloads_empty_title": "Все още няма изтегляния",
+    "downloads_empty_hint": "Използвайте „Изтегляне по адрес“ или „Изтегляне по DataMap“",
+    "table": {
+      "name": "Име",
+      "status": "Статус",
+      "size": "Размер",
+      "cost": "Цена",
+      "date": "Дата",
+      "address": "Адрес",
+      "saved_to": "Запазено в",
+      "actions": "Действия"
+    },
+    "row": {
+      "free_already_stored": "Безплатно — вече съхранено",
+      "gas_suffix": "+ {gas} газ",
+      "public_badge": "Публично",
+      "retry": "↻ Опит",
+      "public_tooltip": "Публично качване — щракнете, за да копирате споделимия мрежов адрес",
+      "reveal_datamap_tooltip": "Показване на файла DataMap във Finder/Explorer",
+      "copy_datamap_tooltip": "Копиране на пътя до файла DataMap",
+      "copy_address_tooltip": "Копиране на мрежовия адрес",
+      "retry_tooltip": "Повторен опит за качване",
+      "remove_tooltip": "Премахване от списъка"
+    },
+    "stage": {
+      "encrypting": "Шифроване…",
+      "quoting_pct": "Оферта · {pct}%",
+      "quoting_indeterminate": "Получаване на оферта…",
+      "storing_pct": "Съхранение · {pct}%",
+      "storing_indeterminate": "Съхранение…",
+      "resolving_pct": "Решаване на DataMap · {pct}%",
+      "resolving_indeterminate": "Решаване на DataMap…",
+      "downloading_pct": "Изтегляне · {pct}%",
+      "downloading_indeterminate": "Изтегляне…"
+    },
+    "picker": {
+      "upload_title": "Избор на файлове за качване",
+      "datamap_title": "Избор на DataMap файл за изтегляне",
+      "estimate_title": "Избор на файлове за оценка",
+      "datamap_filter": "DataMap"
+    },
+    "toast": {
+      "upload_requires_wallet": "Качването изисква портфейл",
+      "download_requires_network": "Изтеглянето изисква мрежова връзка",
+      "open_folder_failed": "Папката не може да бъде отворена",
+      "address_copied": "Адресът е копиран в клипборда",
+      "public_address_copied": "Публичният адрес е копиран — споделете го, за да позволите на други да изтеглят този файл",
+      "datamap_path_copied": "Пътят до DataMap е копиран в клипборда",
+      "already_stored_one": "1 файл вече е съхранен — запазване на DataMap",
+      "already_stored_many": "{count} файла вече са съхранени — запазване на DataMap-овете",
+      "upload_complete": "Качването е завършено: {name}",
+      "upload_failed": "Качването е неуспешно: {name} — {error}",
+      "payment_failed": "Плащането е неуспешно: {error}",
+      "download_complete": "Изтеглянето е завършено: {name}",
+      "download_failed": "Изтеглянето е неуспешно: {name} — {error}",
+      "datamap_missing": "Не може да се изтегли: DataMap файлът липсва или не може да се прочете",
+      "datamap_read_failed": "DataMap не може да се прочете: {error}"
+    },
+    "error": {
+      "wallet_not_connected": "Портфейлът не е свързан",
+      "not_connected_to_network": "Няма връзка с мрежата"
+    },
+    "network": {
+      "unavailable": "Няма връзка с мрежата Autonomi — оценката на разходите е недостъпна.",
+      "retry_connection": "Опит за повторна връзка",
+      "connecting": "Свързване с мрежата Autonomi…",
+      "obtaining_quote": "Получаване на оферта от мрежата…",
+      "obtaining_quotes": "Получаване на оферти от мрежата…"
+    },
+    "datamap_saveas": {
+      "title": "Запазване на изтегления файл като",
+      "filename_label": "Име на файла",
+      "filename_placeholder": "moifail.dat"
+    },
+    "download_dialog": {
+      "title": "Изтегляне на файл",
+      "address_label": "Адрес на файла",
+      "address_placeholder": "Адрес на файла (hex)",
+      "filename_label": "Запазване като име на файл",
+      "filename_placeholder": "moifail.dat"
+    },
+    "datamap_picker": {
+      "description": "Изберете предишно качване за повторно изтегляне или прегледайте за DataMap файл, получен от другаде.",
+      "empty": "Все още няма предишни качвания със запазен DataMap.",
+      "browse_button": "Преглед за DataMap файл…"
+    },
+    "cost_estimate": {
+      "title": "Оценка на разходите за качване",
+      "loading": "Оценяване на разходите…",
+      "no_files": "Няма избрани файлове",
+      "footnote": "Разходите са получени от мрежата Autonomi. Газови такси (ETH) се добавят към разходите за съхранение."
+    },
+    "upload_confirm": {
+      "title": "Потвърждение на качването",
+      "info_banner": "Можете да затворите този прозорец и да се върнете, когато офертата пристигне. Качването остава в изчакване, докато не го одобрите или отмените.",
+      "already_stored_badge": "Вече съхранено",
+      "payment_label": "Плащане",
+      "payment_mixed": "Смесено",
+      "payment_mixed_detail": "{regular} обикновени, {merkle} Merkle — плащане за всеки файл.",
+      "payment_merkle": "Merkle дърво",
+      "payment_regular": "Обикновено",
+      "payment_merkle_detail": "Една транзакция за {count} chunk-а — по-нисък газ.",
+      "payment_regular_detail_one": "Плащане на партида за 1 chunk.",
+      "payment_regular_detail_many": "Плащане на партида за {count} chunk-а.",
+      "free_title": "Вече съхранено в мрежата — безплатно",
+      "free_detail": "Всеки chunk вече е наличен. Няма да се изразходват ANT или газ.",
+      "cost_label": "Разход за съхранение в мрежата",
+      "gas_label": "Прогнозен газ",
+      "some_already_stored": "Някои файлове вече са съхранени — тази част не струва нищо.",
+      "visibility_label": "Видимост",
+      "visibility_private": "Лично",
+      "visibility_private_desc": "Шифровано и достъпно само с вашата DataMap. Само вие можете да изтеглите файла.",
+      "visibility_public": "Публично",
+      "visibility_public_desc": "DataMap се публикува в мрежата. Споделете един адрес, за да може всеки да изтегли файла.",
+      "regular_footnote": "Оценено от една мрежова оферта — крайната цена може да варира леко. Газови такси се добавят отгоре.",
+      "cancel_upload": "Отказ на качването",
+      "ready_count": "Готови: {ready} от {total}",
+      "approve_button_one": "Одобряване на качването",
+      "approve_button_many": "Одобряване на {count} качвания"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "Адрес за приходи",
+    "earnings_description": "Къде се изпращат приходите от нодите ви",
+    "earnings_not_configured": "Не е конфигуриран",
+    "edit": "Редактиране",
+    "save": "Запис",
+    "earnings_use_payment_prompt": "Да се използва адресът на свързания портфейл за приходи?",
+    "earnings_use_payment_button": "Използвай {address}",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "Управлявано съхранение",
+    "managed_storage_org": "Съхранение, управлявано от {org}",
+    "managed_storage_description": "Качванията се маршрутизират през Indelible шлюза на вашата организация. Не е необходим локален портфейл.",
+    "payment_wallet_heading": "Портфейл за плащане",
+    "payment_optional_hint": "По избор — необходим за качване на файлове",
+    "connect_prompt": "Свържете портфейл, за да плащате за съхранение на файлове",
+    "network_arbitrum_sepolia": "Тестова мрежа Arbitrum Sepolia",
+    "network_arbitrum_one": "Необходима е мрежата Arbitrum One",
+    "import_key_hint": "Или импортирайте частен ключ в {link}",
+    "import_key_hint_link_text": "Настройки > Разширени",
+    "address_label": "Адрес",
+    "eth_balance_label": "Баланс ETH",
+    "ant_balance_label": "Баланс ANT",
+    "usdc_balance_label": "Баланс USDC",
+    "refresh_balances": "Обновяване на балансите",
+    "disconnect": "Прекъсване",
+    "toast": {
+      "import_key_in_settings": "Импортирайте частен ключ в Настройки > Разширени",
+      "invalid_address": "Невалиден адрес: трябва да е 0x + 40 шестнадесетични знака",
+      "earnings_saved": "Адресът за приходи е запазен",
+      "earnings_set_to_payment": "Адресът за приходи е зададен на портфейла за плащане",
+      "wallet_disconnected": "Портфейлът е разкачен"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "Налична актуализация",
+      "version_ready": "v{version} е готова за инсталиране",
+      "pre_release_badge": "Предварителна",
+      "download_size": "Размер на изтеглянето: {size}",
+      "release_notes": "Бележки за версията",
+      "no_release_notes": "Няма бележки за тази версия.",
+      "downloading": "Изтегляне...",
+      "download_complete": "Изтеглянето е успешно, приложението ще се рестартира скоро",
+      "auto_restart_hint": "Приложението ще се рестартира автоматично, когато завърши.",
+      "cancel_download": "Отмяна на изтеглянето",
+      "installing_tooltip": "Инсталиране — моля изчакайте",
+      "not_now": "Не сега",
+      "update_restart": "Актуализиране и рестарт"
+    },
+    "toast": {
+      "install_no_restart": "Актуализацията v{version} е инсталирана, но приложението не е рестартирано. Затворете Autonomi и го отворете отново.",
+      "install_failed": "Неуспешно инсталиране на актуализацията: {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "Името на файла не може да съдържа специални знаци",
+      "ends_with_dot_or_space": "Името на файла не може да завършва с точка или интервал",
+      "reserved_on_windows": "Това име е резервирано в Windows"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "Работи",
+      "stopped": "Спрян",
+      "starting": "Стартиране",
+      "stopping": "Спиране",
+      "adding": "Добавяне…",
+      "errored": "Грешка",
+      "upgrade_scheduled": "Обновяване"
+    },
+    "file": {
+      "pending": "В изчакване",
+      "quoting": "Оферта",
+      "encrypting": "Шифроване…",
+      "resolving_datamap": "Решаване на DataMap",
+      "queued_quoting": "В опашка: оферта",
+      "queued_uploading": "В опашка: качване",
+      "connecting_to_network": "Свързване с мрежата…",
+      "obtaining_quote": "Получаване на оферта…",
+      "saving_datamap": "Запазване на DataMap…",
+      "network_unavailable": "Мрежата е недостъпна",
+      "ready_to_approve": "Готово за одобрение",
+      "awaiting_approval": "Очаква одобрение",
+      "uploading": "Качване",
+      "downloading": "Изтегляне",
+      "done": "Готово",
+      "downloaded": "Изтеглено — щракнете за отваряне"
+    }
+  }
+}
