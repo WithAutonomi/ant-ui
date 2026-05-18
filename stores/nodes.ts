@@ -6,6 +6,10 @@ import { daemonApi, connectSSE, disconnectSSE, type NodeEvent } from '~/utils/da
 import type { NodeStatusSummary, ApiNodeStatus, DaemonStatus } from '~/utils/daemon-api'
 import { POLL_INTERVAL, DETAIL_POLL_INTERVAL } from '~/utils/constants'
 import type { UnlistenFn } from '@tauri-apps/api/event'
+import { i18n } from '~/plugins/i18n.client'
+
+/** Module-scope translator — see stores/files.ts for the rationale. */
+const t = (key: string, params?: Record<string, unknown>) => i18n.global.t(key, params ?? {})
 
 // Frontend node status — ant-core values + frontend-only states
 export type NodeStatus = ApiNodeStatus | 'adding'
@@ -444,11 +448,11 @@ export const useNodesStore = defineStore('nodes', {
         this.nodes = this.nodes.filter(n => !placeholderIds.includes(n.id))
         await this.fetchNodes()
         this.enrichNodeDetails() // fire-and-forget — populates data_dir/ports without waiting for the detail poll
-        toasts.add(`Added ${result.nodes_added.length} node(s)`, 'info')
+        toasts.add(t('nodes.toast.added', { count: result.nodes_added.length }), 'info')
       } catch (e: any) {
         // Remove placeholders on failure
         this.nodes = this.nodes.filter(n => !placeholderIds.includes(n.id))
-        toasts.add(`Failed to add nodes: ${e.message}`, 'error')
+        toasts.add(t('nodes.toast.add_failed', { error: e.message }), 'error')
       }
     },
 
@@ -465,11 +469,11 @@ export const useNodesStore = defineStore('nodes', {
           node.pid = result.pid
           node.uptime_secs = 0
         }
-        toasts.add(`Node ${id} started`, 'info')
+        toasts.add(t('nodes.toast.started', { id }), 'info')
       } catch (e: any) {
         const node = this.nodes.find(n => n.id === id)
         if (node) node.status = 'errored'
-        toasts.add(`Failed to start node ${id}: ${e.message}`, 'error')
+        toasts.add(t('nodes.toast.start_failed', { id, error: e.message }), 'error')
       }
     },
 
@@ -485,9 +489,9 @@ export const useNodesStore = defineStore('nodes', {
           node.pid = undefined
           node.uptime_secs = undefined
         }
-        toasts.add(`Node ${id} stopped`, 'info')
+        toasts.add(t('nodes.toast.stopped', { id }), 'info')
       } catch (e: any) {
-        toasts.add(`Failed to stop node ${id}: ${e.message}`, 'error')
+        toasts.add(t('nodes.toast.stop_failed', { id, error: e.message }), 'error')
       }
     },
 
@@ -497,9 +501,9 @@ export const useNodesStore = defineStore('nodes', {
       try {
         await daemonApi.removeNode(id)
         this.nodes = this.nodes.filter(n => n.id !== id)
-        toasts.add(`Node ${id} removed`, 'info')
+        toasts.add(t('nodes.toast.removed', { id }), 'info')
       } catch (e: any) {
-        toasts.add(`Failed to remove node ${id}: ${e.message}`, 'error')
+        toasts.add(t('nodes.toast.remove_failed', { id, error: e.message }), 'error')
       }
     },
 
@@ -507,7 +511,7 @@ export const useNodesStore = defineStore('nodes', {
       const toasts = useToastStore()
       const stoppedNodes = this.nodes.filter(n => n.status === 'stopped')
       if (stoppedNodes.length === 0) {
-        toasts.add('No stopped nodes to start', 'warning')
+        toasts.add(t('nodes.toast.no_stopped'), 'warning')
         return
       }
 
@@ -522,17 +526,17 @@ export const useNodesStore = defineStore('nodes', {
         for (const f of result.failed) {
           const node = this.nodes.find(n => n.id === f.node_id)
           if (node) node.status = 'errored'
-          toasts.add(`Node ${f.node_id} failed: ${f.error}`, 'error')
+          toasts.add(t('nodes.toast.node_failed', { id: f.node_id, error: f.error }), 'error')
         }
         for (const id of result.already_running) {
           const node = this.nodes.find(n => n.id === id)
           if (node) node.status = 'running'
         }
         if (result.started.length > 0) {
-          toasts.add(`Started ${result.started.length} node(s)`, 'info')
+          toasts.add(t('nodes.toast.started_count', { count: result.started.length }), 'info')
         }
       } catch (e: any) {
-        toasts.add(`Failed to start all: ${e.message}`, 'error')
+        toasts.add(t('nodes.toast.start_all_failed', { error: e.message }), 'error')
         await this.fetchNodes() // refresh to get real state
       }
     },
@@ -541,7 +545,7 @@ export const useNodesStore = defineStore('nodes', {
       const toasts = useToastStore()
       const runningNodes = this.nodes.filter(n => n.status === 'running')
       if (runningNodes.length === 0) {
-        toasts.add('No running nodes to stop', 'warning')
+        toasts.add(t('nodes.toast.no_running'), 'warning')
         return
       }
 
@@ -555,13 +559,13 @@ export const useNodesStore = defineStore('nodes', {
         for (const f of result.failed) {
           const node = this.nodes.find(n => n.id === f.node_id)
           if (node) node.status = 'errored'
-          toasts.add(`Node ${f.node_id} failed: ${f.error}`, 'error')
+          toasts.add(t('nodes.toast.node_failed', { id: f.node_id, error: f.error }), 'error')
         }
         if (result.stopped.length > 0) {
-          toasts.add(`Stopped ${result.stopped.length} node(s)`, 'info')
+          toasts.add(t('nodes.toast.stopped_count', { count: result.stopped.length }), 'info')
         }
       } catch (e: any) {
-        toasts.add(`Failed to stop all: ${e.message}`, 'error')
+        toasts.add(t('nodes.toast.stop_all_failed', { error: e.message }), 'error')
         await this.fetchNodes()
       }
     },

@@ -4,20 +4,20 @@
     <div v-if="settingsStore.indelibleConnected" class="rounded-lg border border-green-500/20 bg-green-500/5 p-4">
       <div class="flex items-center justify-between">
         <div class="min-w-0 flex-1">
-          <h3 class="text-sm font-medium text-green-400">Indelible Enterprise</h3>
-          <p class="text-xs text-autonomi-muted">Connected to managed storage gateway</p>
+          <h3 class="text-sm font-medium text-green-400">{{ $t('settings.indelible.title') }}</h3>
+          <p class="text-xs text-autonomi-muted">{{ $t('settings.indelible.subtitle_connected') }}</p>
         </div>
         <span class="ml-3 shrink-0 rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-400">
-          Connected
+          {{ $t('settings.indelible.connected_badge') }}
         </span>
       </div>
       <div class="mt-3 space-y-2">
         <div class="rounded-md bg-autonomi-dark px-3 py-2">
-          <p class="text-xs text-autonomi-muted">Server</p>
+          <p class="text-xs text-autonomi-muted">{{ $t('settings.indelible.server_label') }}</p>
           <p class="truncate font-mono text-xs text-autonomi-text">{{ settingsStore.indelibleUrl }}</p>
         </div>
         <div class="rounded-md bg-autonomi-dark px-3 py-2">
-          <p class="text-xs text-autonomi-muted">Signed in as</p>
+          <p class="text-xs text-autonomi-muted">{{ $t('settings.indelible.signed_in_as') }}</p>
           <p class="text-xs text-autonomi-text">{{ settingsStore.indelibleOrgName }}</p>
           <p class="text-xs text-autonomi-muted">{{ settingsStore.indelibleUserEmail }}</p>
         </div>
@@ -25,7 +25,7 @@
           class="rounded-md border border-autonomi-border px-2.5 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
           @click="disconnectIndelible"
         >
-          Disconnect
+          {{ $t('settings.indelible.disconnect') }}
         </button>
       </div>
     </div>
@@ -34,19 +34,19 @@
     <div class="rounded-lg border border-autonomi-border p-4">
       <div class="flex items-center justify-between">
         <div class="min-w-0 flex-1">
-          <h3 class="text-sm font-medium">Storage Directory</h3>
-          <p class="text-xs text-autonomi-muted">Where node data is stored on disk</p>
-          <p class="mt-0.5 truncate font-mono text-xs text-autonomi-muted">{{ settingsStore.storageDir ?? 'Default' }}</p>
+          <h3 class="text-sm font-medium">{{ $t('settings.storage.title') }}</h3>
+          <p class="text-xs text-autonomi-muted">{{ $t('settings.storage.description') }}</p>
+          <p class="mt-0.5 truncate font-mono text-xs text-autonomi-muted">{{ settingsStore.storageDir ?? $t('settings.storage.default') }}</p>
         </div>
         <button
           class="ml-3 shrink-0 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-text"
           @click="pickStorageDir"
         >
-          Browse
+          {{ $t('settings.storage.browse') }}
         </button>
       </div>
       <p class="mt-2 text-xs text-autonomi-warning">
-        Only applies to newly added nodes. Existing nodes keep their current directory.
+        {{ $t('settings.storage.warning') }}
       </p>
       <p v-if="settingsStore.storageDirProbeError" class="mt-2 rounded border border-autonomi-error/40 bg-autonomi-error/10 px-2 py-1.5 text-xs text-autonomi-error">
         {{ settingsStore.storageDirProbeError }}
@@ -56,28 +56,28 @@
     <!-- Downloads Directory -->
     <div class="flex items-center justify-between rounded-lg border border-autonomi-border p-4">
       <div class="min-w-0 flex-1">
-        <h3 class="text-sm font-medium">Downloads Directory</h3>
-        <p class="text-xs text-autonomi-muted">Where downloaded files are saved</p>
-        <p class="mt-0.5 truncate font-mono text-xs text-autonomi-muted">{{ settingsStore.downloadDir ?? 'Not set' }}</p>
+        <h3 class="text-sm font-medium">{{ $t('settings.downloads.title') }}</h3>
+        <p class="text-xs text-autonomi-muted">{{ $t('settings.downloads.description') }}</p>
+        <p class="mt-0.5 truncate font-mono text-xs text-autonomi-muted">{{ settingsStore.downloadDir ?? $t('settings.downloads.not_set') }}</p>
       </div>
       <button
         class="ml-3 shrink-0 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-text"
         @click="pickDownloadDir"
       >
-        Browse
+        {{ $t('settings.downloads.browse') }}
       </button>
     </div>
 
     <!-- Bell on Critical -->
     <div class="flex items-center justify-between rounded-lg border border-autonomi-border p-4">
       <div>
-        <h3 class="text-sm font-medium">Alert Sound</h3>
-        <p class="text-xs text-autonomi-muted">Play sound on critical node failures</p>
+        <h3 class="text-sm font-medium">{{ $t('settings.alert.title') }}</h3>
+        <p class="text-xs text-autonomi-muted">{{ $t('settings.alert.description') }}</p>
       </div>
       <button
         role="switch"
         :aria-checked="settingsStore.bellOnCritical"
-        aria-label="Toggle alert sound"
+        :aria-label="$t('settings.alert.aria_toggle')"
         class="relative h-6 w-11 rounded-full transition-colors"
         :class="settingsStore.bellOnCritical ? 'bg-autonomi-blue' : 'bg-autonomi-border'"
         @click="settingsStore.toggleBell()"
@@ -92,13 +92,13 @@
     <!-- Appearance -->
     <div class="flex items-center justify-between rounded-lg border border-autonomi-border p-4">
       <div>
-        <h3 class="text-sm font-medium">Light Mode</h3>
-        <p class="text-xs text-autonomi-muted">Switch between dark and light themes</p>
+        <h3 class="text-sm font-medium">{{ $t('settings.theme.title') }}</h3>
+        <p class="text-xs text-autonomi-muted">{{ $t('settings.theme.description') }}</p>
       </div>
       <button
         role="switch"
         :aria-checked="settingsStore.themeMode === 'light'"
-        aria-label="Toggle light mode"
+        :aria-label="$t('settings.theme.aria_toggle')"
         class="relative h-6 w-11 rounded-full transition-colors"
         :class="settingsStore.themeMode === 'light' ? 'bg-autonomi-blue' : 'bg-autonomi-border'"
         @click="settingsStore.setThemeMode(settingsStore.themeMode === 'light' ? 'dark' : 'light')"
@@ -134,7 +134,7 @@
         :aria-expanded="showAdvanced"
         @click="showAdvanced = !showAdvanced"
       >
-        {{ showAdvanced ? '▾ Hide Advanced' : '▸ Show Advanced' }}
+        {{ showAdvanced ? $t('settings.advanced.hide') : $t('settings.advanced.show') }}
       </button>
       <div v-if="showAdvanced" class="mt-2 space-y-4">
 
@@ -142,10 +142,9 @@
         <div class="rounded-lg border border-autonomi-border p-4">
           <div class="flex items-center justify-between gap-3">
             <div class="min-w-0 flex-1">
-              <h3 class="text-sm font-medium">Node daemon</h3>
+              <h3 class="text-sm font-medium">{{ $t('settings.daemon.title') }}</h3>
               <p class="text-xs text-autonomi-muted">
-                Restart the background service that supervises your nodes. Your
-                running nodes keep running — only the supervisor is swapped.
+                {{ $t('settings.daemon.description') }}
               </p>
             </div>
             <button
@@ -153,7 +152,7 @@
               class="ml-3 shrink-0 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-text disabled:opacity-50"
               @click="restartDaemon"
             >
-              {{ daemonRestarting ? 'Restarting…' : 'Restart daemon' }}
+              {{ daemonRestarting ? $t('settings.daemon.restarting') : $t('settings.daemon.restart') }}
             </button>
           </div>
         </div>
@@ -162,12 +161,12 @@
         <div class="rounded-lg border border-autonomi-border p-4">
           <div class="flex items-center justify-between gap-3">
             <div class="min-w-0 flex-1">
-              <h3 class="text-sm font-medium">Upload concurrency</h3>
+              <h3 class="text-sm font-medium">{{ $t('settings.concurrency.title') }}</h3>
               <p class="mt-1 text-xs text-autonomi-muted">
-                This controls how many quotes/uploads can be running at the same time.
+                {{ $t('settings.concurrency.description_1') }}
               </p>
               <p class="mt-1 text-xs text-autonomi-muted">
-                Note that this has a very large impact on performance.
+                {{ $t('settings.concurrency.description_2') }}
               </p>
             </div>
             <input
@@ -186,23 +185,23 @@
         <div class="rounded-lg border border-autonomi-border p-4">
           <div class="flex items-center justify-between gap-3">
             <div class="min-w-0 flex-1">
-              <h3 class="text-sm font-medium">Pre-release builds</h3>
+              <h3 class="text-sm font-medium">{{ $t('settings.prerelease.title') }}</h3>
               <p class="mt-1 text-xs text-autonomi-muted">
-                Receive auto-updates for pre-release builds (rc / beta) in addition to stable releases. Off by default.
+                {{ $t('settings.prerelease.description') }}
               </p>
               <div
                 v-if="prereleaseChannelRestartRequired"
                 class="mt-1.5 flex items-center gap-2"
               >
                 <p class="text-xs font-medium text-amber-400">
-                  Restart the app to apply this change.
+                  {{ $t('settings.prerelease.restart_required') }}
                 </p>
                 <button
                   type="button"
                   class="rounded-md border border-amber-400/40 px-2 py-0.5 text-xs font-medium text-amber-400 hover:bg-amber-400/10"
                   @click="relaunchApp"
                 >
-                  Restart now
+                  {{ $t('settings.prerelease.restart_now') }}
                 </button>
               </div>
             </div>
@@ -230,25 +229,25 @@
         <div v-if="!settingsStore.indelibleConnected" class="rounded-lg border border-autonomi-border p-4">
           <div class="flex items-center justify-between">
             <div class="min-w-0 flex-1">
-              <h3 class="text-sm font-medium">Indelible Enterprise</h3>
-              <p class="text-xs text-autonomi-muted">Connect to a self-hosted Indelible gateway for managed storage</p>
+              <h3 class="text-sm font-medium">{{ $t('settings.indelible.title') }}</h3>
+              <p class="text-xs text-autonomi-muted">{{ $t('settings.indelible.subtitle_setup') }}</p>
             </div>
             <span
               v-if="settingsStore.indelibleConnected"
               class="ml-3 shrink-0 rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-400"
             >
-              Connected
+              {{ $t('settings.indelible.connected_badge') }}
             </span>
           </div>
 
           <!-- Connected state -->
           <div v-if="settingsStore.indelibleConnected" class="mt-3 space-y-2">
             <div class="rounded-md bg-autonomi-dark px-3 py-2">
-              <p class="text-xs text-autonomi-muted">Server</p>
+              <p class="text-xs text-autonomi-muted">{{ $t('settings.indelible.server_label') }}</p>
               <p class="truncate font-mono text-xs text-autonomi-text">{{ settingsStore.indelibleUrl }}</p>
             </div>
             <div class="rounded-md bg-autonomi-dark px-3 py-2">
-              <p class="text-xs text-autonomi-muted">Signed in as</p>
+              <p class="text-xs text-autonomi-muted">{{ $t('settings.indelible.signed_in_as') }}</p>
               <p class="text-xs text-autonomi-text">{{ settingsStore.indelibleOrgName }}</p>
               <p class="text-xs text-autonomi-muted">{{ settingsStore.indelibleUserEmail }}</p>
             </div>
@@ -256,28 +255,28 @@
               class="rounded-md border border-autonomi-border px-2.5 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
               @click="disconnectIndelible"
             >
-              Disconnect
+              {{ $t('settings.indelible.disconnect') }}
             </button>
           </div>
 
           <!-- Setup form -->
           <div v-else-if="editingIndelible" class="mt-3 space-y-3">
             <div>
-              <label class="mb-1 block text-xs text-autonomi-muted">Server URL</label>
+              <label class="mb-1 block text-xs text-autonomi-muted">{{ $t('settings.indelible.server_url_label') }}</label>
               <input
                 v-model="indelibleUrlInput"
                 type="text"
-                placeholder="https://files.acme.com"
+                :placeholder="$t('settings.indelible.server_url_placeholder')"
                 class="w-full rounded-md border border-autonomi-border bg-autonomi-dark px-3 py-1.5 font-mono text-xs text-autonomi-text placeholder-autonomi-muted focus:border-autonomi-blue focus:outline-none"
               />
             </div>
             <div>
-              <label class="mb-1 block text-xs text-autonomi-muted">API Key</label>
+              <label class="mb-1 block text-xs text-autonomi-muted">{{ $t('settings.indelible.api_key_label') }}</label>
               <input
                 v-model="indelibleApiKeyInput"
                 type="password"
                 autocomplete="off"
-                placeholder="Your API token"
+                :placeholder="$t('settings.indelible.api_key_placeholder')"
                 class="w-full rounded-md border border-autonomi-border bg-autonomi-dark px-3 py-1.5 font-mono text-xs text-autonomi-text placeholder-autonomi-muted focus:border-autonomi-blue focus:outline-none"
               />
             </div>
@@ -290,13 +289,13 @@
                 class="rounded-md bg-autonomi-blue px-2.5 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
                 @click="testIndelible"
               >
-                {{ indelibleTesting ? 'Testing...' : 'Test & Connect' }}
+                {{ indelibleTesting ? $t('settings.indelible.testing') : $t('settings.indelible.test_connect') }}
               </button>
               <button
                 class="rounded-md border border-autonomi-border px-2.5 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
                 @click="editingIndelible = false"
               >
-                Cancel
+                {{ $t('common.cancel') }}
               </button>
             </div>
           </div>
@@ -307,7 +306,7 @@
               class="rounded-md border border-autonomi-border px-2.5 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
               @click="startEditIndelible"
             >
-              Configure Connection
+              {{ $t('settings.indelible.configure') }}
             </button>
           </div>
         </div>
@@ -316,60 +315,60 @@
         <div class="rounded-lg border border-autonomi-border p-4">
           <div class="flex items-center justify-between">
             <div class="min-w-0 flex-1">
-              <h3 class="text-sm font-medium">Direct Wallet</h3>
-              <p class="text-xs text-autonomi-muted">Connect with a private key (bypasses WalletConnect)</p>
+              <h3 class="text-sm font-medium">{{ $t('settings.direct_wallet.title') }}</h3>
+              <p class="text-xs text-autonomi-muted">{{ $t('settings.direct_wallet.description') }}</p>
             </div>
             <span
               v-if="walletStore.connected && directWalletActive"
               class="ml-3 shrink-0 rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-400"
             >
-              Connected
+              {{ $t('settings.direct_wallet.connected_badge') }}
             </span>
           </div>
 
           <div v-if="walletStore.connected && directWalletActive" class="mt-3 space-y-2">
             <div class="rounded-md bg-autonomi-dark px-3 py-2">
-              <p class="text-xs text-autonomi-muted">Address</p>
+              <p class="text-xs text-autonomi-muted">{{ $t('settings.direct_wallet.address_label') }}</p>
               <p class="truncate font-mono text-xs text-autonomi-text">{{ walletStore.paymentAddress }}</p>
             </div>
             <button
               class="rounded-md border border-autonomi-border px-2.5 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
               @click="disconnectDirectWallet"
             >
-              Disconnect
+              {{ $t('settings.direct_wallet.disconnect') }}
             </button>
           </div>
 
           <div v-else-if="editingDirectWallet" class="mt-3 space-y-3">
             <div>
-              <label class="mb-1 block text-xs text-autonomi-muted">Network</label>
+              <label class="mb-1 block text-xs text-autonomi-muted">{{ $t('settings.direct_wallet.network_label') }}</label>
               <select
                 v-model="directWalletNetwork"
                 class="w-full rounded-md border border-autonomi-border bg-autonomi-dark px-3 py-1.5 text-xs text-autonomi-text focus:border-autonomi-blue focus:outline-none"
               >
-                <option value="arbitrum-sepolia">Arbitrum Sepolia (testnet)</option>
-                <option value="arbitrum">Arbitrum One (mainnet)</option>
+                <option value="arbitrum-sepolia">{{ $t('settings.direct_wallet.network_sepolia_option') }}</option>
+                <option value="arbitrum">{{ $t('settings.direct_wallet.network_arbitrum_option') }}</option>
               </select>
             </div>
             <div>
               <label class="mb-1 block text-xs text-autonomi-muted">
-                RPC URL <span class="text-autonomi-muted/60">(optional)</span>
+                {{ $t('settings.direct_wallet.rpc_url_label') }} <span class="text-autonomi-muted/60">{{ $t('settings.direct_wallet.rpc_url_optional') }}</span>
               </label>
               <input
                 v-model="directWalletRpcInput"
                 type="text"
                 autocomplete="off"
-                placeholder="Defaults to public RPC for the selected chain"
+                :placeholder="$t('settings.direct_wallet.rpc_url_placeholder')"
                 class="w-full rounded-md border border-autonomi-border bg-autonomi-dark px-3 py-1.5 font-mono text-xs text-autonomi-text placeholder-autonomi-muted focus:border-autonomi-blue focus:outline-none"
               />
             </div>
             <div>
-              <label class="mb-1 block text-xs text-autonomi-muted">Private Key</label>
+              <label class="mb-1 block text-xs text-autonomi-muted">{{ $t('settings.direct_wallet.private_key_label') }}</label>
               <input
                 v-model="directWalletKeyInput"
                 type="password"
                 autocomplete="off"
-                placeholder="0x... or raw hex"
+                :placeholder="$t('settings.direct_wallet.private_key_placeholder')"
                 class="w-full rounded-md border border-autonomi-border bg-autonomi-dark px-3 py-1.5 font-mono text-xs text-autonomi-text placeholder-autonomi-muted focus:border-autonomi-blue focus:outline-none"
                 @keyup.enter="connectDirectWallet"
               />
@@ -383,13 +382,13 @@
                 class="rounded-md bg-autonomi-blue px-2.5 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
                 @click="connectDirectWallet"
               >
-                Connect
+                {{ $t('settings.direct_wallet.connect') }}
               </button>
               <button
                 class="rounded-md border border-autonomi-border px-2.5 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
                 @click="editingDirectWallet = false"
               >
-                Cancel
+                {{ $t('common.cancel') }}
               </button>
             </div>
           </div>
@@ -399,7 +398,7 @@
               class="rounded-md border border-autonomi-border px-2.5 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
               @click="editingDirectWallet = true; directWalletError = ''"
             >
-              Import Private Key
+              {{ $t('settings.direct_wallet.import_button') }}
             </button>
           </div>
         </div>
@@ -408,22 +407,22 @@
         <div class="rounded-lg border border-autonomi-border p-4">
           <div class="flex items-center justify-between">
             <div>
-              <h3 class="text-sm font-medium">Diagnostics</h3>
-              <p class="text-xs text-autonomi-muted">{{ errorLogStore.entries.length }} log entries ({{ errorLogStore.errors.length }} errors)</p>
+              <h3 class="text-sm font-medium">{{ $t('settings.diagnostics.title') }}</h3>
+              <p class="text-xs text-autonomi-muted">{{ $t('settings.diagnostics.summary', { entries: errorLogStore.entries.length, errors: errorLogStore.errors.length }) }}</p>
             </div>
             <div class="flex gap-2">
               <button
                 class="shrink-0 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-text"
                 @click="copyDiagnostics"
               >
-                Copy to Clipboard
+                {{ $t('settings.diagnostics.copy_button') }}
               </button>
               <button
                 v-if="errorLogStore.entries.length > 0"
                 class="shrink-0 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-text"
                 @click="clearLog"
               >
-                Clear
+                {{ $t('settings.diagnostics.clear_button') }}
               </button>
             </div>
           </div>
@@ -442,13 +441,13 @@
               <span class="ml-1">[{{ entry.source }}]</span>
               <span class="ml-1">{{ entry.message }}</span>
             </div>
-            <p v-if="errorLogStore.entries.length === 0" class="text-xs text-autonomi-muted">No log entries</p>
+            <p v-if="errorLogStore.entries.length === 0" class="text-xs text-autonomi-muted">{{ $t('settings.diagnostics.empty') }}</p>
           </div>
           <button
             class="mt-2 text-xs text-autonomi-muted hover:text-autonomi-text"
             @click="showLog = !showLog"
           >
-            {{ showLog ? '▾ Hide Log' : '▸ Show Log' }}
+            {{ showLog ? $t('settings.diagnostics.hide_log') : $t('settings.diagnostics.show_log') }}
           </button>
         </div>
       </div>
@@ -459,11 +458,11 @@
          the common single-row case. -->
     <div class="flex items-center justify-between rounded-lg border border-autonomi-border p-4">
       <div class="min-w-0 flex-1">
-        <h3 class="text-sm font-medium">Upload history</h3>
+        <h3 class="text-sm font-medium">{{ $t('settings.upload_history.title') }}</h3>
         <p class="mt-0.5 text-xs text-autonomi-muted">
-          {{ settledUploadCount }} settled
-          {{ settledUploadCount === 1 ? 'entry' : 'entries' }} in
-          <span class="font-mono">upload_history.json</span>. DataMaps on disk and chunks on the network are untouched.
+          {{ settledUploadCount === 1
+            ? $t('settings.upload_history.summary_one', { count: settledUploadCount })
+            : $t('settings.upload_history.summary_many', { count: settledUploadCount }) }}
         </p>
       </div>
       <button
@@ -471,7 +470,7 @@
         class="shrink-0 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-error disabled:opacity-50 disabled:hover:text-autonomi-muted"
         @click="confirmClearUploadHistory"
       >
-        Clear history
+        {{ $t('settings.upload_history.clear_button') }}
       </button>
     </div>
 
@@ -479,13 +478,13 @@
     <div class="rounded-lg border border-autonomi-border p-4">
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0 flex-1">
-          <h3 class="text-sm font-medium">Software</h3>
+          <h3 class="text-sm font-medium">{{ $t('settings.software.title') }}</h3>
           <div class="mt-1 flex items-baseline gap-2 text-xs">
-            <span class="text-autonomi-muted">Version</span>
+            <span class="text-autonomi-muted">{{ $t('settings.software.version_label') }}</span>
             <span class="font-mono">{{ appVersion }}</span>
           </div>
           <p v-if="lastCheckedLabel" class="mt-0.5 text-xs text-autonomi-muted">
-            Last checked {{ lastCheckedLabel }}
+            {{ $t('settings.software.last_checked', { label: lastCheckedLabel }) }}
           </p>
         </div>
         <button
@@ -493,17 +492,17 @@
           class="shrink-0 rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-text disabled:opacity-50"
           @click="checkForUpdates"
         >
-          {{ updaterStore.checking ? 'Checking…' : 'Check for Updates' }}
+          {{ updaterStore.checking ? $t('settings.software.checking') : $t('settings.software.check_button') }}
         </button>
       </div>
     </div>
 
     <!-- About -->
     <div class="rounded-lg border border-autonomi-border p-4">
-      <h3 class="text-sm font-medium">About</h3>
+      <h3 class="text-sm font-medium">{{ $t('settings.about.title') }}</h3>
       <div class="mt-3 space-y-1.5 text-xs">
         <div class="flex justify-between">
-          <span class="text-autonomi-muted">Node daemon version</span>
+          <span class="text-autonomi-muted">{{ $t('settings.about.node_version_label') }}</span>
           <span class="font-mono">{{ nodeVersion }}</span>
         </div>
       </div>
@@ -581,12 +580,13 @@ async function confirmClearUploadHistory() {
   // Native window.confirm is enough here — the sheet is already a settings
   // page surface and the action is reversible only via OS-level file
   // restoration on `upload_history.json`.
-  const ok = window.confirm(
-    `Clear ${settledUploadCount.value} upload ${settledUploadCount.value === 1 ? 'entry' : 'entries'} from history?\n\nThis removes the local row + persisted record. The DataMaps on disk and the chunks on the network are unaffected.`,
-  )
+  const message = settledUploadCount.value === 1
+    ? t('settings.upload_history.confirm_one')
+    : t('settings.upload_history.confirm_many', { count: settledUploadCount.value })
+  const ok = window.confirm(message)
   if (!ok) return
   filesStore.clearUploadHistory()
-  toasts.add('Upload history cleared', 'info')
+  toasts.add(t('settings.toast.upload_history_cleared'), 'info')
 }
 
 // Re-compute "Last checked X ago" every 30s so the label stays fresh while
@@ -604,27 +604,27 @@ const lastCheckedLabel = computed(() => {
   const ts = updaterStore.lastCheckedAt
   if (!ts) return ''
   const secs = Math.max(0, Math.round((nowTick.value - ts) / 1000))
-  if (secs < 10) return 'just now'
-  if (secs < 60) return `${secs}s ago`
+  if (secs < 10) return t('settings.relative_time.just_now')
+  if (secs < 60) return t('settings.relative_time.seconds_ago', { n: secs })
   const mins = Math.round(secs / 60)
-  if (mins < 60) return `${mins} min ago`
+  if (mins < 60) return t('settings.relative_time.minutes_ago', { n: mins })
   const hours = Math.round(mins / 60)
-  if (hours < 24) return `${hours}h ago`
+  if (hours < 24) return t('settings.relative_time.hours_ago', { n: hours })
   const days = Math.round(hours / 24)
-  return `${days}d ago`
+  return t('settings.relative_time.days_ago', { n: days })
 })
 
 async function checkForUpdates() {
   const result = await updaterStore.checkForUpdate()
   if (!result.ok) {
-    toasts.add(result.error ?? 'Update check failed', 'error')
+    toasts.add(result.error ?? t('settings.toast.update_check_failed'), 'error')
     return
   }
   if (result.available) {
-    toasts.add(`Update available: v${updaterStore.version}`, 'info')
+    toasts.add(t('settings.toast.update_available', { version: updaterStore.version }), 'info')
     updaterStore.showDialog = true
   } else {
-    toasts.add(`You're on the latest version (v${appVersion.value})`, 'success')
+    toasts.add(t('settings.toast.on_latest_version', { version: appVersion.value }), 'success')
   }
 }
 const nodeVersion = computed(() => {
@@ -650,9 +650,9 @@ const daemonRestarting = computed(() => nodesStore.restarting)
 async function restartDaemon() {
   try {
     await nodesStore.restartDaemon()
-    toasts.add('Daemon restarted', 'info')
+    toasts.add(t('settings.toast.daemon_restarted'), 'info')
   } catch (e: any) {
-    toasts.add(`Failed to restart daemon: ${e?.message ?? e}`, 'error')
+    toasts.add(t('settings.toast.daemon_restart_failed', { error: e?.message ?? e }), 'error')
   }
 }
 
@@ -674,7 +674,7 @@ async function connectDirectWallet() {
     let key = directWalletKeyInput.value.trim()
     if (!key.startsWith('0x')) key = `0x${key}`
     if (!/^0x[0-9a-fA-F]{64}$/.test(key)) {
-      directWalletError.value = 'Invalid private key — must be 64 hex characters'
+      directWalletError.value = t('settings.error.private_key_invalid')
       return
     }
 
@@ -720,14 +720,14 @@ async function connectDirectWallet() {
       console.warn('attach_wallet failed:', e)
       // Non-fatal — uploads will fall back to the JS wagmi path. Surface
       // through the toast so the user sees something didn't go right.
-      toasts.add(`Wallet attach (Rust side) failed: ${e?.message ?? e}`, 'error')
+      toasts.add(t('settings.toast.wallet_attach_failed', { error: e?.message ?? e }), 'error')
     }
 
     directWalletActive.value = true
     editingDirectWallet.value = false
     directWalletKeyInput.value = ''
     directWalletRpcInput.value = ''
-    toasts.add(`Wallet connected: ${walletStore.paymentAddress}`, 'info')
+    toasts.add(t('settings.toast.wallet_connected', { address: walletStore.paymentAddress }), 'info')
   } catch (e: any) {
     directWalletError.value = e.message ?? 'Failed to import key'
   }
@@ -756,7 +756,7 @@ async function disconnectDirectWallet() {
   // rebuild from scratch.
   const { disposeDevnetWallet } = await import('~/composables/useDevnetWallet')
   disposeDevnetWallet()
-  toasts.add('Wallet disconnected', 'info')
+  toasts.add(t('settings.toast.wallet_disconnected'), 'info')
 }
 
 // Indelible connection
@@ -783,7 +783,7 @@ async function testIndelible() {
   indelibleTesting.value = false
   if (result.ok) {
     editingIndelible.value = false
-    toasts.add('Connected to Indelible', 'info')
+    toasts.add(t('settings.toast.indelible_connected'), 'info')
   } else {
     indelibleError.value = result.error ?? 'Connection failed'
   }
@@ -791,7 +791,7 @@ async function testIndelible() {
 
 async function disconnectIndelible() {
   await settingsStore.disconnectIndelible()
-  toasts.add('Disconnected from Indelible', 'info')
+  toasts.add(t('settings.toast.indelible_disconnected'), 'info')
 }
 
 onMounted(async () => {
@@ -802,37 +802,32 @@ onMounted(async () => {
 
 async function pickStorageDir() {
   try {
-    const selected = await open({ directory: true, title: 'Select Storage Directory' })
+    const selected = await open({ directory: true, title: t('settings.picker.storage_title') })
     if (!selected) return
     const path = selected as string
-    // Probe before persist — a path that's writable in Explorer can still be
-    // unwritable to the daemon process (USB read-only volume, OneDrive
-    // placeholder, restrictive ACL on a second drive). Write the failure to
-    // the store-level probe error so the global banner and this card both
-    // reflect the same state.
     const result = await settingsStore.probeStorageDir(path)
     if (!result.ok) {
       settingsStore.storageDirProbeError = result.error
-      toasts.add('Cannot use that folder for node storage', 'error')
+      toasts.add(t('settings.toast.storage_dir_unwritable'), 'error')
       return
     }
     settingsStore.storageDirProbeError = null
     await settingsStore.setStorageDir(path)
-    toasts.add('Storage directory verified', 'success')
+    toasts.add(t('settings.toast.storage_dir_verified'), 'success')
   } catch (e) {
-    toasts.add('Failed to select directory', 'error')
+    toasts.add(t('settings.toast.select_directory_failed'), 'error')
   }
 }
 
 async function pickDownloadDir() {
   try {
-    const selected = await open({ directory: true, title: 'Select Downloads Directory' })
+    const selected = await open({ directory: true, title: t('settings.picker.downloads_title') })
     if (selected) {
       await settingsStore.setDownloadDir(selected as string)
-      toasts.add('Downloads directory updated', 'info')
+      toasts.add(t('settings.toast.downloads_dir_updated'), 'info')
     }
   } catch (e) {
-    toasts.add('Failed to select directory', 'error')
+    toasts.add(t('settings.toast.select_directory_failed'), 'error')
   }
 }
 
@@ -845,12 +840,12 @@ function startEditEarnings() {
 async function saveEarnings() {
   const val = earningsInput.value.trim()
   if (val && !isValidEthAddress(val)) {
-    toasts.add('Invalid EVM address format', 'warning')
+    toasts.add(t('settings.error.invalid_eth_address'), 'warning')
     return
   }
   await settingsStore.setEarningsAddress(val || null)
   editingEarnings.value = false
-  toasts.add('Earnings address updated', 'info')
+  toasts.add(t('settings.toast.earnings_updated'), 'info')
 }
 
 function startEditDaemon() {
@@ -864,7 +859,7 @@ async function saveDaemon() {
   if (!val) return
   await settingsStore.setDaemonUrl(val)
   editingDaemon.value = false
-  toasts.add('Daemon URL updated', 'info')
+  toasts.add(t('settings.toast.daemon_url_updated'), 'info')
 }
 
 async function onConcurrencyChange(raw: string) {
@@ -890,15 +885,15 @@ async function copyDiagnostics() {
   const report = errorLogStore.buildReport()
   try {
     await navigator.clipboard.writeText(report)
-    toasts.add('Diagnostics copied to clipboard', 'info')
+    toasts.add(t('settings.toast.diagnostics_copied'), 'info')
   } catch {
-    toasts.add('Failed to copy to clipboard', 'error')
+    toasts.add(t('settings.toast.diagnostics_copy_failed'), 'error')
   }
 }
 
 function clearLog() {
   errorLogStore.clear()
-  toasts.add('Log cleared', 'info')
+  toasts.add(t('settings.toast.log_cleared'), 'info')
 }
 
 

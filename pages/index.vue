@@ -7,37 +7,37 @@
         :disabled="!nodesStore.daemonConnected"
         @click="showAddDialog = true"
       >
-        + Add Nodes
+        {{ $t('nodes.add_button') }}
       </button>
       <button
         class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text disabled:opacity-40 disabled:cursor-not-allowed"
         :disabled="!nodesStore.daemonConnected"
         @click="nodesStore.startAll()"
       >
-        Start All
+        {{ $t('nodes.start_all') }}
       </button>
       <button
         class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text disabled:opacity-40 disabled:cursor-not-allowed"
         :disabled="!nodesStore.daemonConnected"
         @click="confirmStopAll"
       >
-        Stop All
+        {{ $t('nodes.stop_all') }}
       </button>
 
       <div class="flex-1" />
 
       <!-- Summary stats -->
       <div class="flex items-center gap-4 text-xs text-autonomi-muted">
-        <span><span class="text-autonomi-success">●</span> {{ nodesStore.running }} running</span>
-        <span v-if="nodesStore.stopped > 0"><span class="text-autonomi-muted">○</span> {{ nodesStore.stopped }} stopped</span>
-        <span v-if="nodesStore.errored > 0"><span class="text-autonomi-error">●</span> {{ nodesStore.errored }} errored</span>
+        <span><span class="text-autonomi-success">●</span> {{ $t('nodes.running_count', { count: nodesStore.running }) }}</span>
+        <span v-if="nodesStore.stopped > 0"><span class="text-autonomi-muted">○</span> {{ $t('nodes.stopped_count', { count: nodesStore.stopped }) }}</span>
+        <span v-if="nodesStore.errored > 0"><span class="text-autonomi-error">●</span> {{ $t('nodes.errored_count', { count: nodesStore.errored }) }}</span>
       </div>
 
       <input
         v-model="filterText"
         type="text"
-        placeholder="Filter..."
-        aria-label="Filter nodes"
+        :placeholder="$t('nodes.filter_placeholder')"
+        :aria-label="$t('nodes.filter_aria_label')"
         class="w-48 rounded-md border border-autonomi-border bg-autonomi-dark px-3 py-1.5 text-sm text-autonomi-text placeholder-autonomi-muted focus:border-autonomi-blue focus:outline-none"
       />
 
@@ -46,15 +46,15 @@
     <!-- Initializing state -->
     <div v-if="nodesStore.initializing" class="flex flex-col items-center justify-center py-20">
       <div class="mb-3 h-6 w-6 animate-spin rounded-full border-2 border-autonomi-blue border-t-transparent" />
-      <p class="text-sm text-autonomi-muted">Starting node daemon...</p>
+      <p class="text-sm text-autonomi-muted">{{ $t('nodes.starting_daemon') }}</p>
     </div>
 
     <!-- Restarting state — takes priority over disconnected so the UI doesn't
          flicker the "Cannot connect" panel during an intentional restart. -->
     <div v-else-if="nodesStore.restarting" class="flex flex-col items-center justify-center py-20">
       <div class="mb-3 h-6 w-6 animate-spin rounded-full border-2 border-autonomi-blue border-t-transparent" />
-      <p class="text-sm text-autonomi-muted">Restarting node daemon...</p>
-      <p class="mt-1 text-xs text-autonomi-muted">Your nodes keep running.</p>
+      <p class="text-sm text-autonomi-muted">{{ $t('nodes.restarting_daemon') }}</p>
+      <p class="mt-1 text-xs text-autonomi-muted">{{ $t('nodes.nodes_keep_running') }}</p>
     </div>
 
     <!-- Disconnected state -->
@@ -64,8 +64,8 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
         </svg>
       </div>
-      <p class="mt-3 text-sm text-autonomi-muted">Cannot connect to node daemon</p>
-      <p class="mt-1 text-xs text-autonomi-muted">Retrying automatically...</p>
+      <p class="mt-3 text-sm text-autonomi-muted">{{ $t('nodes.daemon_disconnected') }}</p>
+      <p class="mt-1 text-xs text-autonomi-muted">{{ $t('nodes.daemon_retrying') }}</p>
     </div>
 
     <!-- Empty state -->
@@ -75,8 +75,8 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" />
         </svg>
       </div>
-      <p class="mt-3 text-sm text-autonomi-muted">No nodes yet</p>
-      <p class="mt-1 text-xs text-autonomi-muted">Click "+ Add Nodes" to get started</p>
+      <p class="mt-3 text-sm text-autonomi-muted">{{ $t('nodes.empty_title') }}</p>
+      <p class="mt-1 text-xs text-autonomi-muted">{{ $t('nodes.empty_hint') }}</p>
     </div>
 
     <!-- Tile view -->
@@ -120,20 +120,20 @@
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
         @click.self="confirmDialog = null"
       >
-        <div role="dialog" aria-modal="true" aria-label="Confirm action" class="w-80 rounded-lg border border-autonomi-border bg-autonomi-dark p-6 shadow-xl">
+        <div role="dialog" aria-modal="true" :aria-label="$t('nodes.confirm_action')" class="w-80 rounded-lg border border-autonomi-border bg-autonomi-dark p-6 shadow-xl">
           <p class="mb-4 text-sm">{{ confirmDialog.message }}</p>
           <div class="flex justify-end gap-2">
             <button
               class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted"
               @click="confirmDialog = null"
             >
-              Cancel
+              {{ $t('common.cancel') }}
             </button>
             <button
               class="rounded-md bg-autonomi-error px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
               @click="executeConfirm"
             >
-              Confirm
+              {{ $t('common.confirm') }}
             </button>
           </div>
         </div>
@@ -143,8 +143,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useNodesStore } from '~/stores/nodes'
 
+const { t } = useI18n()
 const nodesStore = useNodesStore()
 const filterText = ref('')
 const selectedId = ref<number | null>(null)
@@ -181,7 +183,7 @@ function toggleSelect(id: number) {
 
 function confirmRemove(id: number) {
   confirmDialog.value = {
-    message: `Remove node ${id}? This will delete all its data.`,
+    message: t('nodes.remove_node_message', { id }),
     action: () => {
       nodesStore.removeNode(id)
       if (selectedId.value === id) selectedId.value = null
@@ -191,7 +193,7 @@ function confirmRemove(id: number) {
 
 function confirmStopAll() {
   confirmDialog.value = {
-    message: `Stop all ${nodesStore.running} running nodes?`,
+    message: t('nodes.stop_all_message', { count: nodesStore.running }),
     action: () => nodesStore.stopAll(),
   }
 }

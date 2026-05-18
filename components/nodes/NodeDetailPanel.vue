@@ -2,11 +2,11 @@
   <div class="rounded-xl border border-autonomi-blue/30 bg-autonomi-surface p-5">
     <div class="mb-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <h3 class="text-base font-medium text-autonomi-text">{{ node.name || `Node ${node.id}` }}</h3>
+        <h3 class="text-base font-medium text-autonomi-text">{{ node.name || $t('nodes.node_fallback_name', { id: node.id }) }}</h3>
         <StatusBadge :status="node.status" />
       </div>
       <button
-        aria-label="Close panel"
+        :aria-label="$t('common.close_panel')"
         class="text-autonomi-muted hover:text-autonomi-text"
         @click="$emit('close')"
       >
@@ -18,7 +18,7 @@
 
     <div class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm lg:grid-cols-4">
       <div>
-        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Version</p>
+        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">{{ $t('nodes.field.version') }}</p>
         <p class="text-autonomi-text">
           {{ node.version }}<span
             v-if="node.pending_version"
@@ -27,35 +27,35 @@
         </p>
       </div>
       <div>
-        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">PID</p>
+        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">{{ $t('nodes.field.pid') }}</p>
         <p class="font-mono text-xs text-autonomi-text">{{ node.pid ?? '-' }}</p>
       </div>
       <div>
-        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Uptime</p>
+        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">{{ $t('nodes.field.uptime') }}</p>
         <p class="text-autonomi-text">{{ node.uptime_secs ? formatUptime(node.uptime_secs) : '-' }}</p>
       </div>
       <div>
-        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Storage</p>
+        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">{{ $t('nodes.field.storage') }}</p>
         <p class="text-autonomi-text">{{ node.storage_bytes != null ? formatBytes(node.storage_bytes) : '-' }}</p>
       </div>
       <div v-if="node.data_dir" class="col-span-2">
-        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Data Directory</p>
+        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">{{ $t('nodes.field.data_directory') }}</p>
         <p class="font-mono text-xs text-autonomi-text">{{ node.data_dir }}</p>
       </div>
       <div v-if="node.log_dir" class="col-span-2">
-        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Log Directory</p>
+        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">{{ $t('nodes.field.log_directory') }}</p>
         <p class="font-mono text-xs text-autonomi-text">{{ node.log_dir }}</p>
       </div>
       <div v-if="node.node_port" class="col-span-1">
-        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Port</p>
+        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">{{ $t('nodes.field.port') }}</p>
         <p class="font-mono text-xs text-autonomi-text">{{ node.node_port }}</p>
       </div>
       <div v-if="node.binary_path" class="col-span-2 lg:col-span-3">
-        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Binary</p>
+        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">{{ $t('nodes.field.binary') }}</p>
         <p class="font-mono text-xs text-autonomi-text">{{ node.binary_path }}</p>
       </div>
       <div v-if="node.rewards_address" class="col-span-2 lg:col-span-4">
-        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">Rewards Address</p>
+        <p class="text-[10px] uppercase tracking-wider text-autonomi-muted">{{ $t('nodes.field.rewards_address') }}</p>
         <p class="font-mono text-xs text-autonomi-text">{{ node.rewards_address }}</p>
       </div>
     </div>
@@ -66,21 +66,21 @@
         class="rounded-md bg-autonomi-blue px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
         @click="$emit('start', node.id)"
       >
-        Start
+        {{ $t('common.start') }}
       </button>
       <button
         v-if="node.status === 'running'"
         class="rounded-md border border-autonomi-border px-3 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text"
         @click="$emit('stop', node.id)"
       >
-        Stop
+        {{ $t('common.stop') }}
       </button>
       <button
         v-if="node.status === 'stopped' || node.status === 'errored'"
         class="rounded-md border border-autonomi-error/50 px-3 py-1.5 text-xs text-autonomi-error hover:bg-autonomi-error/10"
         @click="$emit('remove', node.id)"
       >
-        Remove
+        {{ $t('common.remove') }}
       </button>
     </div>
   </div>

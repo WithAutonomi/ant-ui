@@ -6,7 +6,7 @@
       @click.self="$emit('close')"
     >
       <div role="dialog" aria-modal="true" aria-labelledby="upload-confirm-title" class="w-[36rem] rounded-lg border border-autonomi-border bg-autonomi-dark p-6 shadow-xl">
-        <h2 id="upload-confirm-title" class="mb-3 text-lg font-medium">Confirm Upload</h2>
+        <h2 id="upload-confirm-title" class="mb-3 text-lg font-medium">{{ $t('files.upload_confirm.title') }}</h2>
 
         <!-- Info banner: dialog is dismissible, job keeps running -->
         <div class="mb-4 flex items-start gap-2 rounded-md border border-autonomi-blue/30 bg-autonomi-blue/5 px-3 py-2">
@@ -14,7 +14,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <p class="text-xs text-autonomi-muted">
-            You can close this window and come back when the quote is in. The upload stays pending until you approve or cancel it.
+            {{ $t('files.upload_confirm.info_banner') }}
           </p>
         </div>
 
@@ -32,7 +32,7 @@
                   v-if="entry.alreadyStored"
                   class="shrink-0 rounded bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-green-400"
                 >
-                  Already stored
+                  {{ $t('files.upload_confirm.already_stored_badge') }}
                 </span>
               </span>
               <span class="text-autonomi-muted">{{ entry.size_bytes ? formatBytes(entry.size_bytes) : '-' }}</span>
@@ -46,21 +46,21 @@
                per-file and pretending a single tx covers everything would
                be the same kind of fallback lie we removed for chunk counts. -->
           <div v-if="effectivePaymentMode" class="flex items-baseline justify-between">
-            <span class="text-sm text-autonomi-muted">Payment</span>
+            <span class="text-sm text-autonomi-muted">{{ $t('files.upload_confirm.payment_label') }}</span>
             <div class="text-right">
               <template v-if="effectivePaymentMode === 'mixed' && paymentModeBreakdown">
-                <span class="text-sm font-medium">Mixed</span>
+                <span class="text-sm font-medium">{{ $t('files.upload_confirm.payment_mixed') }}</span>
                 <p class="text-xs text-autonomi-muted">
-                  {{ paymentModeBreakdown.regular }} regular,
-                  {{ paymentModeBreakdown.merkle }} merkle — paid per file.
+                  {{ $t('files.upload_confirm.payment_mixed_detail', {
+                    regular: paymentModeBreakdown.regular,
+                    merkle: paymentModeBreakdown.merkle,
+                  }) }}
                 </p>
               </template>
               <template v-else>
-                <span class="text-sm font-medium">{{ effectivePaymentMode === 'merkle' ? 'Merkle tree' : 'Regular' }}</span>
+                <span class="text-sm font-medium">{{ effectivePaymentMode === 'merkle' ? $t('files.upload_confirm.payment_merkle') : $t('files.upload_confirm.payment_regular') }}</span>
                 <p class="text-xs text-autonomi-muted">
-                  {{ effectivePaymentMode === 'merkle'
-                    ? `Single transaction for ${quotedChunks} chunks — lower gas.`
-                    : `Per-batch payment for ${quotedChunks} chunk${quotedChunks !== 1 ? 's' : ''}.` }}
+                  {{ paymentModeDetail }}
                 </p>
               </template>
             </div>
@@ -75,29 +75,29 @@
                 <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Already stored on the network — free</span>
+                <span>{{ $t('files.upload_confirm.free_title') }}</span>
               </div>
               <p class="text-xs text-autonomi-muted">
-                Every chunk is already present. No ANT or gas will be spent.
+                {{ $t('files.upload_confirm.free_detail') }}
               </p>
             </template>
             <template v-else-if="quotedCost">
               <div class="flex items-center justify-between text-sm font-medium">
-                <span>Network storage cost</span>
+                <span>{{ $t('files.upload_confirm.cost_label') }}</span>
                 <span class="text-autonomi-blue">{{ quotedCost }}</span>
               </div>
               <div class="flex items-center justify-between text-xs text-autonomi-muted">
-                <span>Estimated gas</span>
+                <span>{{ $t('files.upload_confirm.gas_label') }}</span>
                 <span>{{ quotedGas ?? '—' }}</span>
               </div>
               <p v-if="someAlreadyStored" class="text-xs text-green-400">
-                Some files are already stored — that portion costs nothing.
+                {{ $t('files.upload_confirm.some_already_stored') }}
               </p>
             </template>
             <template v-else-if="connectionStore.hasFailed">
               <div class="space-y-2">
                 <div class="text-sm text-yellow-500/80">
-                  Not connected to the Autonomi network — cost estimate unavailable.
+                  {{ $t('files.network.unavailable') }}
                 </div>
                 <div v-if="failedReason" class="text-xs text-autonomi-muted break-words">
                   {{ failedReason }}
@@ -107,27 +107,27 @@
                   class="rounded-md border border-autonomi-blue/40 px-2.5 py-1 text-xs font-medium text-autonomi-blue hover:bg-autonomi-blue/10"
                   @click="connectionStore.retry()"
                 >
-                  Retry connection
+                  {{ $t('files.network.retry_connection') }}
                 </button>
               </div>
             </template>
             <template v-else-if="connectionStore.isConnecting">
               <div class="flex items-center gap-2 text-sm text-autonomi-muted">
                 <div class="h-3 w-3 animate-spin rounded-full border-2 border-yellow-500 border-t-transparent" />
-                <span>Connecting to the Autonomi network…</span>
+                <span>{{ $t('files.network.connecting') }}</span>
               </div>
             </template>
             <template v-else-if="anyQuoting">
               <div class="flex items-center gap-2 text-sm text-autonomi-muted">
                 <div class="h-3 w-3 animate-spin rounded-full border-2 border-autonomi-blue border-t-transparent" />
-                <span>Obtaining quote from network…</span>
+                <span>{{ $t('files.network.obtaining_quote') }}</span>
               </div>
             </template>
           </div>
 
           <!-- Visibility selector -->
           <div>
-            <label class="mb-2 block text-xs font-medium uppercase tracking-wider text-autonomi-muted">Visibility</label>
+            <label class="mb-2 block text-xs font-medium uppercase tracking-wider text-autonomi-muted">{{ $t('files.upload_confirm.visibility_label') }}</label>
             <div class="flex gap-3">
               <!-- Private (default) -->
               <button
@@ -144,10 +144,10 @@
                   >
                     <div v-if="visibility === 'private'" class="h-2 w-2 rounded-full bg-autonomi-blue" />
                   </div>
-                  <span class="text-sm font-medium">Private</span>
+                  <span class="text-sm font-medium">{{ $t('files.upload_confirm.visibility_private') }}</span>
                 </div>
                 <p class="mt-1.5 pl-6 text-xs text-autonomi-muted">
-                  Encrypted and only accessible with your data map. Only you can retrieve the file.
+                  {{ $t('files.upload_confirm.visibility_private_desc') }}
                 </p>
               </button>
 
@@ -167,17 +167,17 @@
                   >
                     <div v-if="visibility === 'public'" class="h-2 w-2 rounded-full bg-autonomi-blue" />
                   </div>
-                  <span class="text-sm font-medium">Public</span>
+                  <span class="text-sm font-medium">{{ $t('files.upload_confirm.visibility_public') }}</span>
                 </div>
                 <p class="mt-1.5 pl-6 text-xs text-autonomi-muted">
-                  Data map is published to the network. Share a single address so anyone can retrieve the file.
+                  {{ $t('files.upload_confirm.visibility_public_desc') }}
                 </p>
               </button>
             </div>
           </div>
 
           <p v-if="quotedCost && !allAlreadyStored && effectivePaymentMode === 'regular'" class="text-xs text-autonomi-muted">
-            Estimated from a single network quote — final cost may vary slightly. Gas fees apply on top.
+            {{ $t('files.upload_confirm.regular_footnote') }}
           </p>
 
           <!-- Buttons grouped by intent: both "back out" actions on the left,
@@ -189,13 +189,13 @@
                 class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
                 @click="$emit('close')"
               >
-                Close
+                {{ $t('common.close') }}
               </button>
               <button
                 class="rounded-md border border-red-500/40 px-3 py-1.5 text-sm text-red-400 hover:bg-red-500/10"
                 @click="$emit('cancelUpload')"
               >
-                Cancel Upload
+                {{ $t('files.upload_confirm.cancel_upload') }}
               </button>
             </div>
             <div class="flex items-center gap-2">
@@ -203,7 +203,7 @@
                 v-if="!canApprove && needsApprovalEntries.length > 1"
                 class="text-xs text-autonomi-muted"
               >
-                Ready: {{ readyCount }} of {{ needsApprovalEntries.length }}
+                {{ $t('files.upload_confirm.ready_count', { ready: readyCount, total: needsApprovalEntries.length }) }}
               </span>
               <button
                 class="rounded-md bg-autonomi-blue px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
@@ -221,10 +221,13 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { formatBytes } from '~/utils/formatters'
 import { useConnectionStore } from '~/stores/connection'
 import { useFilesStore, type FileEntry } from '~/stores/files'
 import { formatNanoTokens, formatGasCost } from '~/utils/payment'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean
@@ -341,8 +344,21 @@ watch(visibility, (val) => {
 
 const approveButtonLabel = computed(() => {
   const n = needsApprovalEntries.value.length
-  if (n <= 1) return 'Approve Upload'
-  return `Approve ${n} Uploads`
+  if (n <= 1) return t('files.upload_confirm.approve_button_one')
+  return t('files.upload_confirm.approve_button_many', { count: n })
+})
+
+/** Mode-detail line under the Payment row for the non-mixed case. Pulled out
+ *  of the template so the `merkle vs regular_one vs regular_many` selection
+ *  doesn't turn into a nested ternary in markup. */
+const paymentModeDetail = computed(() => {
+  const count = quotedChunks.value ?? 0
+  if (effectivePaymentMode.value === 'merkle') {
+    return t('files.upload_confirm.payment_merkle_detail', { count })
+  }
+  return count === 1
+    ? t('files.upload_confirm.payment_regular_detail_one')
+    : t('files.upload_confirm.payment_regular_detail_many', { count })
 })
 
 const failedReason = computed(() =>
