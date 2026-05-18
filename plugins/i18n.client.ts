@@ -2,6 +2,7 @@ import { createI18n } from 'vue-i18n'
 import en from '~/locales/en.json'
 import ja from '~/locales/ja.json'
 import nl from '~/locales/nl.json'
+import fr from '~/locales/fr.json'
 
 /**
  * Exported so non-component code (Pinia options-API stores, plain utility
@@ -12,7 +13,7 @@ export const i18n = createI18n({
   legacy: false,
   locale: 'en',
   fallbackLocale: 'en',
-  messages: { en, ja, nl },
+  messages: { en, ja, nl, fr },
   missingWarn: true,
   fallbackWarn: false,
 })
