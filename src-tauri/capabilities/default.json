@@ -11,6 +11,8 @@
     "dialog:allow-ask",
     "opener:default",
     "opener:allow-reveal-item-in-dir",
+    "os:default",
+    "os:allow-locale",
     "process:default",
     "updater:default",
     "updater:allow-check",

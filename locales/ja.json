@@ -1,0 +1,35 @@
+{
+  "_translator_notes": "Machine-translated baseline. Community polish via PR welcome.",
+  "settings": {
+    "language": {
+      "label": "言語",
+      "description": "UI 表示言語",
+      "system_default": "システムのデフォルト: {name}",
+      "system_default_pending": "システムのデフォルト"
+    }
+  },
+  "nav": {
+    "nodes": "ノード",
+    "files": "ファイル",
+    "wallet": "ウォレット",
+    "settings": "設定"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} 件処理中",
+    "connecting": "接続中",
+    "connecting_tooltip": "Autonomi ネットワークに接続中",
+    "connected": "ネットワーク",
+    "connected_tooltip": "Autonomi ネットワークに接続済み",
+    "offline": "オフライン · 再試行",
+    "offline_tooltip": "接続に失敗しました — クリックして再試行",
+    "connect_wallet": "ウォレットを接続"
+  },
+  "sidebar": {
+    "pre_release": "プレリリース",
+    "update_available": "アップデート利用可能",
+    "update_pre_release_tag": "プレリリース",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA テストネット"
+  }
+}

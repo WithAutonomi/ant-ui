@@ -1,0 +1,34 @@
+{
+  "settings": {
+    "language": {
+      "label": "Language",
+      "description": "UI display language",
+      "system_default": "System default: {name}",
+      "system_default_pending": "System default"
+    }
+  },
+  "nav": {
+    "nodes": "Nodes",
+    "files": "Files",
+    "wallet": "Wallet",
+    "settings": "Settings"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} active",
+    "connecting": "Connecting",
+    "connecting_tooltip": "Connecting to the Autonomi network",
+    "connected": "Network",
+    "connected_tooltip": "Connected to the Autonomi network",
+    "offline": "Offline · Retry",
+    "offline_tooltip": "Connection failed — click to retry",
+    "connect_wallet": "Connect Wallet"
+  },
+  "sidebar": {
+    "pre_release": "PRE-RELEASE",
+    "update_available": "Update Available",
+    "update_pre_release_tag": "Pre-Release",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA TESTNET"
+  }
+}
