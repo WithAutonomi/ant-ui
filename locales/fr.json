@@ -1,0 +1,470 @@
+{
+  "_translator_notes": "Machine-translated baseline. Community polish via PR welcome.",
+  "settings": {
+    "language": {
+      "label": "Langue",
+      "description": "Langue d'affichage de l'interface",
+      "system_default": "Système par défaut : {name}",
+      "system_default_pending": "Système par défaut"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "Connecté à la passerelle de stockage gérée",
+      "subtitle_setup": "Connectez-vous à une passerelle Indelible auto-hébergée pour le stockage géré",
+      "connected_badge": "Connecté",
+      "server_label": "Serveur",
+      "signed_in_as": "Connecté en tant que",
+      "disconnect": "Déconnecter",
+      "server_url_label": "URL du serveur",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "Clé API",
+      "api_key_placeholder": "Votre jeton API",
+      "test_connect": "Tester & connecter",
+      "testing": "Test en cours…",
+      "configure": "Configurer la connexion"
+    },
+    "storage": {
+      "title": "Dossier de stockage",
+      "description": "Emplacement des données de nœud sur le disque",
+      "default": "Par défaut",
+      "browse": "Parcourir",
+      "warning": "S'applique uniquement aux nouveaux nœuds ajoutés. Les nœuds existants conservent leur dossier actuel."
+    },
+    "downloads": {
+      "title": "Dossier de téléchargements",
+      "description": "Emplacement où les fichiers téléchargés sont enregistrés",
+      "not_set": "Non défini",
+      "browse": "Parcourir"
+    },
+    "alert": {
+      "title": "Son d'alerte",
+      "description": "Jouer un son lors d'échecs critiques de nœud",
+      "aria_toggle": "Activer/désactiver le son d'alerte"
+    },
+    "theme": {
+      "title": "Mode clair",
+      "description": "Basculer entre les thèmes sombre et clair",
+      "aria_toggle": "Activer/désactiver le mode clair"
+    },
+    "advanced": {
+      "hide": "▾ Masquer les options avancées",
+      "show": "▸ Afficher les options avancées"
+    },
+    "daemon": {
+      "title": "Démon de nœud",
+      "description": "Redémarre le service en arrière-plan qui supervise vos nœuds. Vos nœuds en cours d'exécution continuent — seul le superviseur est remplacé.",
+      "restart": "Redémarrer le démon",
+      "restarting": "Redémarrage…"
+    },
+    "concurrency": {
+      "title": "Parallélisme des téléversements",
+      "description_1": "Contrôle combien de devis/téléversements peuvent s'exécuter simultanément.",
+      "description_2": "À noter : cela a un impact très important sur les performances."
+    },
+    "prerelease": {
+      "title": "Versions préliminaires",
+      "description": "Recevoir les mises à jour automatiques des versions préliminaires (rc / beta) en plus des versions stables. Désactivé par défaut.",
+      "restart_required": "Redémarrez l'application pour appliquer ce changement.",
+      "restart_now": "Redémarrer maintenant"
+    },
+    "direct_wallet": {
+      "title": "Portefeuille direct",
+      "description": "Se connecter avec une clé privée (contourne WalletConnect)",
+      "connected_badge": "Connecté",
+      "address_label": "Adresse",
+      "disconnect": "Déconnecter",
+      "network_label": "Réseau",
+      "network_sepolia_option": "Arbitrum Sepolia (testnet)",
+      "network_arbitrum_option": "Arbitrum One (mainnet)",
+      "rpc_url_label": "URL RPC",
+      "rpc_url_optional": "(facultatif)",
+      "rpc_url_placeholder": "RPC public par défaut pour la chaîne sélectionnée",
+      "private_key_label": "Clé privée",
+      "private_key_placeholder": "0x... ou hex brut",
+      "connect": "Connecter",
+      "import_button": "Importer une clé privée"
+    },
+    "diagnostics": {
+      "title": "Diagnostics",
+      "summary": "{entries} entrées de journal ({errors} erreurs)",
+      "copy_button": "Copier dans le presse-papiers",
+      "clear_button": "Effacer",
+      "empty": "Aucune entrée de journal",
+      "hide_log": "▾ Masquer le journal",
+      "show_log": "▸ Afficher le journal"
+    },
+    "upload_history": {
+      "title": "Historique des téléversements",
+      "summary_one": "{count} entrée finalisée dans upload_history.json. Les DataMaps sur le disque et les chunks sur le réseau ne sont pas modifiés.",
+      "summary_many": "{count} entrées finalisées dans upload_history.json. Les DataMaps sur le disque et les chunks sur le réseau ne sont pas modifiés.",
+      "clear_button": "Effacer l'historique",
+      "confirm_one": "Effacer 1 entrée de téléversement de l'historique ?\n\nCela supprime la ligne locale + l'enregistrement persistant. Les DataMaps sur le disque et les chunks sur le réseau ne sont pas affectés.",
+      "confirm_many": "Effacer {count} entrées de téléversement de l'historique ?\n\nCela supprime les lignes locales + les enregistrements persistants. Les DataMaps sur le disque et les chunks sur le réseau ne sont pas affectés."
+    },
+    "software": {
+      "title": "Logiciel",
+      "version_label": "Version",
+      "last_checked": "Dernière vérification {label}",
+      "check_button": "Vérifier les mises à jour",
+      "checking": "Vérification…"
+    },
+    "about": {
+      "title": "À propos",
+      "node_version_label": "Version du démon de nœud"
+    },
+    "relative_time": {
+      "just_now": "à l'instant",
+      "seconds_ago": "il y a {n} s",
+      "minutes_ago": "il y a {n} min",
+      "hours_ago": "il y a {n} h",
+      "days_ago": "il y a {n} j"
+    },
+    "picker": {
+      "storage_title": "Sélectionner le dossier de stockage",
+      "downloads_title": "Sélectionner le dossier de téléchargements"
+    },
+    "error": {
+      "private_key_invalid": "Clé privée invalide — doit comporter 64 caractères hexadécimaux",
+      "invalid_eth_address": "Format d'adresse EVM invalide"
+    },
+    "toast": {
+      "upload_history_cleared": "Historique des téléversements effacé",
+      "update_check_failed": "Échec de la vérification des mises à jour",
+      "update_available": "Mise à jour disponible : v{version}",
+      "on_latest_version": "Vous utilisez la dernière version (v{version})",
+      "daemon_restarted": "Démon redémarré",
+      "daemon_restart_failed": "Échec du redémarrage du démon : {error}",
+      "storage_dir_updated": "Dossier de stockage mis à jour",
+      "storage_dir_verified": "Dossier de stockage vérifié",
+      "storage_dir_unwritable": "Impossible d'utiliser ce dossier pour le stockage des nœuds",
+      "select_directory_failed": "Échec de la sélection du dossier",
+      "downloads_dir_updated": "Dossier de téléchargements mis à jour",
+      "earnings_updated": "Adresse de gains mise à jour",
+      "daemon_url_updated": "URL du démon mise à jour",
+      "diagnostics_copied": "Diagnostics copiés dans le presse-papiers",
+      "diagnostics_copy_failed": "Échec de la copie dans le presse-papiers",
+      "log_cleared": "Journal effacé",
+      "indelible_connected": "Connecté à Indelible",
+      "indelible_disconnected": "Déconnecté d'Indelible",
+      "wallet_connected": "Portefeuille connecté : {address}",
+      "wallet_disconnected": "Portefeuille déconnecté",
+      "wallet_attach_failed": "Échec de la liaison du portefeuille (côté Rust) : {error}"
+    }
+  },
+  "nav": {
+    "nodes": "Nœuds",
+    "files": "Fichiers",
+    "wallet": "Portefeuille",
+    "settings": "Paramètres"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} actif(s)",
+    "connecting": "Connexion",
+    "connecting_tooltip": "Connexion au réseau Autonomi",
+    "connected": "Réseau",
+    "connected_tooltip": "Connecté au réseau Autonomi",
+    "offline": "Hors ligne · Réessayer",
+    "offline_tooltip": "Échec de la connexion — cliquez pour réessayer",
+    "connect_wallet": "Connecter le portefeuille"
+  },
+  "sidebar": {
+    "pre_release": "PRÉ-VERSION",
+    "update_available": "Mise à jour disponible",
+    "update_pre_release_tag": "Pré-version",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA TESTNET"
+  },
+  "common": {
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "close": "Fermer",
+    "download": "Télécharger",
+    "start": "Démarrer",
+    "stop": "Arrêter",
+    "remove": "Supprimer",
+    "close_panel": "Fermer le panneau"
+  },
+  "nodes": {
+    "add_button": "+ Ajouter des nœuds",
+    "start_all": "Tout démarrer",
+    "stop_all": "Tout arrêter",
+    "running_count": "{count} en cours",
+    "stopped_count": "{count} arrêté(s)",
+    "errored_count": "{count} en erreur",
+    "filter_placeholder": "Filtrer...",
+    "filter_aria_label": "Filtrer les nœuds",
+    "starting_daemon": "Démarrage du démon de nœud…",
+    "restarting_daemon": "Redémarrage du démon de nœud…",
+    "nodes_keep_running": "Vos nœuds continuent de fonctionner.",
+    "daemon_disconnected": "Impossible de se connecter au démon de nœud",
+    "daemon_retrying": "Nouvelle tentative automatique…",
+    "empty_title": "Aucun nœud pour l'instant",
+    "empty_hint": "Cliquez sur \"+ Ajouter des nœuds\" pour commencer",
+    "confirm_action": "Confirmer l'action",
+    "remove_node_message": "Supprimer le nœud {id} ? Toutes ses données seront supprimées.",
+    "stop_all_message": "Arrêter les {count} nœuds en cours d'exécution ?",
+    "node_fallback_name": "Nœud {id}",
+    "field": {
+      "node_id": "ID du nœud",
+      "status": "Statut",
+      "version": "Version",
+      "pid": "PID",
+      "uptime": "Disponibilité",
+      "storage": "Stockage",
+      "data_directory": "Dossier de données",
+      "log_directory": "Dossier des journaux",
+      "port": "Port",
+      "binary": "Binaire",
+      "rewards_address": "Adresse de récompenses",
+      "status_aria": "Statut : {status}"
+    },
+    "add_dialog": {
+      "title": "Ajouter des nœuds",
+      "number_label": "Nombre de nœuds",
+      "range_hint": "Entre 1 et 50",
+      "no_earnings_warning": "Aucune adresse de gains configurée. Définissez-en une dans la page Portefeuille avant d'ajouter des nœuds.",
+      "submit_one": "Ajouter 1 nœud",
+      "submit_many": "Ajouter {count} nœuds"
+    },
+    "toast": {
+      "added": "{count} nœuds ajoutés",
+      "add_failed": "Échec de l'ajout de nœuds : {error}",
+      "started": "Nœud {id} démarré",
+      "start_failed": "Échec du démarrage du nœud {id} : {error}",
+      "stopped": "Nœud {id} arrêté",
+      "stop_failed": "Échec de l'arrêt du nœud {id} : {error}",
+      "removed": "Nœud {id} supprimé",
+      "remove_failed": "Échec de la suppression du nœud {id} : {error}",
+      "no_stopped": "Aucun nœud arrêté à démarrer",
+      "no_running": "Aucun nœud en cours d'exécution à arrêter",
+      "node_failed": "Nœud {id} en échec : {error}",
+      "started_count": "{count} nœuds démarrés",
+      "stopped_count": "{count} nœuds arrêtés",
+      "start_all_failed": "Échec du démarrage global : {error}",
+      "stop_all_failed": "Échec de l'arrêt global : {error}"
+    }
+  },
+  "files": {
+    "upload_button": "Téléverser des fichiers",
+    "estimate_button": "Estimer le coût",
+    "download_by_address": "Télécharger par adresse",
+    "download_by_datamap": "Télécharger par DataMap",
+    "uploads_heading": "Téléversements",
+    "downloads_heading": "Téléchargements",
+    "clear": "Effacer",
+    "drop_files": "Déposez des fichiers à téléverser",
+    "uploads_empty_title": "Aucun téléversement pour l'instant",
+    "uploads_empty_hint": "Glissez des fichiers ici, ou utilisez les boutons ci-dessus",
+    "downloads_empty_title": "Aucun téléchargement pour l'instant",
+    "downloads_empty_hint": "Utilisez \"Télécharger par adresse\" ou \"Télécharger par DataMap\"",
+    "table": {
+      "name": "Nom",
+      "status": "Statut",
+      "size": "Taille",
+      "cost": "Coût",
+      "date": "Date",
+      "address": "Adresse",
+      "saved_to": "Enregistré dans",
+      "actions": "Actions"
+    },
+    "row": {
+      "free_already_stored": "Gratuit — déjà stocké",
+      "gas_suffix": "+ {gas} gas",
+      "public_badge": "Public",
+      "retry": "↻ Réessayer",
+      "public_tooltip": "Téléversement public — cliquez pour copier l'adresse réseau partageable",
+      "reveal_datamap_tooltip": "Afficher le fichier DataMap dans Finder/Explorateur",
+      "copy_datamap_tooltip": "Copier le chemin du fichier DataMap",
+      "copy_address_tooltip": "Copier l'adresse réseau",
+      "retry_tooltip": "Réessayer le téléversement",
+      "remove_tooltip": "Retirer de la liste"
+    },
+    "stage": {
+      "encrypting": "Chiffrement…",
+      "quoting_pct": "Devis · {pct}%",
+      "quoting_indeterminate": "Obtention du devis…",
+      "storing_pct": "Stockage · {pct}%",
+      "storing_indeterminate": "Stockage…",
+      "resolving_pct": "Résolution du DataMap · {pct}%",
+      "resolving_indeterminate": "Résolution du DataMap…",
+      "downloading_pct": "Téléchargement · {pct}%",
+      "downloading_indeterminate": "Téléchargement…"
+    },
+    "picker": {
+      "upload_title": "Sélectionner les fichiers à téléverser",
+      "datamap_title": "Sélectionner un fichier DataMap à télécharger",
+      "estimate_title": "Sélectionner les fichiers à estimer",
+      "datamap_filter": "DataMap"
+    },
+    "toast": {
+      "upload_requires_wallet": "Le téléversement nécessite un portefeuille",
+      "download_requires_network": "Le téléchargement nécessite une connexion réseau",
+      "open_folder_failed": "Impossible d'ouvrir le dossier",
+      "address_copied": "Adresse copiée dans le presse-papiers",
+      "public_address_copied": "Adresse publique copiée — partagez-la pour permettre à d'autres de télécharger ce fichier",
+      "datamap_path_copied": "Chemin du DataMap copié dans le presse-papiers",
+      "already_stored_one": "1 fichier déjà stocké — enregistrement du DataMap",
+      "already_stored_many": "{count} fichiers déjà stockés — enregistrement des DataMaps",
+      "upload_complete": "Téléversement terminé : {name}",
+      "upload_failed": "Échec du téléversement : {name} — {error}",
+      "payment_failed": "Échec du paiement : {error}",
+      "download_complete": "Téléchargement terminé : {name}",
+      "download_failed": "Échec du téléchargement : {name} — {error}",
+      "datamap_missing": "Téléchargement impossible : fichier DataMap manquant ou illisible",
+      "datamap_read_failed": "Impossible de lire le DataMap : {error}"
+    },
+    "error": {
+      "wallet_not_connected": "Portefeuille non connecté",
+      "not_connected_to_network": "Non connecté au réseau"
+    },
+    "network": {
+      "unavailable": "Non connecté au réseau Autonomi — estimation du coût indisponible.",
+      "retry_connection": "Réessayer la connexion",
+      "connecting": "Connexion au réseau Autonomi…",
+      "obtaining_quote": "Obtention du devis depuis le réseau…",
+      "obtaining_quotes": "Obtention des devis depuis le réseau…"
+    },
+    "datamap_saveas": {
+      "title": "Enregistrer le fichier téléchargé sous",
+      "filename_label": "Nom de fichier",
+      "filename_placeholder": "monfichier.dat"
+    },
+    "download_dialog": {
+      "title": "Télécharger le fichier",
+      "address_label": "Adresse du fichier",
+      "address_placeholder": "Adresse du fichier (hex)",
+      "filename_label": "Enregistrer sous",
+      "filename_placeholder": "monfichier.dat"
+    },
+    "datamap_picker": {
+      "description": "Choisissez un téléversement précédent à re-télécharger, ou parcourez vers un fichier DataMap reçu d'ailleurs.",
+      "empty": "Aucun téléversement précédent avec un DataMap enregistré.",
+      "browse_button": "Parcourir vers un fichier DataMap…"
+    },
+    "cost_estimate": {
+      "title": "Estimation du coût de téléversement",
+      "loading": "Estimation du coût…",
+      "no_files": "Aucun fichier sélectionné",
+      "footnote": "Coûts obtenus auprès du réseau Autonomi. Les frais de gas (ETH) s'ajoutent aux coûts de stockage."
+    },
+    "upload_confirm": {
+      "title": "Confirmer le téléversement",
+      "info_banner": "Vous pouvez fermer cette fenêtre et revenir une fois le devis arrivé. Le téléversement reste en attente jusqu'à approbation ou annulation.",
+      "already_stored_badge": "Déjà stocké",
+      "payment_label": "Paiement",
+      "payment_mixed": "Mixte",
+      "payment_mixed_detail": "{regular} régulier, {merkle} Merkle — paiement par fichier.",
+      "payment_merkle": "Arbre de Merkle",
+      "payment_regular": "Régulier",
+      "payment_merkle_detail": "Transaction unique pour {count} chunks — gas réduit.",
+      "payment_regular_detail_one": "Paiement par lot pour 1 chunk.",
+      "payment_regular_detail_many": "Paiement par lot pour {count} chunks.",
+      "free_title": "Déjà stocké sur le réseau — gratuit",
+      "free_detail": "Chaque chunk est déjà présent. Aucun ANT ni gas ne sera dépensé.",
+      "cost_label": "Coût de stockage réseau",
+      "gas_label": "Gas estimé",
+      "some_already_stored": "Certains fichiers sont déjà stockés — cette partie est gratuite.",
+      "visibility_label": "Visibilité",
+      "visibility_private": "Privé",
+      "visibility_private_desc": "Chiffré et accessible uniquement avec votre DataMap. Vous seul pouvez récupérer le fichier.",
+      "visibility_public": "Public",
+      "visibility_public_desc": "Le DataMap est publié sur le réseau. Partagez une seule adresse pour que n'importe qui puisse récupérer le fichier.",
+      "regular_footnote": "Estimé à partir d'un seul devis réseau — le coût final peut légèrement varier. Les frais de gas s'ajoutent.",
+      "cancel_upload": "Annuler le téléversement",
+      "ready_count": "Prêt : {ready} sur {total}",
+      "approve_button_one": "Approuver le téléversement",
+      "approve_button_many": "Approuver {count} téléversements"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "Adresse de gains",
+    "earnings_description": "Destination des gains de vos nœuds",
+    "earnings_not_configured": "Non configuré",
+    "edit": "Modifier",
+    "save": "Enregistrer",
+    "earnings_use_payment_prompt": "Utiliser l'adresse de votre portefeuille connecté pour les gains ?",
+    "earnings_use_payment_button": "Utiliser {address}",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "Stockage géré",
+    "managed_storage_org": "Stockage géré par {org}",
+    "managed_storage_description": "Les téléversements sont acheminés via la passerelle Indelible de votre organisation. Aucun portefeuille local requis.",
+    "payment_wallet_heading": "Portefeuille de paiement",
+    "payment_optional_hint": "Facultatif — requis pour les téléversements de fichiers",
+    "connect_prompt": "Connectez un portefeuille pour payer le stockage de fichiers",
+    "network_arbitrum_sepolia": "Testnet Arbitrum Sepolia",
+    "network_arbitrum_one": "Réseau Arbitrum One requis",
+    "import_key_hint": "Ou importez une clé privée dans {link}",
+    "import_key_hint_link_text": "Paramètres > Avancé",
+    "address_label": "Adresse",
+    "eth_balance_label": "Solde ETH",
+    "ant_balance_label": "Solde ANT",
+    "usdc_balance_label": "Solde USDC",
+    "refresh_balances": "Actualiser les soldes",
+    "disconnect": "Déconnecter",
+    "toast": {
+      "import_key_in_settings": "Importez une clé privée dans Paramètres > Avancé",
+      "invalid_address": "Adresse invalide : doit être 0x + 40 caractères hexadécimaux",
+      "earnings_saved": "Adresse de gains enregistrée",
+      "earnings_set_to_payment": "Adresse de gains définie sur le portefeuille de paiement",
+      "wallet_disconnected": "Portefeuille déconnecté"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "Mise à jour disponible",
+      "version_ready": "v{version} est prête à être installée",
+      "pre_release_badge": "Pré-version",
+      "download_size": "Taille du téléchargement : {size}",
+      "release_notes": "Notes de version",
+      "no_release_notes": "Aucune note de version disponible pour cette version.",
+      "downloading": "Téléchargement…",
+      "download_complete": "Téléchargement réussi, l'application va redémarrer sous peu",
+      "auto_restart_hint": "L'application redémarrera automatiquement une fois terminé.",
+      "cancel_download": "Annuler le téléchargement",
+      "installing_tooltip": "Installation — veuillez patienter",
+      "not_now": "Plus tard",
+      "update_restart": "Mettre à jour & redémarrer"
+    },
+    "toast": {
+      "install_no_restart": "La mise à jour v{version} a été installée mais l'application n'a pas redémarré. Quittez Autonomi et rouvrez-le.",
+      "install_failed": "Échec de l'installation de la mise à jour : {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "Le nom de fichier ne peut pas contenir de caractères spéciaux",
+      "ends_with_dot_or_space": "Le nom de fichier ne peut pas se terminer par un point ou un espace",
+      "reserved_on_windows": "Ce nom est réservé sous Windows"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "En cours",
+      "stopped": "Arrêté",
+      "starting": "Démarrage",
+      "stopping": "Arrêt",
+      "adding": "Ajout…",
+      "errored": "Erreur",
+      "upgrade_scheduled": "Mise à niveau"
+    },
+    "file": {
+      "pending": "En attente",
+      "quoting": "Devis",
+      "encrypting": "Chiffrement…",
+      "resolving_datamap": "Résolution du DataMap",
+      "queued_quoting": "En file : devis",
+      "queued_uploading": "En file : téléversement",
+      "connecting_to_network": "Connexion au réseau…",
+      "obtaining_quote": "Obtention du devis…",
+      "saving_datamap": "Enregistrement du DataMap…",
+      "network_unavailable": "Réseau indisponible",
+      "ready_to_approve": "Prêt à approuver",
+      "awaiting_approval": "En attente d'approbation",
+      "uploading": "Téléversement",
+      "downloading": "Téléchargement",
+      "done": "Terminé",
+      "downloaded": "Téléchargé — cliquez pour ouvrir"
+    }
+  }
+}
