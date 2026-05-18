@@ -126,6 +126,7 @@
         <option value="ja">日本語</option>
         <option value="nl">Nederlands</option>
         <option value="fr">Français</option>
+        <option value="bg">Български</option>
       </select>
     </div>
 
