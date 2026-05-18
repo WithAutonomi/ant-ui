@@ -103,14 +103,14 @@
     },
     "software": {
       "title": "Software",
-      "version_label": "Versie",
+      "app_version_label": "App-versie",
+      "node_version_label": "Node-versie",
       "last_checked": "Laatst gecontroleerd {label}",
       "check_button": "Op updates controleren",
       "checking": "Controleren…"
     },
     "about": {
-      "title": "Over",
-      "node_version_label": "Node-daemon-versie"
+      "title": "Over"
     },
     "relative_time": {
       "just_now": "zojuist",

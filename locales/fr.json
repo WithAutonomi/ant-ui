@@ -103,14 +103,14 @@
     },
     "software": {
       "title": "Logiciel",
-      "version_label": "Version",
+      "app_version_label": "Version de l'application",
+      "node_version_label": "Version du nœud",
       "last_checked": "Dernière vérification {label}",
       "check_button": "Vérifier les mises à jour",
       "checking": "Vérification…"
     },
     "about": {
-      "title": "À propos",
-      "node_version_label": "Version du démon de nœud"
+      "title": "À propos"
     },
     "relative_time": {
       "just_now": "à l'instant",

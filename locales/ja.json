@@ -103,14 +103,14 @@
     },
     "software": {
       "title": "ソフトウェア",
-      "version_label": "バージョン",
+      "app_version_label": "アプリバージョン",
+      "node_version_label": "ノードバージョン",
       "last_checked": "最終確認 {label}",
       "check_button": "アップデートを確認",
       "checking": "確認中…"
     },
     "about": {
-      "title": "情報",
-      "node_version_label": "ノードデーモンバージョン"
+      "title": "情報"
     },
     "relative_time": {
       "just_now": "たった今",

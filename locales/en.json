@@ -102,14 +102,14 @@
     },
     "software": {
       "title": "Software",
-      "version_label": "Version",
+      "app_version_label": "App version",
+      "node_version_label": "Node version",
       "last_checked": "Last checked {label}",
       "check_button": "Check for Updates",
       "checking": "Checking…"
     },
     "about": {
-      "title": "About",
-      "node_version_label": "Node daemon version"
+      "title": "About"
     },
     "relative_time": {
       "just_now": "just now",
