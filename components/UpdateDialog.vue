@@ -9,7 +9,7 @@
         role="dialog"
         aria-modal="true"
         aria-labelledby="update-dialog-title"
-        class="w-[420px] rounded-lg border border-autonomi-border bg-autonomi-dark p-6 shadow-xl"
+        class="w-[32rem] rounded-lg border border-autonomi-border bg-autonomi-dark p-6 shadow-xl"
       >
         <!-- Header -->
         <h2 id="update-dialog-title" class="text-lg font-medium">
@@ -33,7 +33,7 @@
         <!-- Release notes -->
         <div
           v-if="!updaterStore.installing"
-          class="mt-4 max-h-56 overflow-auto rounded-md bg-autonomi-surface p-3"
+          class="mt-4 max-h-96 overflow-auto rounded-md bg-autonomi-surface p-3"
         >
           <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-autonomi-muted">Release Notes</h3>
           <div v-if="updaterStore.body" class="prose-sm text-xs leading-relaxed text-autonomi-text" v-html="renderMarkdown(updaterStore.body)" />
