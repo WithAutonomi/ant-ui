@@ -3,18 +3,19 @@ import { locale as osLocaleApi } from '@tauri-apps/plugin-os'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '~/stores/settings'
 
-export const SUPPORTED_LOCALES = ['en', 'ja', 'nl', 'fr'] as const
+export const SUPPORTED_LOCALES = ['en', 'ja', 'nl', 'fr', 'bg'] as const
 export type SupportedLocale = typeof SUPPORTED_LOCALES[number]
 const DEFAULT_LOCALE: SupportedLocale = 'en'
 
 /** Each locale's name in its own script. Used in the Settings picker so the
- *  user sees "English" / "日本語" / "Nederlands" / "Français" regardless of
- *  the currently-active UI locale. */
+ *  user sees "English" / "日本語" / "Nederlands" / "Français" / "Български"
+ *  regardless of the currently-active UI locale. */
 export const NATIVE_LOCALE_NAMES: Record<SupportedLocale, string> = {
   en: 'English',
   ja: '日本語',
   nl: 'Nederlands',
   fr: 'Français',
+  bg: 'Български',
 }
 
 /** Module-scoped cache of the OS-resolved locale. Warmed on the first
