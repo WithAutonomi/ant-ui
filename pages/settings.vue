@@ -124,6 +124,7 @@
         <option value="system">{{ systemDefaultLabel }}</option>
         <option value="en">English</option>
         <option value="ja">日本語</option>
+        <option value="nl">Nederlands</option>
       </select>
     </div>
 

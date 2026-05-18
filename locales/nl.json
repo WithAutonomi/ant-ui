@@ -1,0 +1,470 @@
+{
+  "_translator_notes": "Machine-translated baseline. Community polish via PR welcome.",
+  "settings": {
+    "language": {
+      "label": "Taal",
+      "description": "Weergavetaal van de gebruikersinterface",
+      "system_default": "Systeemstandaard: {name}",
+      "system_default_pending": "Systeemstandaard"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "Verbonden met beheerde opslag-gateway",
+      "subtitle_setup": "Verbind met een zelf-gehoste Indelible-gateway voor beheerde opslag",
+      "connected_badge": "Verbonden",
+      "server_label": "Server",
+      "signed_in_as": "Aangemeld als",
+      "disconnect": "Verbinding verbreken",
+      "server_url_label": "Server-URL",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "API-sleutel",
+      "api_key_placeholder": "Jouw API-token",
+      "test_connect": "Testen & verbinden",
+      "testing": "Testen…",
+      "configure": "Verbinding instellen"
+    },
+    "storage": {
+      "title": "Opslagmap",
+      "description": "Waar nodegegevens op schijf worden opgeslagen",
+      "default": "Standaard",
+      "browse": "Bladeren",
+      "warning": "Geldt alleen voor nieuw toegevoegde nodes. Bestaande nodes behouden hun huidige map."
+    },
+    "downloads": {
+      "title": "Downloadmap",
+      "description": "Waar gedownloade bestanden worden opgeslagen",
+      "not_set": "Niet ingesteld",
+      "browse": "Bladeren"
+    },
+    "alert": {
+      "title": "Waarschuwingsgeluid",
+      "description": "Geluid afspelen bij kritieke node-storingen",
+      "aria_toggle": "Waarschuwingsgeluid in-/uitschakelen"
+    },
+    "theme": {
+      "title": "Lichte modus",
+      "description": "Schakel tussen donker en licht thema",
+      "aria_toggle": "Lichte modus in-/uitschakelen"
+    },
+    "advanced": {
+      "hide": "▾ Geavanceerd verbergen",
+      "show": "▸ Geavanceerd tonen"
+    },
+    "daemon": {
+      "title": "Node-daemon",
+      "description": "Start de achtergrondservice opnieuw die je nodes beheert. Draaiende nodes blijven actief — alleen de supervisor wordt vervangen.",
+      "restart": "Daemon opnieuw starten",
+      "restarting": "Opnieuw starten…"
+    },
+    "concurrency": {
+      "title": "Upload-parallelliteit",
+      "description_1": "Bepaalt hoeveel offertes/uploads tegelijk kunnen lopen.",
+      "description_2": "Let op: dit heeft een grote invloed op de prestaties."
+    },
+    "prerelease": {
+      "title": "Pre-release-builds",
+      "description": "Ontvang automatische updates voor pre-release-builds (rc / beta) naast stabiele releases. Standaard uit.",
+      "restart_required": "Start de app opnieuw om deze wijziging toe te passen.",
+      "restart_now": "Nu opnieuw starten"
+    },
+    "direct_wallet": {
+      "title": "Directe portemonnee",
+      "description": "Verbinden met een privésleutel (omzeilt WalletConnect)",
+      "connected_badge": "Verbonden",
+      "address_label": "Adres",
+      "disconnect": "Verbinding verbreken",
+      "network_label": "Netwerk",
+      "network_sepolia_option": "Arbitrum Sepolia (testnet)",
+      "network_arbitrum_option": "Arbitrum One (mainnet)",
+      "rpc_url_label": "RPC-URL",
+      "rpc_url_optional": "(optioneel)",
+      "rpc_url_placeholder": "Standaard de openbare RPC voor de gekozen keten",
+      "private_key_label": "Privésleutel",
+      "private_key_placeholder": "0x... of ruwe hex",
+      "connect": "Verbinden",
+      "import_button": "Privésleutel importeren"
+    },
+    "diagnostics": {
+      "title": "Diagnostiek",
+      "summary": "{entries} logregels ({errors} fouten)",
+      "copy_button": "Naar klembord kopiëren",
+      "clear_button": "Wissen",
+      "empty": "Geen logregels",
+      "hide_log": "▾ Log verbergen",
+      "show_log": "▸ Log tonen"
+    },
+    "upload_history": {
+      "title": "Uploadgeschiedenis",
+      "summary_one": "{count} afgeronde regel in upload_history.json. DataMaps op schijf en chunks op het netwerk blijven onaangeroerd.",
+      "summary_many": "{count} afgeronde regels in upload_history.json. DataMaps op schijf en chunks op het netwerk blijven onaangeroerd.",
+      "clear_button": "Geschiedenis wissen",
+      "confirm_one": "1 upload-regel uit de geschiedenis wissen?\n\nHiermee verwijder je de lokale regel + opgeslagen record. De DataMaps op schijf en de chunks op het netwerk blijven onaangeroerd.",
+      "confirm_many": "{count} upload-regels uit de geschiedenis wissen?\n\nHiermee verwijder je de lokale regels + opgeslagen records. De DataMaps op schijf en de chunks op het netwerk blijven onaangeroerd."
+    },
+    "software": {
+      "title": "Software",
+      "version_label": "Versie",
+      "last_checked": "Laatst gecontroleerd {label}",
+      "check_button": "Op updates controleren",
+      "checking": "Controleren…"
+    },
+    "about": {
+      "title": "Over",
+      "node_version_label": "Node-daemon-versie"
+    },
+    "relative_time": {
+      "just_now": "zojuist",
+      "seconds_ago": "{n}s geleden",
+      "minutes_ago": "{n} min geleden",
+      "hours_ago": "{n}u geleden",
+      "days_ago": "{n}d geleden"
+    },
+    "picker": {
+      "storage_title": "Opslagmap kiezen",
+      "downloads_title": "Downloadmap kiezen"
+    },
+    "error": {
+      "private_key_invalid": "Ongeldige privésleutel — moet 64 hex-tekens zijn",
+      "invalid_eth_address": "Ongeldig EVM-adresformaat"
+    },
+    "toast": {
+      "upload_history_cleared": "Uploadgeschiedenis gewist",
+      "update_check_failed": "Update-controle mislukt",
+      "update_available": "Update beschikbaar: v{version}",
+      "on_latest_version": "Je gebruikt de nieuwste versie (v{version})",
+      "daemon_restarted": "Daemon opnieuw gestart",
+      "daemon_restart_failed": "Daemon opnieuw starten mislukt: {error}",
+      "storage_dir_updated": "Opslagmap bijgewerkt",
+      "storage_dir_verified": "Opslagmap geverifieerd",
+      "storage_dir_unwritable": "Deze map kan niet worden gebruikt voor node-opslag",
+      "select_directory_failed": "Kon map niet selecteren",
+      "downloads_dir_updated": "Downloadmap bijgewerkt",
+      "earnings_updated": "Verdienstenadres bijgewerkt",
+      "daemon_url_updated": "Daemon-URL bijgewerkt",
+      "diagnostics_copied": "Diagnostiek naar klembord gekopieerd",
+      "diagnostics_copy_failed": "Kon niet naar klembord kopiëren",
+      "log_cleared": "Log gewist",
+      "indelible_connected": "Verbonden met Indelible",
+      "indelible_disconnected": "Verbinding met Indelible verbroken",
+      "wallet_connected": "Portemonnee verbonden: {address}",
+      "wallet_disconnected": "Portemonnee losgekoppeld",
+      "wallet_attach_failed": "Portemonnee koppelen (Rust-zijde) mislukt: {error}"
+    }
+  },
+  "nav": {
+    "nodes": "Nodes",
+    "files": "Bestanden",
+    "wallet": "Portemonnee",
+    "settings": "Instellingen"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} actief",
+    "connecting": "Verbinden",
+    "connecting_tooltip": "Verbinden met het Autonomi-netwerk",
+    "connected": "Netwerk",
+    "connected_tooltip": "Verbonden met het Autonomi-netwerk",
+    "offline": "Offline · Opnieuw",
+    "offline_tooltip": "Verbinding mislukt — klik om opnieuw te proberen",
+    "connect_wallet": "Portemonnee koppelen"
+  },
+  "sidebar": {
+    "pre_release": "PRE-RELEASE",
+    "update_available": "Update beschikbaar",
+    "update_pre_release_tag": "Pre-release",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA TESTNET"
+  },
+  "common": {
+    "cancel": "Annuleren",
+    "confirm": "Bevestigen",
+    "close": "Sluiten",
+    "download": "Downloaden",
+    "start": "Starten",
+    "stop": "Stoppen",
+    "remove": "Verwijderen",
+    "close_panel": "Paneel sluiten"
+  },
+  "nodes": {
+    "add_button": "+ Nodes toevoegen",
+    "start_all": "Alles starten",
+    "stop_all": "Alles stoppen",
+    "running_count": "{count} actief",
+    "stopped_count": "{count} gestopt",
+    "errored_count": "{count} met fout",
+    "filter_placeholder": "Filter...",
+    "filter_aria_label": "Nodes filteren",
+    "starting_daemon": "Node-daemon starten…",
+    "restarting_daemon": "Node-daemon opnieuw starten…",
+    "nodes_keep_running": "Je nodes blijven draaien.",
+    "daemon_disconnected": "Kan geen verbinding maken met node-daemon",
+    "daemon_retrying": "Wordt automatisch opnieuw geprobeerd…",
+    "empty_title": "Nog geen nodes",
+    "empty_hint": "Klik op \"+ Nodes toevoegen\" om te beginnen",
+    "confirm_action": "Actie bevestigen",
+    "remove_node_message": "Node {id} verwijderen? Alle gegevens worden verwijderd.",
+    "stop_all_message": "Alle {count} draaiende nodes stoppen?",
+    "node_fallback_name": "Node {id}",
+    "field": {
+      "node_id": "Node-ID",
+      "status": "Status",
+      "version": "Versie",
+      "pid": "PID",
+      "uptime": "Uptime",
+      "storage": "Opslag",
+      "data_directory": "Datamap",
+      "log_directory": "Logmap",
+      "port": "Poort",
+      "binary": "Binary",
+      "rewards_address": "Beloningsadres",
+      "status_aria": "Status: {status}"
+    },
+    "add_dialog": {
+      "title": "Nodes toevoegen",
+      "number_label": "Aantal nodes",
+      "range_hint": "Tussen 1 en 50",
+      "no_earnings_warning": "Geen verdienstenadres ingesteld. Stel er een in op de Portemonnee-pagina voordat je nodes toevoegt.",
+      "submit_one": "1 node toevoegen",
+      "submit_many": "{count} nodes toevoegen"
+    },
+    "toast": {
+      "added": "{count} nodes toegevoegd",
+      "add_failed": "Nodes toevoegen mislukt: {error}",
+      "started": "Node {id} gestart",
+      "start_failed": "Node {id} starten mislukt: {error}",
+      "stopped": "Node {id} gestopt",
+      "stop_failed": "Node {id} stoppen mislukt: {error}",
+      "removed": "Node {id} verwijderd",
+      "remove_failed": "Node {id} verwijderen mislukt: {error}",
+      "no_stopped": "Geen gestopte nodes om te starten",
+      "no_running": "Geen draaiende nodes om te stoppen",
+      "node_failed": "Node {id} fout: {error}",
+      "started_count": "{count} nodes gestart",
+      "stopped_count": "{count} nodes gestopt",
+      "start_all_failed": "Alles starten mislukt: {error}",
+      "stop_all_failed": "Alles stoppen mislukt: {error}"
+    }
+  },
+  "files": {
+    "upload_button": "Bestand(en) uploaden",
+    "estimate_button": "Kosten schatten",
+    "download_by_address": "Download op adres",
+    "download_by_datamap": "Download via DataMap",
+    "uploads_heading": "Uploads",
+    "downloads_heading": "Downloads",
+    "clear": "Wissen",
+    "drop_files": "Sleep bestanden om te uploaden",
+    "uploads_empty_title": "Nog geen uploads",
+    "uploads_empty_hint": "Sleep bestanden hierheen, of gebruik de knoppen hierboven",
+    "downloads_empty_title": "Nog geen downloads",
+    "downloads_empty_hint": "Gebruik \"Download op adres\" of \"Download via DataMap\"",
+    "table": {
+      "name": "Naam",
+      "status": "Status",
+      "size": "Grootte",
+      "cost": "Kosten",
+      "date": "Datum",
+      "address": "Adres",
+      "saved_to": "Opgeslagen in",
+      "actions": "Acties"
+    },
+    "row": {
+      "free_already_stored": "Gratis — al opgeslagen",
+      "gas_suffix": "+ {gas} gas",
+      "public_badge": "Publiek",
+      "retry": "↻ Opnieuw",
+      "public_tooltip": "Publieke upload — klik om het deelbare netwerkadres te kopiëren",
+      "reveal_datamap_tooltip": "DataMap-bestand tonen in Finder/Verkenner",
+      "copy_datamap_tooltip": "Pad van DataMap-bestand kopiëren",
+      "copy_address_tooltip": "Netwerkadres kopiëren",
+      "retry_tooltip": "Upload opnieuw proberen",
+      "remove_tooltip": "Verwijderen uit lijst"
+    },
+    "stage": {
+      "encrypting": "Versleutelen…",
+      "quoting_pct": "Offerte · {pct}%",
+      "quoting_indeterminate": "Offerte ophalen…",
+      "storing_pct": "Opslaan · {pct}%",
+      "storing_indeterminate": "Opslaan…",
+      "resolving_pct": "DataMap oplossen · {pct}%",
+      "resolving_indeterminate": "DataMap oplossen…",
+      "downloading_pct": "Downloaden · {pct}%",
+      "downloading_indeterminate": "Downloaden…"
+    },
+    "picker": {
+      "upload_title": "Bestanden om te uploaden selecteren",
+      "datamap_title": "DataMap-bestand om te downloaden selecteren",
+      "estimate_title": "Bestanden voor kostenschatting selecteren",
+      "datamap_filter": "DataMap"
+    },
+    "toast": {
+      "upload_requires_wallet": "Upload vereist een portemonnee",
+      "download_requires_network": "Download vereist een netwerkverbinding",
+      "open_folder_failed": "Kon map niet openen",
+      "address_copied": "Adres naar klembord gekopieerd",
+      "public_address_copied": "Publiek adres gekopieerd — deel het om anderen dit bestand te laten downloaden",
+      "datamap_path_copied": "DataMap-pad naar klembord gekopieerd",
+      "already_stored_one": "1 bestand al opgeslagen — DataMap wordt bewaard",
+      "already_stored_many": "{count} bestanden al opgeslagen — DataMaps worden bewaard",
+      "upload_complete": "Upload voltooid: {name}",
+      "upload_failed": "Upload mislukt: {name} — {error}",
+      "payment_failed": "Betaling mislukt: {error}",
+      "download_complete": "Download voltooid: {name}",
+      "download_failed": "Download mislukt: {name} — {error}",
+      "datamap_missing": "Kan niet downloaden: DataMap-bestand ontbreekt of is onleesbaar",
+      "datamap_read_failed": "Kon DataMap niet lezen: {error}"
+    },
+    "error": {
+      "wallet_not_connected": "Portemonnee niet verbonden",
+      "not_connected_to_network": "Niet verbonden met netwerk"
+    },
+    "network": {
+      "unavailable": "Niet verbonden met het Autonomi-netwerk — kostenschatting niet beschikbaar.",
+      "retry_connection": "Verbinding opnieuw proberen",
+      "connecting": "Verbinden met het Autonomi-netwerk…",
+      "obtaining_quote": "Offerte ophalen uit het netwerk…",
+      "obtaining_quotes": "Offertes ophalen uit het netwerk…"
+    },
+    "datamap_saveas": {
+      "title": "Gedownload bestand opslaan als",
+      "filename_label": "Bestandsnaam",
+      "filename_placeholder": "mijnbestand.dat"
+    },
+    "download_dialog": {
+      "title": "Bestand downloaden",
+      "address_label": "Bestandsadres",
+      "address_placeholder": "Bestandsadres (hex)",
+      "filename_label": "Opslaan als bestandsnaam",
+      "filename_placeholder": "mijnbestand.dat"
+    },
+    "datamap_picker": {
+      "description": "Kies een eerdere upload om opnieuw te downloaden, of blader naar een DataMap-bestand dat je elders hebt ontvangen.",
+      "empty": "Nog geen eerdere uploads met opgeslagen DataMap.",
+      "browse_button": "Bladeren naar DataMap-bestand…"
+    },
+    "cost_estimate": {
+      "title": "Schatting upload-kosten",
+      "loading": "Kosten schatten…",
+      "no_files": "Geen bestanden geselecteerd",
+      "footnote": "Kosten opgevraagd bij het Autonomi-netwerk. Gas-kosten (ETH) komen bovenop de opslagkosten."
+    },
+    "upload_confirm": {
+      "title": "Upload bevestigen",
+      "info_banner": "Je kunt dit venster sluiten en terugkomen wanneer de offerte er is. De upload blijft in afwachting tot je hem goedkeurt of annuleert.",
+      "already_stored_badge": "Al opgeslagen",
+      "payment_label": "Betaling",
+      "payment_mixed": "Gemengd",
+      "payment_mixed_detail": "{regular} regulier, {merkle} Merkle — per bestand betaald.",
+      "payment_merkle": "Merkle-boom",
+      "payment_regular": "Regulier",
+      "payment_merkle_detail": "Eén transactie voor {count} chunks — lagere gas-kosten.",
+      "payment_regular_detail_one": "Per-batch-betaling voor 1 chunk.",
+      "payment_regular_detail_many": "Per-batch-betaling voor {count} chunks.",
+      "free_title": "Al opgeslagen op het netwerk — gratis",
+      "free_detail": "Elke chunk is al aanwezig. Er worden geen ANT of gas uitgegeven.",
+      "cost_label": "Netwerkopslagkosten",
+      "gas_label": "Geschatte gas-kosten",
+      "some_already_stored": "Sommige bestanden zijn al opgeslagen — dat deel kost niets.",
+      "visibility_label": "Zichtbaarheid",
+      "visibility_private": "Privé",
+      "visibility_private_desc": "Versleuteld en alleen toegankelijk met je DataMap. Alleen jij kunt het bestand ophalen.",
+      "visibility_public": "Publiek",
+      "visibility_public_desc": "DataMap wordt op het netwerk gepubliceerd. Deel één adres zodat iedereen het bestand kan ophalen.",
+      "regular_footnote": "Geschat op basis van één netwerk-offerte — de uiteindelijke kosten kunnen iets afwijken. Gas-kosten komen erbij.",
+      "cancel_upload": "Upload annuleren",
+      "ready_count": "Klaar: {ready} van {total}",
+      "approve_button_one": "Upload goedkeuren",
+      "approve_button_many": "{count} uploads goedkeuren"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "Verdienstenadres",
+    "earnings_description": "Waar je node-verdiensten naartoe worden gestuurd",
+    "earnings_not_configured": "Niet ingesteld",
+    "edit": "Bewerken",
+    "save": "Opslaan",
+    "earnings_use_payment_prompt": "Het adres van je gekoppelde portemonnee gebruiken voor verdiensten?",
+    "earnings_use_payment_button": "Gebruik {address}",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "Beheerde opslag",
+    "managed_storage_org": "Opslag beheerd door {org}",
+    "managed_storage_description": "Uploads worden via de Indelible-gateway van je organisatie geleid. Geen lokale portemonnee nodig.",
+    "payment_wallet_heading": "Betalingsportemonnee",
+    "payment_optional_hint": "Optioneel — nodig voor bestandsuploads",
+    "connect_prompt": "Koppel een portemonnee om voor bestandsopslag te betalen",
+    "network_arbitrum_sepolia": "Arbitrum Sepolia testnet",
+    "network_arbitrum_one": "Arbitrum One netwerk vereist",
+    "import_key_hint": "Of importeer een privésleutel in {link}",
+    "import_key_hint_link_text": "Instellingen > Geavanceerd",
+    "address_label": "Adres",
+    "eth_balance_label": "ETH-saldo",
+    "ant_balance_label": "ANT-saldo",
+    "usdc_balance_label": "USDC-saldo",
+    "refresh_balances": "Saldi vernieuwen",
+    "disconnect": "Verbinding verbreken",
+    "toast": {
+      "import_key_in_settings": "Importeer een privésleutel in Instellingen > Geavanceerd",
+      "invalid_address": "Ongeldig adres: moet 0x + 40 hex-tekens zijn",
+      "earnings_saved": "Verdienstenadres opgeslagen",
+      "earnings_set_to_payment": "Verdienstenadres ingesteld op betalingsportemonnee",
+      "wallet_disconnected": "Portemonnee losgekoppeld"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "Update beschikbaar",
+      "version_ready": "v{version} is klaar om te installeren",
+      "pre_release_badge": "Pre-release",
+      "download_size": "Downloadgrootte: {size}",
+      "release_notes": "Release-notities",
+      "no_release_notes": "Geen release-notities beschikbaar voor deze versie.",
+      "downloading": "Downloaden...",
+      "download_complete": "Download geslaagd, de app start binnenkort opnieuw",
+      "auto_restart_hint": "De app start automatisch opnieuw wanneer het klaar is.",
+      "cancel_download": "Download annuleren",
+      "installing_tooltip": "Installeren — een moment geduld",
+      "not_now": "Niet nu",
+      "update_restart": "Bijwerken & opnieuw starten"
+    },
+    "toast": {
+      "install_no_restart": "Update v{version} is geïnstalleerd, maar de app is niet opnieuw gestart. Sluit Autonomi af en open opnieuw.",
+      "install_failed": "Installeren van update mislukt: {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "Bestandsnaam mag geen speciale tekens bevatten",
+      "ends_with_dot_or_space": "Bestandsnaam mag niet eindigen op een punt of spatie",
+      "reserved_on_windows": "Deze naam is gereserveerd op Windows"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "Actief",
+      "stopped": "Gestopt",
+      "starting": "Starten",
+      "stopping": "Stoppen",
+      "adding": "Toevoegen…",
+      "errored": "Fout",
+      "upgrade_scheduled": "Bijwerken"
+    },
+    "file": {
+      "pending": "In afwachting",
+      "quoting": "Offerte",
+      "encrypting": "Versleutelen…",
+      "resolving_datamap": "DataMap oplossen",
+      "queued_quoting": "In wachtrij: offerte",
+      "queued_uploading": "In wachtrij: uploaden",
+      "connecting_to_network": "Verbinden met netwerk…",
+      "obtaining_quote": "Offerte ophalen…",
+      "saving_datamap": "DataMap opslaan…",
+      "network_unavailable": "Netwerk niet beschikbaar",
+      "ready_to_approve": "Klaar voor goedkeuring",
+      "awaiting_approval": "Wacht op goedkeuring",
+      "uploading": "Uploaden",
+      "downloading": "Downloaden",
+      "done": "Klaar",
+      "downloaded": "Gedownload — klik om te openen"
+    }
+  }
+}
