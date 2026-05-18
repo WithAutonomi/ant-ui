@@ -11,6 +11,11 @@ env:
 jobs:
   frontend:
     name: frontend (typecheck + test)
+    # Skip on version-bump commits — release.yml does its own validation on the
+    # tag push. The bump commit only edits version strings, so re-running
+    # typecheck/vitest here is a no-op signal. PRs are unaffected (head_commit
+    # is absent on pull_request events).
+    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release): bump version to ') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -30,6 +35,7 @@ jobs:
 
   rust:
     name: rust (${{ matrix.check }})
+    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release): bump version to ') }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
