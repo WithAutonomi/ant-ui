@@ -21,6 +21,7 @@ jobs:
     # safely — on push events `pull_request.title` is null and vice versa.
     if: >-
       !startsWith(github.event.head_commit.message, 'chore(release): bump version to ')
+      && !startsWith(github.event.pull_request.title, 'chore(release): bump version to ')
       && !startsWith(github.event.head_commit.message, 'docs:')
       && !startsWith(github.event.head_commit.message, 'docs(')
       && !startsWith(github.event.pull_request.title, 'docs:')
@@ -46,6 +47,7 @@ jobs:
     name: rust (${{ matrix.check }})
     if: >-
       !startsWith(github.event.head_commit.message, 'chore(release): bump version to ')
+      && !startsWith(github.event.pull_request.title, 'chore(release): bump version to ')
       && !startsWith(github.event.head_commit.message, 'docs:')
       && !startsWith(github.event.head_commit.message, 'docs(')
       && !startsWith(github.event.pull_request.title, 'docs:')
