@@ -160,7 +160,7 @@
   "header": {
     "title": "Autonomi",
     "active_transfers": "{count} actif(s)",
-    "connecting": "Connexion",
+    "connecting": "Connexion au réseau",
     "connecting_tooltip": "Connexion au réseau Autonomi",
     "connected": "Réseau",
     "connected_tooltip": "Connecté au réseau Autonomi",
