@@ -313,7 +313,11 @@ jobs:
 
   build-windows:
     name: build windows MSI (signed)
-    runs-on: windows-latest
+    # Pinned to windows-2022 (VS2022) so the auto-migration of `windows-latest`
+    # to a VS2026-based image (announced for 2026-06-15) can't break a release
+    # mid-flight. Revisit windows-2025 in a separate PR with a clean test run
+    # before the eventual VS2022 EOL.
+    runs-on: windows-2022
     needs: [release-meta, resolve-ant-version]
     env:
       SM_HOST: ${{ secrets.SM_HOST }}
@@ -368,7 +372,6 @@ jobs:
           echo "Bootstrap peers refreshed from $ANT_TAG"
 
       - name: create client certificate file
-        id: prepare_cert
         shell: pwsh
         run: |
           $raw = @'
@@ -393,15 +396,15 @@ jobs:
           [System.IO.File]::WriteAllBytes($certPath, $certBytes)
 
           "SM_CLIENT_CERT_FILE=$certPath" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "sm_client_cert_b64=$clean" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: setup DigiCert SSM tools
+        # The action accepts only `force-download-tools` as input — all
+        # credentials are read from env vars: SM_HOST / SM_API_KEY /
+        # SM_CLIENT_CERT_PASSWORD are set at job scope above, and
+        # SM_CLIENT_CERT_FILE is exported by the create-client-certificate
+        # step. Passing the same values via `with:` used to emit a noisy
+        # "Unexpected input(s)" warning on every release build.
         uses: digicert/ssm-code-signing@v1.2.1
-        with:
-          sm_host: ${{ secrets.SM_HOST }}
-          sm_api_key: ${{ secrets.SM_API_KEY }}
-          sm_client_cert_b64: ${{ steps.prepare_cert.outputs.sm_client_cert_b64 }}
-          sm_client_cert_password: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
 
       - name: verify smctl installation
         shell: pwsh
