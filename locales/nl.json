@@ -248,7 +248,7 @@
   "files": {
     "upload_button": "Bestand(en) uploaden",
     "estimate_button": "Kosten schatten",
-    "download_by_address": "Download op adres",
+    "download_by_address": "Download via adres",
     "download_by_datamap": "Download via DataMap",
     "uploads_heading": "Uploads",
     "downloads_heading": "Downloads",
@@ -257,7 +257,7 @@
     "uploads_empty_title": "Nog geen uploads",
     "uploads_empty_hint": "Sleep bestanden hierheen, of gebruik de knoppen hierboven",
     "downloads_empty_title": "Nog geen downloads",
-    "downloads_empty_hint": "Gebruik \"Download op adres\" of \"Download via DataMap\"",
+    "downloads_empty_hint": "Gebruik \"Download via adres\" of \"Download via DataMap\"",
     "table": {
       "name": "Naam",
       "status": "Status",
