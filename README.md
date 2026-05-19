@@ -48,7 +48,7 @@ File operations use `ant-core`'s data client with an external signer flow — th
 - Platform build tools:
   - **Windows**: Visual Studio Build Tools (C++ workload)
   - **macOS**: Xcode Command Line Tools
-  - **Linux**: `build-essential`, `libwebkit2gtk-4.1-dev`, `libssl-dev`, `libayatana-appindicator3-dev`
+  - **Linux**: see [Building on Linux](#building-on-linux) below — Debian/Ubuntu is the tested path; Arch, Fedora and other distros need different packages and the AppImage step has known upstream issues on Arch.
 
 ## Development
 
@@ -90,6 +90,58 @@ Produces platform-specific installers in `src-tauri/target/release/bundle/`.
 
 [sidecar]: https://v2.tauri.app/develop/sidecar/
 [ant-client]: https://github.com/WithAutonomi/ant-client/releases
+
+## Building on Linux
+
+The `.deb` and `.rpm` bundles build cleanly on every distro we've tried.
+The AppImage step runs `linuxdeploy` + `linuxdeploy-plugin-gtk`, which work
+on Ubuntu (where our CI builds the release AppImage) but break on Arch
+because of hard-coded paths upstream. If you only need to run the app
+locally, the `.deb`/`.rpm`/portable archive are the supported paths from
+source; if you need an AppImage specifically, grab the prebuilt one from
+[Releases](https://github.com/WithAutonomi/ant-ui/releases).
+
+### Debian / Ubuntu
+
+```bash
+sudo apt update
+sudo apt install build-essential curl wget file libssl-dev \
+  libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
+  patchelf libfuse2 xdg-utils desktop-file-utils
+npm install
+scripts/download-sidecar.sh
+npm run tauri build
+```
+
+### Fedora / RHEL
+
+```bash
+sudo dnf install gcc gcc-c++ make openssl-devel \
+  webkit2gtk4.1-devel libappindicator-gtk3-devel librsvg2-devel \
+  patchelf fuse-libs xdg-utils desktop-file-utils file wget
+```
+
+### Arch / Manjaro
+
+Skip the AppImage bundle — the `.deb` and `.rpm` build fine:
+
+```bash
+sudo pacman -S --needed base-devel rust nodejs npm git wget file patchelf \
+  desktop-file-utils webkit2gtk-4.1 libappindicator-gtk3 librsvg \
+  fuse2 xdg-utils
+npm install
+scripts/download-sidecar.sh
+npm run tauri build -- --bundles deb,rpm
+```
+
+If you try to bundle the AppImage on Arch you'll hit a cascade of
+upstream issues — `xdg-open` missing, `linuxdeploy` failing without
+`libfuse.so.2`, its bundled `strip` not recognising `.relr.dyn` sections
+on modern libraries, and finally `linuxdeploy-plugin-gtk` failing because
+modern Arch's `gdk-pixbuf2` deliberately ships no loaders at
+`/usr/lib/gdk-pixbuf-2.0/2.10.0/`. The first three are fixable with
+`NO_STRIP=true` plus the packages above; the last one is upstream's bug.
+Use the prebuilt AppImage from Releases instead.
 
 ## Project Structure
 
