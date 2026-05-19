@@ -162,7 +162,7 @@
     "active_transfers": "{count} actif(s)",
     "connecting": "Connexion",
     "connecting_tooltip": "Connexion au réseau Autonomi",
-    "connected": "Réseau",
+    "connected": "Connecté",
     "connected_tooltip": "Connecté au réseau Autonomi",
     "offline": "Hors ligne · Réessayer",
     "offline_tooltip": "Échec de la connexion — cliquez pour réessayer",

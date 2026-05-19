@@ -159,7 +159,7 @@
   },
   "header": {
     "title": "Autonomi",
-    "active_transfers": "{count} 件処理中",
+    "active_transfers": "{count} 処理中",
     "connecting": "接続中",
     "connecting_tooltip": "Autonomi ネットワークに接続中",
     "connected": "ネットワーク",
@@ -350,7 +350,7 @@
     },
     "upload_confirm": {
       "title": "アップロードを確認",
-      "info_banner": "このウィンドウは閉じても見積もりが届いたら戻ってこれます。承認またはキャンセルするまでアップロードは保留されます。",
+      "info_banner": "このウィンドウは閉じても見積もりが届いたら戻ってこられます。承認またはキャンセルするまでアップロードは保留されます。",
       "already_stored_badge": "保存済み",
       "payment_label": "支払い",
       "payment_mixed": "混在",
