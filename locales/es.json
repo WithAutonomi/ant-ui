@@ -1,0 +1,470 @@
+{
+  "_translator_notes": "Machine-translated baseline. Community polish via PR welcome.",
+  "settings": {
+    "language": {
+      "label": "Idioma",
+      "description": "Idioma de la interfaz",
+      "system_default": "Predeterminado del sistema: {name}",
+      "system_default_pending": "Predeterminado del sistema"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "Conectado a la pasarela de almacenamiento gestionado",
+      "subtitle_setup": "Conéctate a una pasarela Indelible autoalojada para almacenamiento gestionado",
+      "connected_badge": "Conectado",
+      "server_label": "Servidor",
+      "signed_in_as": "Sesión iniciada como",
+      "disconnect": "Desconectar",
+      "server_url_label": "URL del servidor",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "Clave API",
+      "api_key_placeholder": "Tu token de API",
+      "test_connect": "Probar y conectar",
+      "testing": "Probando…",
+      "configure": "Configurar conexión"
+    },
+    "storage": {
+      "title": "Directorio de almacenamiento",
+      "description": "Dónde se guardan los datos del nodo en el disco",
+      "default": "Predeterminado",
+      "browse": "Examinar",
+      "warning": "Solo se aplica a los nodos recién añadidos. Los nodos existentes mantienen su directorio actual."
+    },
+    "downloads": {
+      "title": "Directorio de descargas",
+      "description": "Dónde se guardan los archivos descargados",
+      "not_set": "Sin configurar",
+      "browse": "Examinar"
+    },
+    "alert": {
+      "title": "Sonido de alerta",
+      "description": "Reproducir un sonido cuando fallen nodos críticos",
+      "aria_toggle": "Activar o desactivar el sonido de alerta"
+    },
+    "theme": {
+      "title": "Modo claro",
+      "description": "Cambiar entre los temas oscuro y claro",
+      "aria_toggle": "Activar o desactivar el modo claro"
+    },
+    "advanced": {
+      "hide": "▾ Ocultar avanzado",
+      "show": "▸ Mostrar avanzado"
+    },
+    "daemon": {
+      "title": "Daemon de nodos",
+      "description": "Reinicia el servicio en segundo plano que supervisa tus nodos. Los nodos en ejecución siguen funcionando — solo se reemplaza el supervisor.",
+      "restart": "Reiniciar daemon",
+      "restarting": "Reiniciando…"
+    },
+    "concurrency": {
+      "title": "Concurrencia de subidas",
+      "description_1": "Esto controla cuántas cotizaciones y subidas pueden ejecutarse al mismo tiempo.",
+      "description_2": "Ten en cuenta que tiene un gran impacto en el rendimiento."
+    },
+    "prerelease": {
+      "title": "Versiones preliminares",
+      "description": "Recibir actualizaciones automáticas de versiones preliminares (rc / beta) además de las versiones estables. Desactivado por defecto.",
+      "restart_required": "Reinicia la aplicación para aplicar este cambio.",
+      "restart_now": "Reiniciar ahora"
+    },
+    "direct_wallet": {
+      "title": "Cartera directa",
+      "description": "Conectar con una clave privada (omite WalletConnect)",
+      "connected_badge": "Conectada",
+      "address_label": "Dirección",
+      "disconnect": "Desconectar",
+      "network_label": "Red",
+      "network_sepolia_option": "Arbitrum Sepolia (testnet)",
+      "network_arbitrum_option": "Arbitrum One (mainnet)",
+      "rpc_url_label": "URL RPC",
+      "rpc_url_optional": "(opcional)",
+      "rpc_url_placeholder": "Por defecto la RPC pública de la cadena seleccionada",
+      "private_key_label": "Clave privada",
+      "private_key_placeholder": "0x... o hex sin prefijo",
+      "connect": "Conectar",
+      "import_button": "Importar clave privada"
+    },
+    "diagnostics": {
+      "title": "Diagnóstico",
+      "summary": "{entries} entradas de registro ({errors} errores)",
+      "copy_button": "Copiar al portapapeles",
+      "clear_button": "Limpiar",
+      "empty": "Sin entradas de registro",
+      "hide_log": "▾ Ocultar registro",
+      "show_log": "▸ Mostrar registro"
+    },
+    "upload_history": {
+      "title": "Historial de subidas",
+      "summary_one": "{count} entrada finalizada en upload_history.json. Los DataMaps en disco y los fragmentos en la red permanecen intactos.",
+      "summary_many": "{count} entradas finalizadas en upload_history.json. Los DataMaps en disco y los fragmentos en la red permanecen intactos.",
+      "clear_button": "Borrar historial",
+      "confirm_one": "¿Borrar 1 entrada de subida del historial?\n\nEsto elimina la fila local y el registro persistido. Los DataMaps en disco y los fragmentos en la red no se ven afectados.",
+      "confirm_many": "¿Borrar {count} entradas de subida del historial?\n\nEsto elimina la fila local y el registro persistido. Los DataMaps en disco y los fragmentos en la red no se ven afectados."
+    },
+    "software": {
+      "title": "Software",
+      "app_version_label": "Versión de la app",
+      "node_version_label": "Versión del nodo",
+      "last_checked": "Última comprobación {label}",
+      "check_button": "Buscar actualizaciones",
+      "checking": "Comprobando…"
+    },
+    "about": {
+      "title": "Acerca de"
+    },
+    "relative_time": {
+      "just_now": "ahora mismo",
+      "seconds_ago": "hace {n} s",
+      "minutes_ago": "hace {n} min",
+      "hours_ago": "hace {n} h",
+      "days_ago": "hace {n} d"
+    },
+    "picker": {
+      "storage_title": "Seleccionar directorio de almacenamiento",
+      "downloads_title": "Seleccionar directorio de descargas"
+    },
+    "error": {
+      "private_key_invalid": "Clave privada no válida — debe tener 64 caracteres hexadecimales",
+      "invalid_eth_address": "Formato de dirección EVM no válido"
+    },
+    "toast": {
+      "upload_history_cleared": "Historial de subidas borrado",
+      "update_check_failed": "Falló la comprobación de actualizaciones",
+      "update_available": "Actualización disponible: v{version}",
+      "on_latest_version": "Estás en la versión más reciente (v{version})",
+      "daemon_restarted": "Daemon reiniciado",
+      "daemon_restart_failed": "No se pudo reiniciar el daemon: {error}",
+      "storage_dir_updated": "Directorio de almacenamiento actualizado",
+      "storage_dir_verified": "Directorio de almacenamiento verificado",
+      "storage_dir_unwritable": "No se puede usar esa carpeta para el almacenamiento del nodo",
+      "select_directory_failed": "No se pudo seleccionar el directorio",
+      "downloads_dir_updated": "Directorio de descargas actualizado",
+      "earnings_updated": "Dirección de ingresos actualizada",
+      "daemon_url_updated": "URL del daemon actualizada",
+      "diagnostics_copied": "Diagnóstico copiado al portapapeles",
+      "diagnostics_copy_failed": "No se pudo copiar al portapapeles",
+      "log_cleared": "Registro borrado",
+      "indelible_connected": "Conectado a Indelible",
+      "indelible_disconnected": "Desconectado de Indelible",
+      "wallet_connected": "Cartera conectada: {address}",
+      "wallet_disconnected": "Cartera desconectada",
+      "wallet_attach_failed": "Falló la asociación de cartera (lado Rust): {error}"
+    }
+  },
+  "nav": {
+    "nodes": "Nodos",
+    "files": "Archivos",
+    "wallet": "Cartera",
+    "settings": "Ajustes"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} activas",
+    "connecting": "Conectando",
+    "connecting_tooltip": "Conectando a la red Autonomi",
+    "connected": "Red",
+    "connected_tooltip": "Conectado a la red Autonomi",
+    "offline": "Sin conexión · Reintentar",
+    "offline_tooltip": "Falló la conexión — haz clic para reintentar",
+    "connect_wallet": "Conectar cartera"
+  },
+  "sidebar": {
+    "pre_release": "PRELIMINAR",
+    "update_available": "Actualización disponible",
+    "update_pre_release_tag": "Preliminar",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "TESTNET DE SEPOLIA"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "download": "Descargar",
+    "start": "Iniciar",
+    "stop": "Detener",
+    "remove": "Eliminar",
+    "close_panel": "Cerrar panel"
+  },
+  "nodes": {
+    "add_button": "+ Añadir nodos",
+    "start_all": "Iniciar todos",
+    "stop_all": "Detener todos",
+    "running_count": "{count} en ejecución",
+    "stopped_count": "{count} detenidos",
+    "errored_count": "{count} con errores",
+    "filter_placeholder": "Filtrar...",
+    "filter_aria_label": "Filtrar nodos",
+    "starting_daemon": "Iniciando daemon de nodos…",
+    "restarting_daemon": "Reiniciando daemon de nodos…",
+    "nodes_keep_running": "Tus nodos siguen en ejecución.",
+    "daemon_disconnected": "No se puede conectar al daemon de nodos",
+    "daemon_retrying": "Reintentando automáticamente…",
+    "empty_title": "Aún no hay nodos",
+    "empty_hint": "Haz clic en \"+ Añadir nodos\" para empezar",
+    "confirm_action": "Confirmar acción",
+    "remove_node_message": "¿Eliminar el nodo {id}? Esto borrará todos sus datos.",
+    "stop_all_message": "¿Detener los {count} nodos en ejecución?",
+    "node_fallback_name": "Nodo {id}",
+    "field": {
+      "node_id": "ID del nodo",
+      "status": "Estado",
+      "version": "Versión",
+      "pid": "PID",
+      "uptime": "Tiempo activo",
+      "storage": "Almacenamiento",
+      "data_directory": "Directorio de datos",
+      "log_directory": "Directorio de registros",
+      "port": "Puerto",
+      "binary": "Binario",
+      "rewards_address": "Dirección de recompensas",
+      "status_aria": "Estado: {status}"
+    },
+    "add_dialog": {
+      "title": "Añadir nodos",
+      "number_label": "Número de nodos",
+      "range_hint": "Entre 1 y 50",
+      "no_earnings_warning": "No hay una dirección de ingresos configurada. Configura una en la página de Cartera antes de añadir nodos.",
+      "submit_one": "Añadir 1 nodo",
+      "submit_many": "Añadir {count} nodos"
+    },
+    "toast": {
+      "added": "Añadido(s) {count} nodo(s)",
+      "add_failed": "No se pudieron añadir los nodos: {error}",
+      "started": "Nodo {id} iniciado",
+      "start_failed": "No se pudo iniciar el nodo {id}: {error}",
+      "stopped": "Nodo {id} detenido",
+      "stop_failed": "No se pudo detener el nodo {id}: {error}",
+      "removed": "Nodo {id} eliminado",
+      "remove_failed": "No se pudo eliminar el nodo {id}: {error}",
+      "no_stopped": "No hay nodos detenidos para iniciar",
+      "no_running": "No hay nodos en ejecución para detener",
+      "node_failed": "El nodo {id} falló: {error}",
+      "started_count": "Se iniciaron {count} nodo(s)",
+      "stopped_count": "Se detuvieron {count} nodo(s)",
+      "start_all_failed": "No se pudo iniciar todo: {error}",
+      "stop_all_failed": "No se pudo detener todo: {error}"
+    }
+  },
+  "files": {
+    "upload_button": "Subir archivo(s)",
+    "estimate_button": "Estimar coste",
+    "download_by_address": "Descargar por dirección",
+    "download_by_datamap": "Descargar por datamap",
+    "uploads_heading": "Subidas",
+    "downloads_heading": "Descargas",
+    "clear": "Limpiar",
+    "drop_files": "Suelta archivos para subir",
+    "uploads_empty_title": "Aún no hay subidas",
+    "uploads_empty_hint": "Arrastra archivos aquí, o usa los botones de arriba",
+    "downloads_empty_title": "Aún no hay descargas",
+    "downloads_empty_hint": "Usa \"Descargar por dirección\" o \"Descargar por datamap\"",
+    "table": {
+      "name": "Nombre",
+      "status": "Estado",
+      "size": "Tamaño",
+      "cost": "Coste",
+      "date": "Fecha",
+      "address": "Dirección",
+      "saved_to": "Guardado en",
+      "actions": "Acciones"
+    },
+    "row": {
+      "free_already_stored": "Gratis — ya almacenado",
+      "gas_suffix": "+ {gas} de gas",
+      "public_badge": "Público",
+      "retry": "↻ Reintentar",
+      "public_tooltip": "Subida pública — haz clic para copiar la dirección de red compartible",
+      "reveal_datamap_tooltip": "Mostrar el datamap en el Finder/Explorador",
+      "copy_datamap_tooltip": "Copiar la ruta del datamap",
+      "copy_address_tooltip": "Copiar la dirección de red",
+      "retry_tooltip": "Reintentar la subida",
+      "remove_tooltip": "Quitar de la lista"
+    },
+    "stage": {
+      "encrypting": "Cifrando…",
+      "quoting_pct": "Cotizando · {pct}%",
+      "quoting_indeterminate": "Cotizando…",
+      "storing_pct": "Almacenando · {pct}%",
+      "storing_indeterminate": "Almacenando…",
+      "resolving_pct": "Resolviendo datamap · {pct}%",
+      "resolving_indeterminate": "Resolviendo datamap…",
+      "downloading_pct": "Descargando · {pct}%",
+      "downloading_indeterminate": "Descargando…"
+    },
+    "picker": {
+      "upload_title": "Selecciona archivos para subir",
+      "datamap_title": "Selecciona un archivo de datamap para descargar",
+      "estimate_title": "Selecciona archivos para estimar el coste",
+      "datamap_filter": "Datamap"
+    },
+    "toast": {
+      "upload_requires_wallet": "La subida requiere una cartera",
+      "download_requires_network": "La descarga requiere conexión de red",
+      "open_folder_failed": "No se pudo abrir la carpeta",
+      "address_copied": "Dirección copiada al portapapeles",
+      "public_address_copied": "Dirección pública copiada — compártela para que otros descarguen este archivo",
+      "datamap_path_copied": "Ruta del datamap copiada al portapapeles",
+      "already_stored_one": "1 archivo ya almacenado — guardando datamap",
+      "already_stored_many": "{count} archivos ya almacenados — guardando datamap",
+      "upload_complete": "Subida completada: {name}",
+      "upload_failed": "Subida fallida: {name} — {error}",
+      "payment_failed": "Pago fallido: {error}",
+      "download_complete": "Descarga completada: {name}",
+      "download_failed": "Descarga fallida: {name} — {error}",
+      "datamap_missing": "No se puede descargar: archivo de datamap ausente o ilegible",
+      "datamap_read_failed": "No se pudo leer el datamap: {error}"
+    },
+    "error": {
+      "wallet_not_connected": "Cartera no conectada",
+      "not_connected_to_network": "Sin conexión a la red"
+    },
+    "network": {
+      "unavailable": "Sin conexión a la red Autonomi — la estimación de coste no está disponible.",
+      "retry_connection": "Reintentar conexión",
+      "connecting": "Conectando a la red Autonomi…",
+      "obtaining_quote": "Obteniendo cotización de la red…",
+      "obtaining_quotes": "Obteniendo cotizaciones de la red…"
+    },
+    "datamap_saveas": {
+      "title": "Guardar archivo descargado como",
+      "filename_label": "Nombre de archivo",
+      "filename_placeholder": "miarchivo.dat"
+    },
+    "download_dialog": {
+      "title": "Descargar archivo",
+      "address_label": "Dirección del archivo",
+      "address_placeholder": "Dirección del archivo (hex)",
+      "filename_label": "Guardar como",
+      "filename_placeholder": "miarchivo.dat"
+    },
+    "datamap_picker": {
+      "description": "Elige una subida anterior para volver a descargarla, o busca un archivo de datamap que hayas recibido.",
+      "empty": "Aún no hay subidas anteriores con un datamap guardado.",
+      "browse_button": "Buscar archivo de datamap…"
+    },
+    "cost_estimate": {
+      "title": "Estimación del coste de subida",
+      "loading": "Estimando coste…",
+      "no_files": "Ningún archivo seleccionado",
+      "footnote": "Costes consultados a la red Autonomi. Las comisiones de gas (ETH) se aplican además del coste de almacenamiento."
+    },
+    "upload_confirm": {
+      "title": "Confirmar subida",
+      "info_banner": "Puedes cerrar esta ventana y volver cuando llegue la cotización. La subida queda pendiente hasta que la apruebes o la canceles.",
+      "already_stored_badge": "Ya almacenado",
+      "payment_label": "Pago",
+      "payment_mixed": "Mixto",
+      "payment_mixed_detail": "{regular} regular, {merkle} merkle — se paga por archivo.",
+      "payment_merkle": "Árbol de Merkle",
+      "payment_regular": "Regular",
+      "payment_merkle_detail": "Una sola transacción para {count} fragmentos — menos gas.",
+      "payment_regular_detail_one": "Pago por lote para 1 fragmento.",
+      "payment_regular_detail_many": "Pago por lote para {count} fragmentos.",
+      "free_title": "Ya almacenado en la red — gratis",
+      "free_detail": "Todos los fragmentos ya están presentes. No se gastará ANT ni gas.",
+      "cost_label": "Coste de almacenamiento en la red",
+      "gas_label": "Gas estimado",
+      "some_already_stored": "Algunos archivos ya están almacenados — esa parte no tiene coste.",
+      "visibility_label": "Visibilidad",
+      "visibility_private": "Privado",
+      "visibility_private_desc": "Cifrado y accesible solo con tu datamap. Solo tú puedes recuperar el archivo.",
+      "visibility_public": "Público",
+      "visibility_public_desc": "El datamap se publica en la red. Comparte una sola dirección para que cualquiera pueda recuperar el archivo.",
+      "regular_footnote": "Estimado a partir de una sola cotización de la red — el coste final puede variar ligeramente. El gas se aplica aparte.",
+      "cancel_upload": "Cancelar subida",
+      "ready_count": "Listos: {ready} de {total}",
+      "approve_button_one": "Aprobar subida",
+      "approve_button_many": "Aprobar {count} subidas"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "Dirección de ingresos",
+    "earnings_description": "Adónde se envían los ingresos de tus nodos",
+    "earnings_not_configured": "Sin configurar",
+    "edit": "Editar",
+    "save": "Guardar",
+    "earnings_use_payment_prompt": "¿Usar la dirección de tu cartera conectada para los ingresos?",
+    "earnings_use_payment_button": "Usar {address}",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "Almacenamiento gestionado",
+    "managed_storage_org": "Almacenamiento gestionado por {org}",
+    "managed_storage_description": "Las subidas se enrutan a través de la pasarela Indelible de tu organización. No se necesita cartera local.",
+    "payment_wallet_heading": "Cartera de pago",
+    "payment_optional_hint": "Opcional — necesaria para subir archivos",
+    "connect_prompt": "Conecta una cartera para pagar el almacenamiento de archivos",
+    "network_arbitrum_sepolia": "Testnet de Arbitrum Sepolia",
+    "network_arbitrum_one": "Se requiere la red Arbitrum One",
+    "import_key_hint": "O importa una clave privada en {link}",
+    "import_key_hint_link_text": "Ajustes > Avanzado",
+    "address_label": "Dirección",
+    "eth_balance_label": "Saldo ETH",
+    "ant_balance_label": "Saldo ANT",
+    "usdc_balance_label": "Saldo USDC",
+    "refresh_balances": "Actualizar saldos",
+    "disconnect": "Desconectar",
+    "toast": {
+      "import_key_in_settings": "Importa una clave privada en Ajustes > Avanzado",
+      "invalid_address": "Dirección no válida: debe ser 0x + 40 caracteres hexadecimales",
+      "earnings_saved": "Dirección de ingresos guardada",
+      "earnings_set_to_payment": "Dirección de ingresos establecida en la cartera de pago",
+      "wallet_disconnected": "Cartera desconectada"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "Actualización disponible",
+      "version_ready": "v{version} está lista para instalar",
+      "pre_release_badge": "Preliminar",
+      "download_size": "Tamaño de descarga: {size}",
+      "release_notes": "Notas de la versión",
+      "no_release_notes": "No hay notas de versión disponibles para esta versión.",
+      "downloading": "Descargando…",
+      "download_complete": "Descarga completada, la app se reiniciará en breve",
+      "auto_restart_hint": "La app se reiniciará automáticamente cuando termine.",
+      "cancel_download": "Cancelar descarga",
+      "installing_tooltip": "Instalando — espera por favor",
+      "not_now": "Ahora no",
+      "update_restart": "Actualizar y reiniciar"
+    },
+    "toast": {
+      "install_no_restart": "Se instaló la actualización a v{version} pero la app no se reinició. Cierra y vuelve a abrir Autonomi para finalizar la actualización.",
+      "install_failed": "Falló la instalación de la actualización: {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "El nombre del archivo no puede contener caracteres especiales",
+      "ends_with_dot_or_space": "El nombre del archivo no puede terminar en punto o espacio",
+      "reserved_on_windows": "Ese nombre está reservado en Windows"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "En ejecución",
+      "stopped": "Detenido",
+      "starting": "Iniciando",
+      "stopping": "Deteniendo",
+      "adding": "Añadiendo…",
+      "errored": "Error",
+      "upgrade_scheduled": "Actualizando"
+    },
+    "file": {
+      "pending": "Pendiente",
+      "quoting": "Cotizando",
+      "encrypting": "Cifrando…",
+      "resolving_datamap": "Resolviendo datamap",
+      "queued_quoting": "En cola: cotizando",
+      "queued_uploading": "En cola: subiendo",
+      "connecting_to_network": "Conectando a la red…",
+      "obtaining_quote": "Obteniendo cotización…",
+      "saving_datamap": "Guardando datamap…",
+      "network_unavailable": "Red no disponible",
+      "ready_to_approve": "Lista para aprobar",
+      "awaiting_approval": "Esperando aprobación",
+      "uploading": "Subiendo",
+      "downloading": "Descargando",
+      "done": "Hecho",
+      "downloaded": "Descargado — haz clic para abrir"
+    }
+  }
+}
