@@ -3,6 +3,7 @@
     <AppSidebar />
     <div class="flex flex-1 flex-col overflow-hidden">
       <AppHeader />
+      <CjkFontBanner />
       <div
         v-if="settingsStore.storageDirProbeError"
         class="border-b border-autonomi-error/40 bg-autonomi-error/10 px-6 py-2 text-xs text-autonomi-error"
