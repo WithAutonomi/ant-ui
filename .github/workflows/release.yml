@@ -12,6 +12,11 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  # Opt JS-based actions onto Node 24 ahead of the 2026-06-02 forced-default
+  # switch. Without this, `actions/upload-artifact@v5`, `actions/download-artifact@v5`,
+  # and `digicert/ssm-code-signing@v1.2.1` emit deprecation warnings on every
+  # run and would break outright after Node 20 is removed on 2026-09-16.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
   contents: write
