@@ -466,5 +466,17 @@
       "done": "Klaar",
       "downloaded": "Gedownload — klik om te openen"
     }
+  },
+  "banners": {
+    "cjk_font_missing": {
+      "script_label": "日本語",
+      "message": "Japanese text may not render correctly on this system. To fix, install the Noto CJK fonts and restart the app:",
+      "distro_arch": "Arch",
+      "distro_debian": "Debian / Ubuntu",
+      "distro_fedora": "Fedora",
+      "copy": "Copy command",
+      "copied": "Command copied to clipboard",
+      "dismiss": "Dismiss"
+    }
   }
 }
