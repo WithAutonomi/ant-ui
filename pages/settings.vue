@@ -124,6 +124,7 @@
         <option value="system">{{ systemDefaultLabel }}</option>
         <option value="en">English</option>
         <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
         <option value="nl">Nederlands</option>
         <option value="fr">Français</option>
         <option value="bg">Български</option>
