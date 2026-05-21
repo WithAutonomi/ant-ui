@@ -3,6 +3,18 @@
 @tailwind utilities;
 
 /*
+ * Tell the webview which variant of native controls (select popups,
+ * scrollbars, date pickers) to render. Without this, webkit2gtk on Linux
+ * paints the open <select> popup with the system GTK theme — light on
+ * most distros — even when our app chrome is dark.
+ *
+ * Kept in sync with the `light` class on <html> via the rule below.
+ */
+:root {
+  color-scheme: dark;
+}
+
+/*
  * Light-mode overrides. Dark values live in tailwind.config.cjs as the
  * fallback on each `var(--autonomi-*)`, so the absence of a `.light` class
  * on <html> yields the dark palette without needing a `:root` block here.
@@ -10,6 +22,7 @@
  * Toggle: add/remove `light` class on <html>. See composables/useTheme.ts.
  */
 :root.light {
+  color-scheme: light;
   --autonomi-dark: #F8FAFC;
   --autonomi-surface: #FFFFFF;
   --autonomi-border: #CBD5E1;
