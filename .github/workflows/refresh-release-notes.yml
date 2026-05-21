@@ -27,6 +27,12 @@ on:
         required: true
         type: string
 
+env:
+  # Opt JS-based actions onto Node 24 ahead of the 2026-06-02 forced-default
+  # switch (Node 20 fully removed on 2026-09-16). See release.yml for the
+  # same flag.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
