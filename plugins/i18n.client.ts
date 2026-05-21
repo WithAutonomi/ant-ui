@@ -1,6 +1,7 @@
 import { createI18n } from 'vue-i18n'
 import en from '~/locales/en.json'
 import ja from '~/locales/ja.json'
+import ko from '~/locales/ko.json'
 import nl from '~/locales/nl.json'
 import fr from '~/locales/fr.json'
 import bg from '~/locales/bg.json'
@@ -15,7 +16,7 @@ export const i18n = createI18n({
   legacy: false,
   locale: 'en',
   fallbackLocale: 'en',
-  messages: { en, ja, nl, fr, bg, es },
+  messages: { en, ja, ko, nl, fr, bg, es },
   missingWarn: true,
   fallbackWarn: false,
 })

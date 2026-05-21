@@ -1,0 +1,482 @@
+{
+  "_translator_notes": "Machine-translated baseline. Community polish via PR welcome.",
+  "settings": {
+    "language": {
+      "label": "언어",
+      "description": "UI 표시 언어",
+      "system_default": "시스템 기본값: {name}",
+      "system_default_pending": "시스템 기본값"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "관리형 스토리지 게이트웨이에 연결됨",
+      "subtitle_setup": "관리형 스토리지를 위해 자체 호스팅 Indelible 게이트웨이에 연결하세요",
+      "connected_badge": "연결됨",
+      "server_label": "서버",
+      "signed_in_as": "로그인 사용자",
+      "disconnect": "연결 해제",
+      "server_url_label": "서버 URL",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "API 키",
+      "api_key_placeholder": "API 토큰",
+      "test_connect": "테스트 및 연결",
+      "testing": "테스트 중…",
+      "configure": "연결 구성"
+    },
+    "storage": {
+      "title": "스토리지 디렉터리",
+      "description": "노드 데이터가 디스크에 저장되는 위치",
+      "default": "기본값",
+      "browse": "찾아보기",
+      "warning": "새로 추가되는 노드에만 적용됩니다. 기존 노드는 현재 디렉터리를 유지합니다."
+    },
+    "downloads": {
+      "title": "다운로드 디렉터리",
+      "description": "다운로드한 파일이 저장되는 위치",
+      "not_set": "설정되지 않음",
+      "browse": "찾아보기"
+    },
+    "alert": {
+      "title": "알림 소리",
+      "description": "중요한 노드 오류 발생 시 소리 재생",
+      "aria_toggle": "알림 소리 전환"
+    },
+    "theme": {
+      "title": "라이트 모드",
+      "description": "다크 테마와 라이트 테마 간 전환",
+      "aria_toggle": "라이트 모드 전환"
+    },
+    "advanced": {
+      "hide": "▾ 고급 숨기기",
+      "show": "▸ 고급 표시"
+    },
+    "daemon": {
+      "title": "노드 데몬",
+      "description": "노드를 감독하는 백그라운드 서비스를 다시 시작합니다. 실행 중인 노드는 계속 실행되며 — 감독자만 교체됩니다.",
+      "restart": "데몬 다시 시작",
+      "restarting": "다시 시작 중…"
+    },
+    "concurrency": {
+      "title": "업로드 동시 실행",
+      "description_1": "동시에 실행할 수 있는 견적/업로드 수를 제어합니다.",
+      "description_2": "이 값은 성능에 매우 큰 영향을 미칩니다."
+    },
+    "prerelease": {
+      "title": "사전 출시 빌드",
+      "description": "안정 출시 외에 사전 출시 빌드(rc / beta)에 대해서도 자동 업데이트를 받습니다. 기본적으로 꺼져 있습니다.",
+      "restart_required": "변경 사항을 적용하려면 앱을 다시 시작하세요.",
+      "restart_now": "지금 다시 시작"
+    },
+    "direct_wallet": {
+      "title": "직접 지갑",
+      "description": "프라이빗 키로 연결 (WalletConnect 우회)",
+      "connected_badge": "연결됨",
+      "address_label": "주소",
+      "disconnect": "연결 해제",
+      "network_label": "네트워크",
+      "network_sepolia_option": "Arbitrum Sepolia (테스트넷)",
+      "network_arbitrum_option": "Arbitrum One (메인넷)",
+      "rpc_url_label": "RPC URL",
+      "rpc_url_optional": "(선택 사항)",
+      "rpc_url_placeholder": "선택한 체인의 공용 RPC를 기본값으로 사용",
+      "private_key_label": "프라이빗 키",
+      "private_key_placeholder": "0x... 또는 원시 16진수",
+      "connect": "연결",
+      "import_button": "프라이빗 키 가져오기"
+    },
+    "diagnostics": {
+      "title": "진단",
+      "summary": "{entries}개 로그 항목 ({errors}개 오류)",
+      "copy_button": "클립보드에 복사",
+      "clear_button": "지우기",
+      "empty": "로그 항목이 없습니다",
+      "hide_log": "▾ 로그 숨기기",
+      "show_log": "▸ 로그 표시"
+    },
+    "upload_history": {
+      "title": "업로드 기록",
+      "summary_one": "upload_history.json에 {count}개의 완료된 항목이 있습니다. 디스크의 데이터맵과 네트워크의 청크는 영향을 받지 않습니다.",
+      "summary_many": "upload_history.json에 {count}개의 완료된 항목이 있습니다. 디스크의 데이터맵과 네트워크의 청크는 영향을 받지 않습니다.",
+      "clear_button": "기록 지우기",
+      "confirm_one": "기록에서 1개의 업로드 항목을 지우시겠습니까?\n\n로컬 행과 영구 저장된 레코드가 제거됩니다. 디스크의 데이터맵과 네트워크의 청크는 영향을 받지 않습니다.",
+      "confirm_many": "기록에서 {count}개의 업로드 항목을 지우시겠습니까?\n\n로컬 행과 영구 저장된 레코드가 제거됩니다. 디스크의 데이터맵과 네트워크의 청크는 영향을 받지 않습니다."
+    },
+    "software": {
+      "title": "소프트웨어",
+      "app_version_label": "앱 버전",
+      "node_version_label": "노드 버전",
+      "last_checked": "마지막 확인 {label}",
+      "check_button": "업데이트 확인",
+      "checking": "확인 중…"
+    },
+    "about": {
+      "title": "정보"
+    },
+    "relative_time": {
+      "just_now": "방금 전",
+      "seconds_ago": "{n}초 전",
+      "minutes_ago": "{n}분 전",
+      "hours_ago": "{n}시간 전",
+      "days_ago": "{n}일 전"
+    },
+    "picker": {
+      "storage_title": "스토리지 디렉터리 선택",
+      "downloads_title": "다운로드 디렉터리 선택"
+    },
+    "error": {
+      "private_key_invalid": "잘못된 프라이빗 키 — 64자리 16진수여야 합니다",
+      "invalid_eth_address": "잘못된 EVM 주소 형식"
+    },
+    "toast": {
+      "upload_history_cleared": "업로드 기록이 지워졌습니다",
+      "update_check_failed": "업데이트 확인에 실패했습니다",
+      "update_available": "사용 가능한 업데이트: v{version}",
+      "on_latest_version": "최신 버전을 사용 중입니다 (v{version})",
+      "daemon_restarted": "데몬이 다시 시작되었습니다",
+      "daemon_restart_failed": "데몬 다시 시작 실패: {error}",
+      "storage_dir_updated": "스토리지 디렉터리가 업데이트되었습니다",
+      "storage_dir_verified": "스토리지 디렉터리가 확인되었습니다",
+      "storage_dir_unwritable": "해당 폴더를 노드 스토리지로 사용할 수 없습니다",
+      "select_directory_failed": "디렉터리 선택 실패",
+      "downloads_dir_updated": "다운로드 디렉터리가 업데이트되었습니다",
+      "earnings_updated": "수익 주소가 업데이트되었습니다",
+      "daemon_url_updated": "데몬 URL이 업데이트되었습니다",
+      "diagnostics_copied": "진단 정보가 클립보드에 복사되었습니다",
+      "diagnostics_copy_failed": "클립보드 복사에 실패했습니다",
+      "log_cleared": "로그가 지워졌습니다",
+      "indelible_connected": "Indelible에 연결되었습니다",
+      "indelible_disconnected": "Indelible 연결이 해제되었습니다",
+      "wallet_connected": "지갑이 연결되었습니다: {address}",
+      "wallet_disconnected": "지갑 연결이 해제되었습니다",
+      "wallet_attach_failed": "지갑 연결 (Rust 측) 실패: {error}"
+    }
+  },
+  "nav": {
+    "nodes": "노드",
+    "files": "파일",
+    "wallet": "지갑",
+    "settings": "설정"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count}개 진행 중",
+    "connecting": "연결 중",
+    "connecting_tooltip": "Autonomi 네트워크에 연결 중",
+    "connected": "네트워크",
+    "connected_tooltip": "Autonomi 네트워크에 연결됨",
+    "offline": "오프라인 · 재시도",
+    "offline_tooltip": "연결 실패 — 클릭하여 재시도",
+    "connect_wallet": "지갑 연결"
+  },
+  "sidebar": {
+    "pre_release": "사전 출시",
+    "update_available": "업데이트 가능",
+    "update_pre_release_tag": "사전 출시",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA 테스트넷"
+  },
+  "common": {
+    "cancel": "취소",
+    "confirm": "확인",
+    "close": "닫기",
+    "download": "다운로드",
+    "start": "시작",
+    "stop": "중지",
+    "remove": "제거",
+    "close_panel": "패널 닫기"
+  },
+  "nodes": {
+    "add_button": "+ 노드 추가",
+    "start_all": "모두 시작",
+    "stop_all": "모두 중지",
+    "running_count": "{count}개 실행 중",
+    "stopped_count": "{count}개 중지됨",
+    "errored_count": "{count}개 오류",
+    "filter_placeholder": "필터...",
+    "filter_aria_label": "노드 필터링",
+    "starting_daemon": "노드 데몬 시작 중…",
+    "restarting_daemon": "노드 데몬 다시 시작 중…",
+    "nodes_keep_running": "노드는 계속 실행됩니다.",
+    "daemon_disconnected": "노드 데몬에 연결할 수 없습니다",
+    "daemon_retrying": "자동으로 재시도 중…",
+    "empty_title": "아직 노드가 없습니다",
+    "empty_hint": "시작하려면 \"+ 노드 추가\"를 클릭하세요",
+    "confirm_action": "작업 확인",
+    "remove_node_message": "노드 {id}를 제거하시겠습니까? 모든 데이터가 삭제됩니다.",
+    "stop_all_message": "실행 중인 {count}개의 노드를 모두 중지하시겠습니까?",
+    "node_fallback_name": "노드 {id}",
+    "field": {
+      "node_id": "노드 ID",
+      "status": "상태",
+      "version": "버전",
+      "pid": "PID",
+      "uptime": "가동 시간",
+      "storage": "스토리지",
+      "data_directory": "데이터 디렉터리",
+      "log_directory": "로그 디렉터리",
+      "port": "포트",
+      "binary": "바이너리",
+      "rewards_address": "보상 주소",
+      "status_aria": "상태: {status}"
+    },
+    "add_dialog": {
+      "title": "노드 추가",
+      "number_label": "노드 수",
+      "range_hint": "1~50 사이",
+      "no_earnings_warning": "수익 주소가 구성되지 않았습니다. 노드를 추가하기 전에 지갑 페이지에서 설정하세요.",
+      "submit_one": "1개 노드 추가",
+      "submit_many": "{count}개 노드 추가"
+    },
+    "toast": {
+      "added": "{count}개 노드를 추가했습니다",
+      "add_failed": "노드 추가 실패: {error}",
+      "started": "노드 {id} 시작됨",
+      "start_failed": "노드 {id} 시작 실패: {error}",
+      "stopped": "노드 {id} 중지됨",
+      "stop_failed": "노드 {id} 중지 실패: {error}",
+      "removed": "노드 {id} 제거됨",
+      "remove_failed": "노드 {id} 제거 실패: {error}",
+      "no_stopped": "시작할 중지된 노드가 없습니다",
+      "no_running": "중지할 실행 중인 노드가 없습니다",
+      "node_failed": "노드 {id} 실패: {error}",
+      "started_count": "{count}개 노드를 시작했습니다",
+      "stopped_count": "{count}개 노드를 중지했습니다",
+      "start_all_failed": "전체 시작 실패: {error}",
+      "stop_all_failed": "전체 중지 실패: {error}"
+    }
+  },
+  "files": {
+    "upload_button": "파일 업로드",
+    "estimate_button": "비용 견적",
+    "download_by_address": "주소로 다운로드",
+    "download_by_datamap": "데이터맵으로 다운로드",
+    "uploads_heading": "업로드",
+    "downloads_heading": "다운로드",
+    "clear": "지우기",
+    "drop_files": "업로드할 파일을 드롭하세요",
+    "uploads_empty_title": "아직 업로드가 없습니다",
+    "uploads_empty_hint": "파일을 여기로 드래그하거나 위의 버튼을 사용하세요",
+    "downloads_empty_title": "아직 다운로드가 없습니다",
+    "downloads_empty_hint": "\"주소로 다운로드\" 또는 \"데이터맵으로 다운로드\"를 사용하세요",
+    "table": {
+      "name": "이름",
+      "status": "상태",
+      "size": "크기",
+      "cost": "비용",
+      "date": "날짜",
+      "address": "주소",
+      "saved_to": "저장 위치",
+      "actions": "작업"
+    },
+    "row": {
+      "free_already_stored": "무료 — 이미 저장됨",
+      "gas_suffix": "+ {gas} 가스",
+      "public_badge": "공개",
+      "retry": "↻ 재시도",
+      "public_tooltip": "공개 업로드 — 클릭하여 공유 가능한 네트워크 주소를 복사",
+      "reveal_datamap_tooltip": "Finder/탐색기에서 데이터맵 파일 표시",
+      "copy_datamap_tooltip": "데이터맵 파일 경로 복사",
+      "copy_address_tooltip": "네트워크 주소 복사",
+      "retry_tooltip": "업로드 재시도",
+      "remove_tooltip": "목록에서 제거"
+    },
+    "stage": {
+      "encrypting": "암호화 중…",
+      "quoting_pct": "견적 중 · {pct}%",
+      "quoting_indeterminate": "견적 중…",
+      "storing_pct": "저장 중 · {pct}%",
+      "storing_indeterminate": "저장 중…",
+      "resolving_pct": "데이터맵 확인 중 · {pct}%",
+      "resolving_indeterminate": "데이터맵 확인 중…",
+      "downloading_pct": "다운로드 중 · {pct}%",
+      "downloading_indeterminate": "다운로드 중…"
+    },
+    "picker": {
+      "upload_title": "업로드할 파일 선택",
+      "datamap_title": "다운로드할 데이터맵 파일 선택",
+      "estimate_title": "비용을 견적할 파일 선택",
+      "datamap_filter": "데이터맵"
+    },
+    "toast": {
+      "upload_requires_wallet": "업로드에는 지갑이 필요합니다",
+      "download_requires_network": "다운로드에는 네트워크 연결이 필요합니다",
+      "open_folder_failed": "폴더를 열 수 없습니다",
+      "address_copied": "주소가 클립보드에 복사되었습니다",
+      "public_address_copied": "공개 주소가 복사되었습니다 — 다른 사람이 이 파일을 다운로드할 수 있도록 공유하세요",
+      "datamap_path_copied": "데이터맵 경로가 클립보드에 복사되었습니다",
+      "already_stored_one": "파일 1개가 이미 저장됨 — 데이터맵 저장 중",
+      "already_stored_many": "파일 {count}개가 이미 저장됨 — 데이터맵 저장 중",
+      "upload_complete": "업로드 완료: {name}",
+      "upload_failed": "업로드 실패: {name} — {error}",
+      "payment_failed": "결제 실패: {error}",
+      "download_complete": "다운로드 완료: {name}",
+      "download_failed": "다운로드 실패: {name} — {error}",
+      "datamap_missing": "다운로드할 수 없음: 데이터맵 파일이 없거나 읽을 수 없습니다",
+      "datamap_read_failed": "데이터맵을 읽을 수 없음: {error}"
+    },
+    "error": {
+      "wallet_not_connected": "지갑이 연결되지 않았습니다",
+      "not_connected_to_network": "네트워크에 연결되지 않았습니다"
+    },
+    "network": {
+      "unavailable": "Autonomi 네트워크에 연결되지 않음 — 비용 견적을 사용할 수 없습니다.",
+      "retry_connection": "연결 재시도",
+      "connecting": "Autonomi 네트워크에 연결 중…",
+      "obtaining_quote": "네트워크에서 견적 받는 중…",
+      "obtaining_quotes": "네트워크에서 견적들 받는 중…"
+    },
+    "datamap_saveas": {
+      "title": "다운로드한 파일을 다른 이름으로 저장",
+      "filename_label": "파일 이름",
+      "filename_placeholder": "myfile.dat"
+    },
+    "download_dialog": {
+      "title": "파일 다운로드",
+      "address_label": "파일 주소",
+      "address_placeholder": "파일 주소 (16진수)",
+      "filename_label": "저장할 파일 이름",
+      "filename_placeholder": "myfile.dat"
+    },
+    "datamap_picker": {
+      "description": "다시 다운로드할 이전 업로드를 선택하거나, 다른 곳에서 받은 데이터맵 파일을 찾아보세요.",
+      "empty": "데이터맵이 저장된 이전 업로드가 없습니다.",
+      "browse_button": "데이터맵 파일 찾아보기…"
+    },
+    "cost_estimate": {
+      "title": "업로드 비용 견적",
+      "loading": "비용 견적 중…",
+      "no_files": "선택된 파일이 없습니다",
+      "footnote": "Autonomi 네트워크에서 조회된 비용입니다. 스토리지 비용 외에 가스 수수료(ETH)가 추가로 적용됩니다."
+    },
+    "upload_confirm": {
+      "title": "업로드 확인",
+      "info_banner": "이 창을 닫고 견적이 도착하면 다시 돌아올 수 있습니다. 업로드는 승인하거나 취소할 때까지 보류됩니다.",
+      "already_stored_badge": "이미 저장됨",
+      "payment_label": "결제",
+      "payment_mixed": "혼합",
+      "payment_mixed_detail": "{regular}개 일반, {merkle}개 머클 — 파일별로 결제됩니다.",
+      "payment_merkle": "머클 트리",
+      "payment_regular": "일반",
+      "payment_merkle_detail": "{count}개 청크에 대한 단일 트랜잭션 — 가스 비용 절감.",
+      "payment_regular_detail_one": "1개 청크에 대한 배치당 결제.",
+      "payment_regular_detail_many": "{count}개 청크에 대한 배치당 결제.",
+      "free_title": "네트워크에 이미 저장됨 — 무료",
+      "free_detail": "모든 청크가 이미 존재합니다. ANT나 가스가 소비되지 않습니다.",
+      "cost_label": "네트워크 스토리지 비용",
+      "gas_label": "예상 가스",
+      "some_already_stored": "일부 파일은 이미 저장되어 있습니다 — 해당 부분은 비용이 발생하지 않습니다.",
+      "visibility_label": "공개 범위",
+      "visibility_private": "비공개",
+      "visibility_private_desc": "암호화되며 사용자의 데이터맵으로만 접근할 수 있습니다. 본인만 파일을 가져올 수 있습니다.",
+      "visibility_public": "공개",
+      "visibility_public_desc": "데이터맵이 네트워크에 게시됩니다. 단일 주소를 공유하면 누구나 파일을 가져올 수 있습니다.",
+      "regular_footnote": "단일 네트워크 견적에서 산출됨 — 최종 비용은 약간 다를 수 있습니다. 가스 수수료가 추가로 적용됩니다.",
+      "cancel_upload": "업로드 취소",
+      "ready_count": "준비됨: {total}개 중 {ready}개",
+      "approve_button_one": "업로드 승인",
+      "approve_button_many": "{count}개 업로드 승인"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "수익 주소",
+    "earnings_description": "노드 수익이 전송되는 주소",
+    "earnings_not_configured": "구성되지 않음",
+    "edit": "편집",
+    "save": "저장",
+    "earnings_use_payment_prompt": "연결된 지갑 주소를 수익 주소로 사용하시겠습니까?",
+    "earnings_use_payment_button": "{address} 사용",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "관리형 스토리지",
+    "managed_storage_org": "{org}에서 관리하는 스토리지",
+    "managed_storage_description": "업로드는 조직의 Indelible 게이트웨이를 통해 라우팅됩니다. 로컬 지갑이 필요하지 않습니다.",
+    "payment_wallet_heading": "결제 지갑",
+    "payment_optional_hint": "선택 사항 — 파일 업로드에 필요합니다",
+    "connect_prompt": "파일 스토리지 비용을 결제할 지갑을 연결하세요",
+    "network_arbitrum_sepolia": "Arbitrum Sepolia 테스트넷",
+    "network_arbitrum_one": "Arbitrum One 네트워크가 필요합니다",
+    "import_key_hint": "또는 {link}에서 프라이빗 키를 가져오세요",
+    "import_key_hint_link_text": "설정 > 고급",
+    "address_label": "주소",
+    "eth_balance_label": "ETH 잔액",
+    "ant_balance_label": "ANT 잔액",
+    "usdc_balance_label": "USDC 잔액",
+    "refresh_balances": "잔액 새로 고침",
+    "disconnect": "연결 해제",
+    "toast": {
+      "import_key_in_settings": "설정 > 고급에서 프라이빗 키를 가져오세요",
+      "invalid_address": "잘못된 주소: 0x + 40자리 16진수여야 합니다",
+      "earnings_saved": "수익 주소가 저장되었습니다",
+      "earnings_set_to_payment": "수익 주소가 결제 지갑으로 설정되었습니다",
+      "wallet_disconnected": "지갑 연결이 해제되었습니다"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "사용 가능한 업데이트",
+      "version_ready": "v{version} 설치 준비 완료",
+      "pre_release_badge": "사전 출시",
+      "download_size": "다운로드 크기: {size}",
+      "release_notes": "릴리스 노트",
+      "no_release_notes": "이 버전에 사용 가능한 릴리스 노트가 없습니다.",
+      "downloading": "다운로드 중…",
+      "download_complete": "다운로드가 완료되었습니다. 앱이 곧 다시 시작됩니다",
+      "auto_restart_hint": "완료되면 앱이 자동으로 다시 시작됩니다.",
+      "cancel_download": "다운로드 취소",
+      "installing_tooltip": "설치 중 — 잠시만 기다려 주세요",
+      "not_now": "나중에",
+      "update_restart": "업데이트 및 다시 시작"
+    },
+    "toast": {
+      "install_no_restart": "v{version} 업데이트가 설치되었지만 앱이 다시 시작되지 않았습니다. 업데이트를 완료하려면 Autonomi를 종료하고 다시 열어 주세요.",
+      "install_failed": "업데이트 설치 실패: {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "파일 이름에 특수 문자를 포함할 수 없습니다",
+      "ends_with_dot_or_space": "파일 이름은 마침표나 공백으로 끝날 수 없습니다",
+      "reserved_on_windows": "이 이름은 Windows에서 예약되어 있습니다"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "실행 중",
+      "stopped": "중지됨",
+      "starting": "시작 중",
+      "stopping": "중지 중",
+      "adding": "추가 중…",
+      "errored": "오류",
+      "upgrade_scheduled": "업그레이드 중"
+    },
+    "file": {
+      "pending": "대기 중",
+      "quoting": "견적 중",
+      "encrypting": "암호화 중…",
+      "resolving_datamap": "데이터맵 확인 중",
+      "queued_quoting": "대기열: 견적 중",
+      "queued_uploading": "대기열: 업로드 중",
+      "connecting_to_network": "네트워크에 연결 중…",
+      "obtaining_quote": "견적 받는 중…",
+      "saving_datamap": "데이터맵 저장 중…",
+      "network_unavailable": "네트워크 사용 불가",
+      "ready_to_approve": "승인 준비됨",
+      "awaiting_approval": "승인 대기 중",
+      "uploading": "업로드 중",
+      "downloading": "다운로드 중",
+      "done": "완료",
+      "downloaded": "다운로드됨 — 클릭하여 열기"
+    }
+  },
+  "banners": {
+    "cjk_font_missing": {
+      "script_label": "한국어",
+      "message": "Korean text may not render correctly on this system. To fix, install the Noto CJK fonts and restart the app:",
+      "distro_arch": "Arch",
+      "distro_debian": "Debian / Ubuntu",
+      "distro_fedora": "Fedora",
+      "copy": "Copy command",
+      "copied": "Command copied to clipboard",
+      "dismiss": "Dismiss"
+    }
+  }
+}

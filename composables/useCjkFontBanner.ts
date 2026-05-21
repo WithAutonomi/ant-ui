@@ -4,8 +4,9 @@ import { useI18n } from 'vue-i18n'
 
 // Locales whose script is not in the base Linux font fallback chain and
 // therefore renders as tofu/mojibake without a CJK font (noto-cjk).
-// Add 'zh', 'ko' when those locales ship — same package on every distro.
-const CJK_LOCALES = new Set<string>(['ja'])
+// noto-cjk is the unified Chinese/Japanese/Korean font — same package
+// across distros covers all three scripts. Add 'zh' here when it ships.
+const CJK_LOCALES = new Set<string>(['ja', 'ko'])
 
 // Module-scoped: probe once at first call, share the result across all
 // component instances that mount the banner.
