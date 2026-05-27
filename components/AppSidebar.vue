@@ -1,5 +1,5 @@
 <template>
-  <aside class="flex h-full w-56 flex-col border-r border-autonomi-border bg-autonomi-surface">
+  <aside class="flex h-full w-56 flex-col border-e border-autonomi-border bg-autonomi-surface">
     <!-- Logo / Brand -->
     <div class="flex items-center gap-3 px-4 py-5">
       <IconsAutonomiLogo :size="28" />
@@ -31,7 +31,7 @@
       <!-- Update banner -->
       <button
         v-if="updaterStore.available"
-        class="mb-2 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-900 shadow-md transition-all active:scale-[0.98]"
+        class="mb-2 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-start text-sm font-semibold text-gray-900 shadow-md transition-all active:scale-[0.98]"
         :class="updaterStore.isPrerelease
           ? 'bg-teal-400 shadow-teal-400/25 hover:bg-teal-300'
           : 'bg-amber-400 shadow-amber-400/25 hover:bg-amber-300'"

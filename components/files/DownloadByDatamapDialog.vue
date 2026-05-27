@@ -56,7 +56,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { formatBytes } from '~/utils/formatters'
+
+const { locale } = useI18n()
 
 defineProps<{
   open: boolean
@@ -85,7 +88,7 @@ function basename(path: string): string {
 
 function formatShortDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    return new Date(iso).toLocaleDateString(locale.value, { month: 'short', day: 'numeric' })
   } catch {
     return iso
   }

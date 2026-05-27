@@ -83,8 +83,8 @@
         @click="settingsStore.toggleBell()"
       >
         <span
-          class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform"
-          :class="settingsStore.bellOnCritical ? 'translate-x-5' : ''"
+          class="absolute start-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform"
+          :class="settingsStore.bellOnCritical ? 'translate-x-5 rtl:-translate-x-5' : ''"
         />
       </button>
     </div>
@@ -104,8 +104,8 @@
         @click="settingsStore.setThemeMode(settingsStore.themeMode === 'light' ? 'dark' : 'light')"
       >
         <span
-          class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform"
-          :class="settingsStore.themeMode === 'light' ? 'translate-x-5' : ''"
+          class="absolute start-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform"
+          :class="settingsStore.themeMode === 'light' ? 'translate-x-5 rtl:-translate-x-5' : ''"
         />
       </button>
     </div>
@@ -129,6 +129,8 @@
         <option value="fr">Français</option>
         <option value="bg">Български</option>
         <option value="es">Español</option>
+        <option value="ar">العربية</option>
+        <option value="he">עברית</option>
       </select>
     </div>
 
@@ -223,7 +225,7 @@
               <span
                 :class="[
                   'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                  settingsStore.prereleaseChannel ? 'translate-x-6' : 'translate-x-1',
+                  settingsStore.prereleaseChannel ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-1 rtl:-translate-x-1',
                 ]"
               />
             </button>

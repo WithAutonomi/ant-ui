@@ -39,6 +39,43 @@ see `settings.upload_history.summary_one` / `summary_many` for an example. The
 file does not use vue-i18n's built-in `|` plural syntax; keep the suffix
 convention so call sites can pick the right key explicitly.
 
+## Right-to-left (RTL) locales
+
+Arabic (`ar`) and Hebrew (`he`) ship as RTL baselines. The direction is wired
+through three pieces:
+
+- **`composables/useLocale.ts`** — `RTL_LOCALES` set, and a `dir` computed
+  ref that follows the active locale. Add new RTL locale codes here.
+- **`app.vue`** — `useHead({ htmlAttrs: { dir: localeDir } })` binds the
+  computed dir to the `<html>` element. Tailwind's `rtl:` variant fires off
+  this attribute.
+- **Surgical CSS** — most layout uses gap/flex which mirrors automatically,
+  but anything anchored by physical edge (`left-*`, `right-*`, `ml-*`,
+  `mr-*`, `text-left`, `text-right`, `border-l`, `border-r`) needs the
+  logical equivalent (`start-*`, `end-*`, `ms-*`, `me-*`, `text-start`,
+  `text-end`, `border-s`, `border-e`) or an explicit `rtl:` override.
+  Toggle thumbs use `translate-x-N rtl:-translate-x-N` to flip motion.
+
+Known follow-ups (first pass is intentionally surgical, not exhaustive):
+
+- Several dialogs and detail panels still use `ml-*`/`mr-*` margins that
+  read slightly off in RTL — they're functional but worth migrating to
+  `ms-*`/`me-*` opportunistically.
+- Dynamic StatusBadge strings stay English (see Phase-1 carve-out below);
+  the BiDi handling is fine but the strings themselves don't mirror.
+- **The WalletConnect / Reown AppKit modal stays English + LTR even when
+  the rest of the UI is localized.** Reown AppKit (1.8.19 at time of
+  writing) ships zero i18n or RTL support — no `locale` option on
+  `createAppKit`, no theme variable for direction, all strings are
+  hard-coded in the Shadow-DOM web components. This is an upstream
+  limitation, not a config gap. CSS hacks to force-mirror the Shadow DOM
+  would leave English text reading right-to-left, which is worse than
+  the current state. Revisit when Reown ships localization upstream;
+  don't attempt a workaround locally.
+
+When adding a new RTL locale, register the code in `RTL_LOCALES` and verify
+the toggle thumbs, sidebar border, and toast corner mirror correctly.
+
 ## Adding a new locale
 
 1. **Copy `en.json` to `locales/<lang>.json`.** Use the ISO 639-1 code for the

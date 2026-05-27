@@ -1,5 +1,5 @@
 <template>
-  <div class="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col gap-2" aria-live="polite" aria-atomic="false">
+  <div class="pointer-events-none fixed bottom-4 end-4 z-50 flex flex-col gap-2" aria-live="polite" aria-atomic="false">
     <TransitionGroup name="toast">
       <div
         v-for="toast in toasts"
