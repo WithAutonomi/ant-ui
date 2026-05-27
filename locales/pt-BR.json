@@ -1,0 +1,482 @@
+{
+  "_translator_notes": "Machine-translated baseline (Brazilian Portuguese). Community polish via PR welcome. Should also serve European Portuguese users with mild friction (a few vocab differences like 'arquivo' vs 'ficheiro').",
+  "settings": {
+    "language": {
+      "label": "Idioma",
+      "description": "Idioma de exibição da interface",
+      "system_default": "Padrão do sistema: {name}",
+      "system_default_pending": "Padrão do sistema"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "Conectado ao gateway de armazenamento gerenciado",
+      "subtitle_setup": "Conecte-se a um gateway Indelible auto-hospedado para armazenamento gerenciado",
+      "connected_badge": "Conectado",
+      "server_label": "Servidor",
+      "signed_in_as": "Conectado como",
+      "disconnect": "Desconectar",
+      "server_url_label": "URL do servidor",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "Chave de API",
+      "api_key_placeholder": "Seu token de API",
+      "test_connect": "Testar e conectar",
+      "testing": "Testando…",
+      "configure": "Configurar conexão"
+    },
+    "storage": {
+      "title": "Diretório de armazenamento",
+      "description": "Onde os dados do nó são armazenados no disco",
+      "default": "Padrão",
+      "browse": "Procurar",
+      "warning": "Aplica-se apenas a nós recém-adicionados. Os nós existentes mantêm o diretório atual."
+    },
+    "downloads": {
+      "title": "Diretório de downloads",
+      "description": "Onde os arquivos baixados são salvos",
+      "not_set": "Não definido",
+      "browse": "Procurar"
+    },
+    "alert": {
+      "title": "Som de alerta",
+      "description": "Reproduzir som em falhas críticas do nó",
+      "aria_toggle": "Alternar som de alerta"
+    },
+    "theme": {
+      "title": "Modo claro",
+      "description": "Alternar entre temas claro e escuro",
+      "aria_toggle": "Alternar modo claro"
+    },
+    "advanced": {
+      "hide": "▾ Ocultar avançado",
+      "show": "▸ Mostrar avançado"
+    },
+    "daemon": {
+      "title": "Daemon de nó",
+      "description": "Reinicie o serviço em segundo plano que supervisiona seus nós. Seus nós em execução continuam funcionando — apenas o supervisor é trocado.",
+      "restart": "Reiniciar daemon",
+      "restarting": "Reiniciando…"
+    },
+    "concurrency": {
+      "title": "Concorrência de upload",
+      "description_1": "Controla quantas cotações/uploads podem ser executados ao mesmo tempo.",
+      "description_2": "Observe que isso tem um grande impacto no desempenho."
+    },
+    "prerelease": {
+      "title": "Builds de pré-lançamento",
+      "description": "Receber atualizações automáticas para builds de pré-lançamento (rc / beta) além das versões estáveis. Desativado por padrão.",
+      "restart_required": "Reinicie o aplicativo para aplicar esta alteração.",
+      "restart_now": "Reiniciar agora"
+    },
+    "direct_wallet": {
+      "title": "Carteira direta",
+      "description": "Conectar com uma chave privada (ignora o WalletConnect)",
+      "connected_badge": "Conectada",
+      "address_label": "Endereço",
+      "disconnect": "Desconectar",
+      "network_label": "Rede",
+      "network_sepolia_option": "Arbitrum Sepolia (testnet)",
+      "network_arbitrum_option": "Arbitrum One (mainnet)",
+      "rpc_url_label": "URL RPC",
+      "rpc_url_optional": "(opcional)",
+      "rpc_url_placeholder": "Padrão para o RPC público da rede selecionada",
+      "private_key_label": "Chave privada",
+      "private_key_placeholder": "0x... ou hex bruto",
+      "connect": "Conectar",
+      "import_button": "Importar chave privada"
+    },
+    "diagnostics": {
+      "title": "Diagnóstico",
+      "summary": "{entries} entradas de log ({errors} erros)",
+      "copy_button": "Copiar para a área de transferência",
+      "clear_button": "Limpar",
+      "empty": "Sem entradas de log",
+      "hide_log": "▾ Ocultar log",
+      "show_log": "▸ Mostrar log"
+    },
+    "upload_history": {
+      "title": "Histórico de upload",
+      "summary_one": "{count} entrada em upload_history.json. DataMaps no disco e chunks na rede não são afetados.",
+      "summary_many": "{count} entradas em upload_history.json. DataMaps no disco e chunks na rede não são afetados.",
+      "clear_button": "Limpar histórico",
+      "confirm_one": "Limpar 1 entrada de upload do histórico?\n\nIsso remove a linha local e o registro persistido. Os DataMaps no disco e os chunks na rede não são afetados.",
+      "confirm_many": "Limpar {count} entradas de upload do histórico?\n\nIsso remove as linhas locais e os registros persistidos. Os DataMaps no disco e os chunks na rede não são afetados."
+    },
+    "software": {
+      "title": "Software",
+      "app_version_label": "Versão do aplicativo",
+      "node_version_label": "Versão do nó",
+      "last_checked": "Última verificação {label}",
+      "check_button": "Verificar atualizações",
+      "checking": "Verificando…"
+    },
+    "about": {
+      "title": "Sobre"
+    },
+    "relative_time": {
+      "just_now": "agora mesmo",
+      "seconds_ago": "há {n}s",
+      "minutes_ago": "há {n} min",
+      "hours_ago": "há {n}h",
+      "days_ago": "há {n}d"
+    },
+    "picker": {
+      "storage_title": "Selecione o diretório de armazenamento",
+      "downloads_title": "Selecione o diretório de downloads"
+    },
+    "error": {
+      "private_key_invalid": "Chave privada inválida — deve ter 64 caracteres hex",
+      "invalid_eth_address": "Formato de endereço EVM inválido"
+    },
+    "toast": {
+      "upload_history_cleared": "Histórico de upload limpo",
+      "update_check_failed": "Falha na verificação de atualização",
+      "update_available": "Atualização disponível: v{version}",
+      "on_latest_version": "Você está na versão mais recente (v{version})",
+      "daemon_restarted": "Daemon reiniciado",
+      "daemon_restart_failed": "Falha ao reiniciar o daemon: {error}",
+      "storage_dir_updated": "Diretório de armazenamento atualizado",
+      "storage_dir_verified": "Diretório de armazenamento verificado",
+      "storage_dir_unwritable": "Não é possível usar essa pasta para armazenamento de nós",
+      "select_directory_failed": "Falha ao selecionar diretório",
+      "downloads_dir_updated": "Diretório de downloads atualizado",
+      "earnings_updated": "Endereço de recebimento atualizado",
+      "daemon_url_updated": "URL do daemon atualizada",
+      "diagnostics_copied": "Diagnóstico copiado para a área de transferência",
+      "diagnostics_copy_failed": "Falha ao copiar para a área de transferência",
+      "log_cleared": "Log limpo",
+      "indelible_connected": "Conectado ao Indelible",
+      "indelible_disconnected": "Desconectado do Indelible",
+      "wallet_connected": "Carteira conectada: {address}",
+      "wallet_disconnected": "Carteira desconectada",
+      "wallet_attach_failed": "Falha ao anexar carteira (lado Rust): {error}"
+    }
+  },
+  "nav": {
+    "nodes": "Nós",
+    "files": "Arquivos",
+    "wallet": "Carteira",
+    "settings": "Configurações"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} ativos",
+    "connecting": "Conectando",
+    "connecting_tooltip": "Conectando à rede Autonomi",
+    "connected": "Rede",
+    "connected_tooltip": "Conectado à rede Autonomi",
+    "offline": "Offline · Tentar novamente",
+    "offline_tooltip": "Falha na conexão — clique para tentar novamente",
+    "connect_wallet": "Conectar carteira"
+  },
+  "sidebar": {
+    "pre_release": "PRÉ-LANÇAMENTO",
+    "update_available": "Atualização disponível",
+    "update_pre_release_tag": "Pré-lançamento",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA TESTNET"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "close": "Fechar",
+    "download": "Baixar",
+    "start": "Iniciar",
+    "stop": "Parar",
+    "remove": "Remover",
+    "close_panel": "Fechar painel"
+  },
+  "nodes": {
+    "add_button": "+ Adicionar nós",
+    "start_all": "Iniciar todos",
+    "stop_all": "Parar todos",
+    "running_count": "{count} em execução",
+    "stopped_count": "{count} parados",
+    "errored_count": "{count} com erro",
+    "filter_placeholder": "Filtrar...",
+    "filter_aria_label": "Filtrar nós",
+    "starting_daemon": "Iniciando daemon de nós…",
+    "restarting_daemon": "Reiniciando daemon de nós…",
+    "nodes_keep_running": "Seus nós continuam em execução.",
+    "daemon_disconnected": "Não foi possível conectar ao daemon de nós",
+    "daemon_retrying": "Tentando novamente automaticamente…",
+    "empty_title": "Ainda sem nós",
+    "empty_hint": "Clique em \"+ Adicionar nós\" para começar",
+    "confirm_action": "Confirmar ação",
+    "remove_node_message": "Remover nó {id}? Isso excluirá todos os seus dados.",
+    "stop_all_message": "Parar todos os {count} nós em execução?",
+    "node_fallback_name": "Nó {id}",
+    "field": {
+      "node_id": "ID do nó",
+      "status": "Status",
+      "version": "Versão",
+      "pid": "PID",
+      "uptime": "Tempo ativo",
+      "storage": "Armazenamento",
+      "data_directory": "Diretório de dados",
+      "log_directory": "Diretório de log",
+      "port": "Porta",
+      "binary": "Binário",
+      "rewards_address": "Endereço de recompensas",
+      "status_aria": "Status: {status}"
+    },
+    "add_dialog": {
+      "title": "Adicionar nós",
+      "number_label": "Número de nós",
+      "range_hint": "Entre 1 e 50",
+      "no_earnings_warning": "Endereço de recebimento não configurado. Defina um na página da carteira antes de adicionar nós.",
+      "submit_one": "Adicionar 1 nó",
+      "submit_many": "Adicionar {count} nós"
+    },
+    "toast": {
+      "added": "{count} nó(s) adicionado(s)",
+      "add_failed": "Falha ao adicionar nós: {error}",
+      "started": "Nó {id} iniciado",
+      "start_failed": "Falha ao iniciar o nó {id}: {error}",
+      "stopped": "Nó {id} parado",
+      "stop_failed": "Falha ao parar o nó {id}: {error}",
+      "removed": "Nó {id} removido",
+      "remove_failed": "Falha ao remover o nó {id}: {error}",
+      "no_stopped": "Sem nós parados para iniciar",
+      "no_running": "Sem nós em execução para parar",
+      "node_failed": "Falha do nó {id}: {error}",
+      "started_count": "{count} nó(s) iniciado(s)",
+      "stopped_count": "{count} nó(s) parado(s)",
+      "start_all_failed": "Falha ao iniciar todos: {error}",
+      "stop_all_failed": "Falha ao parar todos: {error}"
+    }
+  },
+  "files": {
+    "upload_button": "Enviar arquivo(s)",
+    "estimate_button": "Estimar custo",
+    "download_by_address": "Baixar por endereço",
+    "download_by_datamap": "Baixar por Datamap",
+    "uploads_heading": "Uploads",
+    "downloads_heading": "Downloads",
+    "clear": "Limpar",
+    "drop_files": "Solte arquivos para enviar",
+    "uploads_empty_title": "Ainda sem uploads",
+    "uploads_empty_hint": "Arraste arquivos para cá, ou use os botões acima",
+    "downloads_empty_title": "Ainda sem downloads",
+    "downloads_empty_hint": "Use \"Baixar por endereço\" ou \"Baixar por Datamap\"",
+    "table": {
+      "name": "Nome",
+      "status": "Status",
+      "size": "Tamanho",
+      "cost": "Custo",
+      "date": "Data",
+      "address": "Endereço",
+      "saved_to": "Salvo em",
+      "actions": "Ações"
+    },
+    "row": {
+      "free_already_stored": "Gratuito — já armazenado",
+      "gas_suffix": "+ {gas} gas",
+      "public_badge": "Público",
+      "retry": "↻ Tentar novamente",
+      "public_tooltip": "Upload público — clique para copiar o endereço de rede compartilhável",
+      "reveal_datamap_tooltip": "Mostrar arquivo datamap no Finder/Explorer",
+      "copy_datamap_tooltip": "Copiar caminho do arquivo datamap",
+      "copy_address_tooltip": "Copiar endereço de rede",
+      "retry_tooltip": "Tentar upload novamente",
+      "remove_tooltip": "Remover da lista"
+    },
+    "stage": {
+      "encrypting": "Criptografando…",
+      "quoting_pct": "Cotando · {pct}%",
+      "quoting_indeterminate": "Cotando…",
+      "storing_pct": "Armazenando · {pct}%",
+      "storing_indeterminate": "Armazenando…",
+      "resolving_pct": "Resolvendo datamap · {pct}%",
+      "resolving_indeterminate": "Resolvendo datamap…",
+      "downloading_pct": "Baixando · {pct}%",
+      "downloading_indeterminate": "Baixando…"
+    },
+    "picker": {
+      "upload_title": "Selecione arquivos para enviar",
+      "datamap_title": "Selecione um arquivo datamap para baixar",
+      "estimate_title": "Selecione arquivos para estimar custo",
+      "datamap_filter": "Datamap"
+    },
+    "toast": {
+      "upload_requires_wallet": "O upload requer uma carteira",
+      "download_requires_network": "O download requer conexão de rede",
+      "open_folder_failed": "Não foi possível abrir a pasta",
+      "address_copied": "Endereço copiado para a área de transferência",
+      "public_address_copied": "Endereço público copiado — compartilhe para que outros possam baixar este arquivo",
+      "datamap_path_copied": "Caminho do datamap copiado para a área de transferência",
+      "already_stored_one": "1 arquivo já armazenado — salvando datamap",
+      "already_stored_many": "{count} arquivos já armazenados — salvando datamap",
+      "upload_complete": "Upload concluído: {name}",
+      "upload_failed": "Falha no upload: {name} — {error}",
+      "payment_failed": "Falha no pagamento: {error}",
+      "download_complete": "Download concluído: {name}",
+      "download_failed": "Falha no download: {name} — {error}",
+      "datamap_missing": "Não é possível baixar: arquivo datamap ausente ou ilegível",
+      "datamap_read_failed": "Não foi possível ler o datamap: {error}"
+    },
+    "error": {
+      "wallet_not_connected": "Carteira não conectada",
+      "not_connected_to_network": "Não conectado à rede"
+    },
+    "network": {
+      "unavailable": "Não conectado à rede Autonomi — estimativa de custo indisponível.",
+      "retry_connection": "Tentar conexão novamente",
+      "connecting": "Conectando à rede Autonomi…",
+      "obtaining_quote": "Obtendo cotação da rede…",
+      "obtaining_quotes": "Obtendo cotações da rede…"
+    },
+    "datamap_saveas": {
+      "title": "Salvar arquivo baixado como",
+      "filename_label": "Nome do arquivo",
+      "filename_placeholder": "myfile.dat"
+    },
+    "download_dialog": {
+      "title": "Baixar arquivo",
+      "address_label": "Endereço do arquivo",
+      "address_placeholder": "Endereço do arquivo (hex)",
+      "filename_label": "Salvar como",
+      "filename_placeholder": "myfile.dat"
+    },
+    "datamap_picker": {
+      "description": "Escolha um upload anterior para baixar novamente, ou procure um arquivo datamap recebido de outro lugar.",
+      "empty": "Ainda sem uploads anteriores com datamap salvo.",
+      "browse_button": "Procurar arquivo datamap…"
+    },
+    "cost_estimate": {
+      "title": "Estimativa de custo de upload",
+      "loading": "Estimando custo…",
+      "no_files": "Nenhum arquivo selecionado",
+      "footnote": "Custos consultados na rede Autonomi. Taxas de gas (ETH) são cobradas além dos custos de armazenamento."
+    },
+    "upload_confirm": {
+      "title": "Confirmar upload",
+      "info_banner": "Você pode fechar esta janela e voltar quando a cotação chegar. O upload permanece pendente até você aprovar ou cancelar.",
+      "already_stored_badge": "Já armazenado",
+      "payment_label": "Pagamento",
+      "payment_mixed": "Misto",
+      "payment_mixed_detail": "{regular} regular(es), {merkle} merkle — pago por arquivo.",
+      "payment_merkle": "Árvore Merkle",
+      "payment_regular": "Regular",
+      "payment_merkle_detail": "Única transação para {count} chunks — menor gas.",
+      "payment_regular_detail_one": "Pagamento em lote para 1 chunk.",
+      "payment_regular_detail_many": "Pagamento em lote para {count} chunks.",
+      "free_title": "Já armazenado na rede — gratuito",
+      "free_detail": "Todos os chunks já estão presentes. Nenhum ANT ou gas será gasto.",
+      "cost_label": "Custo de armazenamento na rede",
+      "gas_label": "Gas estimado",
+      "some_already_stored": "Alguns arquivos já estão armazenados — essa parte não custa nada.",
+      "visibility_label": "Visibilidade",
+      "visibility_private": "Privado",
+      "visibility_private_desc": "Criptografado e acessível apenas com seu data map. Apenas você pode recuperar o arquivo.",
+      "visibility_public": "Público",
+      "visibility_public_desc": "O data map é publicado na rede. Compartilhe um único endereço para que qualquer um possa recuperar o arquivo.",
+      "regular_footnote": "Estimado a partir de uma única cotação de rede — o custo final pode variar ligeiramente. Taxas de gas se aplicam por cima.",
+      "cancel_upload": "Cancelar upload",
+      "ready_count": "Prontos: {ready} de {total}",
+      "approve_button_one": "Aprovar upload",
+      "approve_button_many": "Aprovar {count} uploads"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "Endereço de recebimento",
+    "earnings_description": "Para onde os ganhos do seu nó são enviados",
+    "earnings_not_configured": "Não configurado",
+    "edit": "Editar",
+    "save": "Salvar",
+    "earnings_use_payment_prompt": "Usar o endereço da sua carteira conectada para recebimentos?",
+    "earnings_use_payment_button": "Usar {address}",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "Armazenamento gerenciado",
+    "managed_storage_org": "Armazenamento gerenciado por {org}",
+    "managed_storage_description": "Os uploads são roteados pelo gateway Indelible da sua organização. Nenhuma carteira local necessária.",
+    "payment_wallet_heading": "Carteira de pagamento",
+    "payment_optional_hint": "Opcional — necessário para uploads de arquivos",
+    "connect_prompt": "Conecte uma carteira para pagar pelo armazenamento de arquivos",
+    "network_arbitrum_sepolia": "Arbitrum Sepolia testnet",
+    "network_arbitrum_one": "Rede Arbitrum One necessária",
+    "import_key_hint": "Ou importe uma chave privada em {link}",
+    "import_key_hint_link_text": "Configurações > Avançado",
+    "address_label": "Endereço",
+    "eth_balance_label": "Saldo ETH",
+    "ant_balance_label": "Saldo ANT",
+    "usdc_balance_label": "Saldo USDC",
+    "refresh_balances": "Atualizar saldos",
+    "disconnect": "Desconectar",
+    "toast": {
+      "import_key_in_settings": "Importe uma chave privada em Configurações > Avançado",
+      "invalid_address": "Endereço inválido: deve ser 0x + 40 caracteres hex",
+      "earnings_saved": "Endereço de recebimento salvo",
+      "earnings_set_to_payment": "Endereço de recebimento definido para a carteira de pagamento",
+      "wallet_disconnected": "Carteira desconectada"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "Atualização disponível",
+      "version_ready": "v{version} pronta para instalar",
+      "pre_release_badge": "Pré-lançamento",
+      "download_size": "Tamanho do download: {size}",
+      "release_notes": "Notas da versão",
+      "no_release_notes": "Sem notas de versão para esta versão.",
+      "downloading": "Baixando…",
+      "download_complete": "Download bem-sucedido, o aplicativo será reiniciado em breve",
+      "auto_restart_hint": "O aplicativo reiniciará automaticamente ao concluir.",
+      "cancel_download": "Cancelar download",
+      "installing_tooltip": "Instalando — aguarde",
+      "not_now": "Agora não",
+      "update_restart": "Atualizar e reiniciar"
+    },
+    "toast": {
+      "install_no_restart": "Atualização para v{version} instalada, mas o aplicativo não reiniciou. Saia e abra novamente o Autonomi para concluir a atualização.",
+      "install_failed": "Falha na instalação da atualização: {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "O nome do arquivo não pode conter caracteres especiais",
+      "ends_with_dot_or_space": "O nome do arquivo não pode terminar com ponto ou espaço",
+      "reserved_on_windows": "Esse nome é reservado no Windows"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "Em execução",
+      "stopped": "Parado",
+      "starting": "Iniciando",
+      "stopping": "Parando",
+      "adding": "Adicionando…",
+      "errored": "Erro",
+      "upgrade_scheduled": "Atualizando"
+    },
+    "file": {
+      "pending": "Pendente",
+      "quoting": "Cotando",
+      "encrypting": "Criptografando…",
+      "resolving_datamap": "Resolvendo datamap",
+      "queued_quoting": "Na fila: cotando",
+      "queued_uploading": "Na fila: enviando",
+      "connecting_to_network": "Conectando à rede…",
+      "obtaining_quote": "Obtendo cotação…",
+      "saving_datamap": "Salvando datamap…",
+      "network_unavailable": "Rede indisponível",
+      "ready_to_approve": "Pronto para aprovar",
+      "awaiting_approval": "Aguardando aprovação",
+      "uploading": "Enviando",
+      "downloading": "Baixando",
+      "done": "Concluído",
+      "downloaded": "Baixado — clique para abrir"
+    }
+  },
+  "banners": {
+    "cjk_font_missing": {
+      "script_label": "日本語",
+      "message": "O texto em japonês pode não ser renderizado corretamente neste sistema. Para corrigir, instale as fontes Noto CJK e reinicie o aplicativo:",
+      "distro_arch": "Arch",
+      "distro_debian": "Debian / Ubuntu",
+      "distro_fedora": "Fedora",
+      "copy": "Copiar comando",
+      "copied": "Comando copiado para a área de transferência",
+      "dismiss": "Dispensar"
+    }
+  }
+}

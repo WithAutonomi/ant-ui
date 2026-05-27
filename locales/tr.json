@@ -1,0 +1,482 @@
+{
+  "_translator_notes": "Machine-translated baseline (Turkish). Community polish via PR welcome. Note: Turkish has no grammatical plural after numbers ('5 dosya' not '5 dosyalar'); _one and _many strings differ only in number context.",
+  "settings": {
+    "language": {
+      "label": "Dil",
+      "description": "Arayüz görüntüleme dili",
+      "system_default": "Sistem varsayılanı: {name}",
+      "system_default_pending": "Sistem varsayılanı"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "Yönetilen depolama ağ geçidine bağlı",
+      "subtitle_setup": "Yönetilen depolama için kendi barındırdığınız Indelible ağ geçidine bağlanın",
+      "connected_badge": "Bağlı",
+      "server_label": "Sunucu",
+      "signed_in_as": "Şu kullanıcı olarak oturum açık",
+      "disconnect": "Bağlantıyı kes",
+      "server_url_label": "Sunucu URL'si",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "API anahtarı",
+      "api_key_placeholder": "API jetonunuz",
+      "test_connect": "Test et ve bağlan",
+      "testing": "Test ediliyor…",
+      "configure": "Bağlantıyı yapılandır"
+    },
+    "storage": {
+      "title": "Depolama dizini",
+      "description": "Düğüm verilerinin diskte depolanacağı yer",
+      "default": "Varsayılan",
+      "browse": "Gözat",
+      "warning": "Yalnızca yeni eklenen düğümler için geçerlidir. Mevcut düğümler mevcut dizinlerini korur."
+    },
+    "downloads": {
+      "title": "İndirmeler dizini",
+      "description": "İndirilen dosyaların kaydedileceği yer",
+      "not_set": "Ayarlı değil",
+      "browse": "Gözat"
+    },
+    "alert": {
+      "title": "Uyarı sesi",
+      "description": "Kritik düğüm arızalarında ses çal",
+      "aria_toggle": "Uyarı sesini değiştir"
+    },
+    "theme": {
+      "title": "Açık mod",
+      "description": "Koyu ve açık temalar arasında geçiş yap",
+      "aria_toggle": "Açık modu değiştir"
+    },
+    "advanced": {
+      "hide": "▾ Gelişmişi gizle",
+      "show": "▸ Gelişmişi göster"
+    },
+    "daemon": {
+      "title": "Düğüm servisi",
+      "description": "Düğümlerinizi denetleyen arka plan servisini yeniden başlatın. Çalışan düğümleriniz çalışmaya devam eder — yalnızca denetleyici değiştirilir.",
+      "restart": "Servisi yeniden başlat",
+      "restarting": "Yeniden başlatılıyor…"
+    },
+    "concurrency": {
+      "title": "Yükleme eşzamanlılığı",
+      "description_1": "Aynı anda kaç teklif/yüklemenin çalışabileceğini kontrol eder.",
+      "description_2": "Bunun performans üzerinde çok büyük bir etkisi olduğunu unutmayın."
+    },
+    "prerelease": {
+      "title": "Ön sürüm yapıları",
+      "description": "Kararlı sürümlere ek olarak ön sürüm yapıları (rc / beta) için otomatik güncellemeler alın. Varsayılan olarak kapalı.",
+      "restart_required": "Bu değişikliği uygulamak için uygulamayı yeniden başlatın.",
+      "restart_now": "Şimdi yeniden başlat"
+    },
+    "direct_wallet": {
+      "title": "Doğrudan cüzdan",
+      "description": "Özel anahtarla bağlan (WalletConnect'i atlar)",
+      "connected_badge": "Bağlı",
+      "address_label": "Adres",
+      "disconnect": "Bağlantıyı kes",
+      "network_label": "Ağ",
+      "network_sepolia_option": "Arbitrum Sepolia (test ağı)",
+      "network_arbitrum_option": "Arbitrum One (ana ağ)",
+      "rpc_url_label": "RPC URL'si",
+      "rpc_url_optional": "(isteğe bağlı)",
+      "rpc_url_placeholder": "Seçilen zincir için genel RPC'ye varsayılan",
+      "private_key_label": "Özel anahtar",
+      "private_key_placeholder": "0x... veya ham hex",
+      "connect": "Bağlan",
+      "import_button": "Özel anahtarı içe aktar"
+    },
+    "diagnostics": {
+      "title": "Tanılama",
+      "summary": "{entries} günlük girdisi ({errors} hata)",
+      "copy_button": "Panoya kopyala",
+      "clear_button": "Temizle",
+      "empty": "Günlük girdisi yok",
+      "hide_log": "▾ Günlüğü gizle",
+      "show_log": "▸ Günlüğü göster"
+    },
+    "upload_history": {
+      "title": "Yükleme geçmişi",
+      "summary_one": "upload_history.json içinde {count} kalıcı girdi. Diskteki DataMaps ve ağdaki parçalar etkilenmez.",
+      "summary_many": "upload_history.json içinde {count} kalıcı girdi. Diskteki DataMaps ve ağdaki parçalar etkilenmez.",
+      "clear_button": "Geçmişi temizle",
+      "confirm_one": "Geçmişten 1 yükleme girdisi temizlensin mi?\n\nBu, yerel satırı ve kalıcı kaydı kaldırır. Diskteki DataMaps ve ağdaki parçalar etkilenmez.",
+      "confirm_many": "Geçmişten {count} yükleme girdisi temizlensin mi?\n\nBu, yerel satırları ve kalıcı kayıtları kaldırır. Diskteki DataMaps ve ağdaki parçalar etkilenmez."
+    },
+    "software": {
+      "title": "Yazılım",
+      "app_version_label": "Uygulama sürümü",
+      "node_version_label": "Düğüm sürümü",
+      "last_checked": "Son denetim {label}",
+      "check_button": "Güncellemeleri denetle",
+      "checking": "Denetleniyor…"
+    },
+    "about": {
+      "title": "Hakkında"
+    },
+    "relative_time": {
+      "just_now": "az önce",
+      "seconds_ago": "{n} sn önce",
+      "minutes_ago": "{n} dk önce",
+      "hours_ago": "{n} sa önce",
+      "days_ago": "{n} gün önce"
+    },
+    "picker": {
+      "storage_title": "Depolama dizinini seçin",
+      "downloads_title": "İndirmeler dizinini seçin"
+    },
+    "error": {
+      "private_key_invalid": "Geçersiz özel anahtar — 64 hex karakter olmalıdır",
+      "invalid_eth_address": "Geçersiz EVM adres biçimi"
+    },
+    "toast": {
+      "upload_history_cleared": "Yükleme geçmişi temizlendi",
+      "update_check_failed": "Güncelleme denetimi başarısız",
+      "update_available": "Güncelleme mevcut: v{version}",
+      "on_latest_version": "En son sürümdesiniz (v{version})",
+      "daemon_restarted": "Servis yeniden başlatıldı",
+      "daemon_restart_failed": "Servis yeniden başlatılamadı: {error}",
+      "storage_dir_updated": "Depolama dizini güncellendi",
+      "storage_dir_verified": "Depolama dizini doğrulandı",
+      "storage_dir_unwritable": "Bu klasör düğüm depolaması için kullanılamaz",
+      "select_directory_failed": "Dizin seçilemedi",
+      "downloads_dir_updated": "İndirmeler dizini güncellendi",
+      "earnings_updated": "Kazanç adresi güncellendi",
+      "daemon_url_updated": "Servis URL'si güncellendi",
+      "diagnostics_copied": "Tanılama panoya kopyalandı",
+      "diagnostics_copy_failed": "Panoya kopyalanamadı",
+      "log_cleared": "Günlük temizlendi",
+      "indelible_connected": "Indelible'a bağlanıldı",
+      "indelible_disconnected": "Indelible bağlantısı kesildi",
+      "wallet_connected": "Cüzdan bağlandı: {address}",
+      "wallet_disconnected": "Cüzdan bağlantısı kesildi",
+      "wallet_attach_failed": "Cüzdan ekleme (Rust tarafı) başarısız: {error}"
+    }
+  },
+  "nav": {
+    "nodes": "Düğümler",
+    "files": "Dosyalar",
+    "wallet": "Cüzdan",
+    "settings": "Ayarlar"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} etkin",
+    "connecting": "Bağlanıyor",
+    "connecting_tooltip": "Autonomi ağına bağlanıyor",
+    "connected": "Ağ",
+    "connected_tooltip": "Autonomi ağına bağlı",
+    "offline": "Çevrimdışı · Yeniden dene",
+    "offline_tooltip": "Bağlantı başarısız — yeniden denemek için tıklayın",
+    "connect_wallet": "Cüzdanı bağla"
+  },
+  "sidebar": {
+    "pre_release": "ÖN SÜRÜM",
+    "update_available": "Güncelleme mevcut",
+    "update_pre_release_tag": "Ön sürüm",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA TESTNET"
+  },
+  "common": {
+    "cancel": "İptal",
+    "confirm": "Onayla",
+    "close": "Kapat",
+    "download": "İndir",
+    "start": "Başlat",
+    "stop": "Durdur",
+    "remove": "Kaldır",
+    "close_panel": "Paneli kapat"
+  },
+  "nodes": {
+    "add_button": "+ Düğüm ekle",
+    "start_all": "Tümünü başlat",
+    "stop_all": "Tümünü durdur",
+    "running_count": "{count} çalışıyor",
+    "stopped_count": "{count} durdu",
+    "errored_count": "{count} hatalı",
+    "filter_placeholder": "Filtrele...",
+    "filter_aria_label": "Düğümleri filtrele",
+    "starting_daemon": "Düğüm servisi başlatılıyor…",
+    "restarting_daemon": "Düğüm servisi yeniden başlatılıyor…",
+    "nodes_keep_running": "Düğümleriniz çalışmaya devam ediyor.",
+    "daemon_disconnected": "Düğüm servisine bağlanılamıyor",
+    "daemon_retrying": "Otomatik olarak yeniden deneniyor…",
+    "empty_title": "Henüz düğüm yok",
+    "empty_hint": "Başlamak için \"+ Düğüm ekle\"ye tıklayın",
+    "confirm_action": "İşlemi onayla",
+    "remove_node_message": "{id} düğümü kaldırılsın mı? Bu, tüm verilerini siler.",
+    "stop_all_message": "Çalışan {count} düğümün tümü durdurulsun mu?",
+    "node_fallback_name": "Düğüm {id}",
+    "field": {
+      "node_id": "Düğüm Kimliği",
+      "status": "Durum",
+      "version": "Sürüm",
+      "pid": "PID",
+      "uptime": "Çalışma süresi",
+      "storage": "Depolama",
+      "data_directory": "Veri dizini",
+      "log_directory": "Günlük dizini",
+      "port": "Port",
+      "binary": "İkili dosya",
+      "rewards_address": "Ödül adresi",
+      "status_aria": "Durum: {status}"
+    },
+    "add_dialog": {
+      "title": "Düğüm ekle",
+      "number_label": "Düğüm sayısı",
+      "range_hint": "1 ile 50 arasında",
+      "no_earnings_warning": "Kazanç adresi yapılandırılmadı. Düğüm eklemeden önce Cüzdan sayfasında bir tane ayarlayın.",
+      "submit_one": "1 düğüm ekle",
+      "submit_many": "{count} düğüm ekle"
+    },
+    "toast": {
+      "added": "{count} düğüm eklendi",
+      "add_failed": "Düğüm eklenemedi: {error}",
+      "started": "{id} düğümü başlatıldı",
+      "start_failed": "{id} düğümü başlatılamadı: {error}",
+      "stopped": "{id} düğümü durduruldu",
+      "stop_failed": "{id} düğümü durdurulamadı: {error}",
+      "removed": "{id} düğümü kaldırıldı",
+      "remove_failed": "{id} düğümü kaldırılamadı: {error}",
+      "no_stopped": "Başlatılacak durmuş düğüm yok",
+      "no_running": "Durdurulacak çalışan düğüm yok",
+      "node_failed": "{id} düğümü başarısız oldu: {error}",
+      "started_count": "{count} düğüm başlatıldı",
+      "stopped_count": "{count} düğüm durduruldu",
+      "start_all_failed": "Tümü başlatılamadı: {error}",
+      "stop_all_failed": "Tümü durdurulamadı: {error}"
+    }
+  },
+  "files": {
+    "upload_button": "Dosya yükle",
+    "estimate_button": "Maliyeti tahmin et",
+    "download_by_address": "Adrese göre indir",
+    "download_by_datamap": "Datamap'e göre indir",
+    "uploads_heading": "Yüklemeler",
+    "downloads_heading": "İndirmeler",
+    "clear": "Temizle",
+    "drop_files": "Yüklemek için dosyaları bırakın",
+    "uploads_empty_title": "Henüz yükleme yok",
+    "uploads_empty_hint": "Dosyaları buraya sürükleyin veya yukarıdaki düğmeleri kullanın",
+    "downloads_empty_title": "Henüz indirme yok",
+    "downloads_empty_hint": "\"Adrese göre indir\" veya \"Datamap'e göre indir\" kullanın",
+    "table": {
+      "name": "Ad",
+      "status": "Durum",
+      "size": "Boyut",
+      "cost": "Maliyet",
+      "date": "Tarih",
+      "address": "Adres",
+      "saved_to": "Kaydedildi",
+      "actions": "Eylemler"
+    },
+    "row": {
+      "free_already_stored": "Ücretsiz — zaten depolanmış",
+      "gas_suffix": "+ {gas} gas",
+      "public_badge": "Genel",
+      "retry": "↻ Yeniden dene",
+      "public_tooltip": "Genel yükleme — paylaşılabilir ağ adresini kopyalamak için tıklayın",
+      "reveal_datamap_tooltip": "datamap dosyasını Finder/Explorer'da göster",
+      "copy_datamap_tooltip": "datamap dosya yolunu kopyala",
+      "copy_address_tooltip": "Ağ adresini kopyala",
+      "retry_tooltip": "Yüklemeyi yeniden dene",
+      "remove_tooltip": "Listeden kaldır"
+    },
+    "stage": {
+      "encrypting": "Şifreleniyor…",
+      "quoting_pct": "Teklif alınıyor · {pct}%",
+      "quoting_indeterminate": "Teklif alınıyor…",
+      "storing_pct": "Depolanıyor · {pct}%",
+      "storing_indeterminate": "Depolanıyor…",
+      "resolving_pct": "datamap çözülüyor · {pct}%",
+      "resolving_indeterminate": "datamap çözülüyor…",
+      "downloading_pct": "İndiriliyor · {pct}%",
+      "downloading_indeterminate": "İndiriliyor…"
+    },
+    "picker": {
+      "upload_title": "Yüklenecek dosyaları seçin",
+      "datamap_title": "İndirilecek datamap dosyasını seçin",
+      "estimate_title": "Maliyet tahmini için dosyaları seçin",
+      "datamap_filter": "Datamap"
+    },
+    "toast": {
+      "upload_requires_wallet": "Yükleme bir cüzdan gerektirir",
+      "download_requires_network": "İndirme ağ bağlantısı gerektirir",
+      "open_folder_failed": "Klasör açılamadı",
+      "address_copied": "Adres panoya kopyalandı",
+      "public_address_copied": "Genel adres kopyalandı — başkalarının bu dosyayı indirebilmesi için paylaşın",
+      "datamap_path_copied": "datamap yolu panoya kopyalandı",
+      "already_stored_one": "1 dosya zaten depolanmış — datamap kaydediliyor",
+      "already_stored_many": "{count} dosya zaten depolanmış — datamap kaydediliyor",
+      "upload_complete": "Yükleme tamamlandı: {name}",
+      "upload_failed": "Yükleme başarısız: {name} — {error}",
+      "payment_failed": "Ödeme başarısız: {error}",
+      "download_complete": "İndirme tamamlandı: {name}",
+      "download_failed": "İndirme başarısız: {name} — {error}",
+      "datamap_missing": "İndirilemiyor: datamap dosyası eksik veya okunamıyor",
+      "datamap_read_failed": "datamap okunamadı: {error}"
+    },
+    "error": {
+      "wallet_not_connected": "Cüzdan bağlı değil",
+      "not_connected_to_network": "Ağa bağlı değil"
+    },
+    "network": {
+      "unavailable": "Autonomi ağına bağlı değil — maliyet tahmini kullanılamıyor.",
+      "retry_connection": "Bağlantıyı yeniden dene",
+      "connecting": "Autonomi ağına bağlanılıyor…",
+      "obtaining_quote": "Ağdan teklif alınıyor…",
+      "obtaining_quotes": "Ağdan teklifler alınıyor…"
+    },
+    "datamap_saveas": {
+      "title": "İndirilen dosyayı farklı kaydet",
+      "filename_label": "Dosya adı",
+      "filename_placeholder": "myfile.dat"
+    },
+    "download_dialog": {
+      "title": "Dosyayı indir",
+      "address_label": "Dosya adresi",
+      "address_placeholder": "Dosya adresi (hex)",
+      "filename_label": "Farklı kaydet",
+      "filename_placeholder": "myfile.dat"
+    },
+    "datamap_picker": {
+      "description": "Yeniden indirmek için önceki bir yüklemeyi seçin veya başka yerden aldığınız bir datamap dosyasını arayın.",
+      "empty": "Henüz kayıtlı datamap'li önceki yükleme yok.",
+      "browse_button": "datamap dosyasını ara…"
+    },
+    "cost_estimate": {
+      "title": "Yükleme maliyeti tahmini",
+      "loading": "Maliyet tahmin ediliyor…",
+      "no_files": "Dosya seçilmedi",
+      "footnote": "Maliyetler Autonomi ağından sorgulandı. Depolama maliyetlerine ek olarak gas ücretleri (ETH) uygulanır."
+    },
+    "upload_confirm": {
+      "title": "Yüklemeyi onayla",
+      "info_banner": "Bu pencereyi kapatıp teklif geldiğinde dönebilirsiniz. Yükleme, siz onaylayana veya iptal edene kadar bekleyen durumda kalır.",
+      "already_stored_badge": "Zaten depolanmış",
+      "payment_label": "Ödeme",
+      "payment_mixed": "Karışık",
+      "payment_mixed_detail": "{regular} normal, {merkle} merkle — dosya başına ödenir.",
+      "payment_merkle": "Merkle ağacı",
+      "payment_regular": "Normal",
+      "payment_merkle_detail": "{count} parça için tek işlem — daha düşük gas.",
+      "payment_regular_detail_one": "1 parça için toplu ödeme.",
+      "payment_regular_detail_many": "{count} parça için toplu ödeme.",
+      "free_title": "Ağda zaten depolanmış — ücretsiz",
+      "free_detail": "Her parça zaten mevcut. ANT veya gas harcanmayacak.",
+      "cost_label": "Ağ depolama maliyeti",
+      "gas_label": "Tahmini gas",
+      "some_already_stored": "Bazı dosyalar zaten depolanmış — o kısım için ücret alınmaz.",
+      "visibility_label": "Görünürlük",
+      "visibility_private": "Özel",
+      "visibility_private_desc": "Şifreli ve yalnızca veri haritanızla erişilebilir. Dosyayı yalnızca siz alabilirsiniz.",
+      "visibility_public": "Genel",
+      "visibility_public_desc": "Veri haritası ağa yayınlanır. Herkesin dosyayı alabilmesi için tek bir adres paylaşın.",
+      "regular_footnote": "Tek bir ağ teklifinden tahmin edildi — son maliyet biraz farklı olabilir. Gas ücretleri ek olarak uygulanır.",
+      "cancel_upload": "Yüklemeyi iptal et",
+      "ready_count": "Hazır: {total} içinden {ready}",
+      "approve_button_one": "Yüklemeyi onayla",
+      "approve_button_many": "{count} yüklemeyi onayla"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "Kazanç adresi",
+    "earnings_description": "Düğüm kazançlarınızın gönderileceği yer",
+    "earnings_not_configured": "Yapılandırılmadı",
+    "edit": "Düzenle",
+    "save": "Kaydet",
+    "earnings_use_payment_prompt": "Kazançlar için bağlı cüzdan adresinizi kullanmak ister misiniz?",
+    "earnings_use_payment_button": "{address} kullan",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "Yönetilen depolama",
+    "managed_storage_org": "Depolama {org} tarafından yönetiliyor",
+    "managed_storage_description": "Yüklemeler, kuruluşunuzun Indelible ağ geçidi üzerinden yönlendirilir. Yerel cüzdan gerekmez.",
+    "payment_wallet_heading": "Ödeme cüzdanı",
+    "payment_optional_hint": "İsteğe bağlı — dosya yüklemeleri için gerekli",
+    "connect_prompt": "Dosya depolaması için ödeme yapmak üzere bir cüzdan bağlayın",
+    "network_arbitrum_sepolia": "Arbitrum Sepolia testnet",
+    "network_arbitrum_one": "Arbitrum One ağı gerekli",
+    "import_key_hint": "Veya {link} üzerinden özel anahtar içe aktarın",
+    "import_key_hint_link_text": "Ayarlar > Gelişmiş",
+    "address_label": "Adres",
+    "eth_balance_label": "ETH bakiyesi",
+    "ant_balance_label": "ANT bakiyesi",
+    "usdc_balance_label": "USDC bakiyesi",
+    "refresh_balances": "Bakiyeleri yenile",
+    "disconnect": "Bağlantıyı kes",
+    "toast": {
+      "import_key_in_settings": "Ayarlar > Gelişmiş'te özel anahtar içe aktarın",
+      "invalid_address": "Geçersiz adres: 0x + 40 hex karakter olmalıdır",
+      "earnings_saved": "Kazanç adresi kaydedildi",
+      "earnings_set_to_payment": "Kazanç adresi ödeme cüzdanına ayarlandı",
+      "wallet_disconnected": "Cüzdan bağlantısı kesildi"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "Güncelleme mevcut",
+      "version_ready": "v{version} yüklemeye hazır",
+      "pre_release_badge": "Ön sürüm",
+      "download_size": "İndirme boyutu: {size}",
+      "release_notes": "Sürüm notları",
+      "no_release_notes": "Bu sürüm için sürüm notu yok.",
+      "downloading": "İndiriliyor…",
+      "download_complete": "İndirme başarılı, uygulama yakında yeniden başlatılacak",
+      "auto_restart_hint": "Tamamlandığında uygulama otomatik olarak yeniden başlatılır.",
+      "cancel_download": "İndirmeyi iptal et",
+      "installing_tooltip": "Yükleniyor — lütfen bekleyin",
+      "not_now": "Şimdi değil",
+      "update_restart": "Güncelle ve yeniden başlat"
+    },
+    "toast": {
+      "install_no_restart": "v{version} güncellemesi yüklendi ancak uygulama yeniden başlatılmadı. Güncellemeyi tamamlamak için Autonomi'den çıkıp yeniden açın.",
+      "install_failed": "Güncelleme yüklemesi başarısız: {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "Dosya adı özel karakter içeremez",
+      "ends_with_dot_or_space": "Dosya adı nokta veya boşlukla bitemez",
+      "reserved_on_windows": "Bu ad Windows'ta ayrılmıştır"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "Çalışıyor",
+      "stopped": "Durduruldu",
+      "starting": "Başlatılıyor",
+      "stopping": "Durduruluyor",
+      "adding": "Ekleniyor…",
+      "errored": "Hata",
+      "upgrade_scheduled": "Yükseltiliyor"
+    },
+    "file": {
+      "pending": "Beklemede",
+      "quoting": "Teklif alınıyor",
+      "encrypting": "Şifreleniyor…",
+      "resolving_datamap": "datamap çözülüyor",
+      "queued_quoting": "Sırada: teklif",
+      "queued_uploading": "Sırada: yükleme",
+      "connecting_to_network": "Ağa bağlanılıyor…",
+      "obtaining_quote": "Teklif alınıyor…",
+      "saving_datamap": "datamap kaydediliyor…",
+      "network_unavailable": "Ağ kullanılamıyor",
+      "ready_to_approve": "Onaylamaya hazır",
+      "awaiting_approval": "Onay bekleniyor",
+      "uploading": "Yükleniyor",
+      "downloading": "İndiriliyor",
+      "done": "Tamamlandı",
+      "downloaded": "İndirildi — açmak için tıklayın"
+    }
+  },
+  "banners": {
+    "cjk_font_missing": {
+      "script_label": "日本語",
+      "message": "Japonca metin bu sistemde doğru görüntülenmeyebilir. Düzeltmek için Noto CJK yazı tiplerini yükleyin ve uygulamayı yeniden başlatın:",
+      "distro_arch": "Arch",
+      "distro_debian": "Debian / Ubuntu",
+      "distro_fedora": "Fedora",
+      "copy": "Komutu kopyala",
+      "copied": "Komut panoya kopyalandı",
+      "dismiss": "Kapat"
+    }
+  }
+}

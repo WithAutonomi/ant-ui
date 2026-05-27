@@ -131,6 +131,15 @@
         <option value="es">Español</option>
         <option value="ar">العربية</option>
         <option value="he">עברית</option>
+        <option value="ru">Русский</option>
+        <option value="uk">Українська</option>
+        <option value="zh-CN">简体中文</option>
+        <option value="zh-TW">繁體中文</option>
+        <option value="pt-BR">Português (Brasil)</option>
+        <option value="tr">Türkçe</option>
+        <option value="vi">Tiếng Việt</option>
+        <option value="id">Bahasa Indonesia</option>
+        <option value="de">Deutsch</option>
       </select>
     </div>
 
