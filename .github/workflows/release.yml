@@ -13,9 +13,11 @@ on:
 env:
   CARGO_TERM_COLOR: always
   # Opt JS-based actions onto Node 24 ahead of the 2026-06-02 forced-default
-  # switch. Without this, `actions/upload-artifact@v5`, `actions/download-artifact@v5`,
-  # and `digicert/ssm-code-signing@v1.2.1` emit deprecation warnings on every
-  # run and would break outright after Node 20 is removed on 2026-09-16.
+  # switch (Node 20 fully removed on 2026-09-16). All actions/* are now on
+  # Node-24-native manifests (checkout@v6, setup-node@v6, upload-artifact@v7,
+  # download-artifact@v8); the override remains load-bearing for
+  # `digicert/ssm-code-signing@v1.2.1`, which still declares `using: node20`
+  # in its manifest. Remove once digicert ships a Node-24-native release.
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
@@ -51,7 +53,7 @@ jobs:
       ant_tag: ${{ steps.resolve.outputs.ant_tag }}
       ant_version: ${{ steps.resolve.outputs.ant_version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: resolve version
         id: resolve
@@ -94,9 +96,9 @@ jobs:
             args: "--target x86_64-apple-darwin"
             slug: macos-x86_64
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: lts/*
           cache: npm
@@ -309,7 +311,7 @@ jobs:
           ls -l "$stage"
 
       - name: upload release assets
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: release-assets-${{ matrix.slug }}
           path: release-assets/
@@ -332,9 +334,9 @@ jobs:
       SM_LOG_LEVEL: trace
       SM_LOG_FILE: ${{ github.workspace }}\smctl-signing.log
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: lts/*
           cache: npm
@@ -518,7 +520,7 @@ jobs:
           ls -l "$stage"
 
       - name: upload release assets
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: release-assets-windows
           path: release-assets/
@@ -527,7 +529,7 @@ jobs:
 
       - name: upload signing logs on failure
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: signing-logs
           path: ${{ github.workspace }}\smctl-signing.log
@@ -539,7 +541,7 @@ jobs:
     needs: [release-meta, build-linux-macos, build-windows]
     steps:
       - name: download all build artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           # Download every artifact uploaded by the build jobs
           # (release-assets-linux, release-assets-macos-aarch64,
