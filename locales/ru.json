@@ -1,0 +1,482 @@
+{
+  "_translator_notes": "Machine-translated baseline. Community polish via PR welcome. Note: Russian has 3 plural forms (one/few/many); the project's _one/_many convention only covers two — count: 2-4 may be grammatically off (paucal form). See V2-378 for the cross-locale plural-forms tracker.",
+  "settings": {
+    "language": {
+      "label": "Язык",
+      "description": "Язык интерфейса",
+      "system_default": "Системный по умолчанию: {name}",
+      "system_default_pending": "Системный по умолчанию"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "Подключено к управляемому хранилищу",
+      "subtitle_setup": "Подключитесь к самостоятельно размещённому шлюзу Indelible для управляемого хранилища",
+      "connected_badge": "Подключено",
+      "server_label": "Сервер",
+      "signed_in_as": "Вход выполнен как",
+      "disconnect": "Отключиться",
+      "server_url_label": "URL сервера",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "Ключ API",
+      "api_key_placeholder": "Ваш токен API",
+      "test_connect": "Проверить и подключить",
+      "testing": "Проверка…",
+      "configure": "Настроить подключение"
+    },
+    "storage": {
+      "title": "Каталог хранения",
+      "description": "Где хранятся данные узла на диске",
+      "default": "По умолчанию",
+      "browse": "Обзор",
+      "warning": "Применяется только к вновь добавленным узлам. Существующие узлы сохраняют текущий каталог."
+    },
+    "downloads": {
+      "title": "Каталог загрузок",
+      "description": "Куда сохраняются загруженные файлы",
+      "not_set": "Не задан",
+      "browse": "Обзор"
+    },
+    "alert": {
+      "title": "Звук уведомления",
+      "description": "Воспроизводить звук при критических сбоях узла",
+      "aria_toggle": "Переключить звук уведомления"
+    },
+    "theme": {
+      "title": "Светлая тема",
+      "description": "Переключение между светлой и тёмной темой",
+      "aria_toggle": "Переключить светлую тему"
+    },
+    "advanced": {
+      "hide": "▾ Скрыть расширенные",
+      "show": "▸ Показать расширенные"
+    },
+    "daemon": {
+      "title": "Демон узлов",
+      "description": "Перезапустить фоновую службу, которая управляет вашими узлами. Запущенные узлы продолжат работу — заменяется только супервизор.",
+      "restart": "Перезапустить демон",
+      "restarting": "Перезапуск…"
+    },
+    "concurrency": {
+      "title": "Параллельность загрузки",
+      "description_1": "Управляет тем, сколько котировок/загрузок могут выполняться одновременно.",
+      "description_2": "Обратите внимание, что это сильно влияет на производительность."
+    },
+    "prerelease": {
+      "title": "Предварительные сборки",
+      "description": "Получать авто-обновления для предварительных сборок (rc / beta) в дополнение к стабильным выпускам. По умолчанию выключено.",
+      "restart_required": "Перезапустите приложение, чтобы применить изменение.",
+      "restart_now": "Перезапустить сейчас"
+    },
+    "direct_wallet": {
+      "title": "Прямой кошелёк",
+      "description": "Подключение с приватным ключом (обходит WalletConnect)",
+      "connected_badge": "Подключено",
+      "address_label": "Адрес",
+      "disconnect": "Отключиться",
+      "network_label": "Сеть",
+      "network_sepolia_option": "Arbitrum Sepolia (тестовая сеть)",
+      "network_arbitrum_option": "Arbitrum One (основная сеть)",
+      "rpc_url_label": "URL RPC",
+      "rpc_url_optional": "(необязательно)",
+      "rpc_url_placeholder": "По умолчанию публичный RPC для выбранной сети",
+      "private_key_label": "Приватный ключ",
+      "private_key_placeholder": "0x... или сырой hex",
+      "connect": "Подключить",
+      "import_button": "Импортировать приватный ключ"
+    },
+    "diagnostics": {
+      "title": "Диагностика",
+      "summary": "{entries} записей журнала ({errors} ошибок)",
+      "copy_button": "Скопировать в буфер обмена",
+      "clear_button": "Очистить",
+      "empty": "Нет записей журнала",
+      "hide_log": "▾ Скрыть журнал",
+      "show_log": "▸ Показать журнал"
+    },
+    "upload_history": {
+      "title": "История загрузок",
+      "summary_one": "{count} запись в upload_history.json. DataMaps на диске и фрагменты в сети не затронуты.",
+      "summary_many": "{count} записей в upload_history.json. DataMaps на диске и фрагменты в сети не затронуты.",
+      "clear_button": "Очистить историю",
+      "confirm_one": "Удалить 1 запись загрузки из истории?\n\nЭто удалит локальную строку + сохранённую запись. Файлы DataMaps на диске и фрагменты в сети не затрагиваются.",
+      "confirm_many": "Удалить {count} записей загрузки из истории?\n\nЭто удалит локальные строки + сохранённые записи. Файлы DataMaps на диске и фрагменты в сети не затрагиваются."
+    },
+    "software": {
+      "title": "Программное обеспечение",
+      "app_version_label": "Версия приложения",
+      "node_version_label": "Версия узла",
+      "last_checked": "Последняя проверка {label}",
+      "check_button": "Проверить обновления",
+      "checking": "Проверка…"
+    },
+    "about": {
+      "title": "О программе"
+    },
+    "relative_time": {
+      "just_now": "только что",
+      "seconds_ago": "{n} с назад",
+      "minutes_ago": "{n} мин назад",
+      "hours_ago": "{n} ч назад",
+      "days_ago": "{n} дн назад"
+    },
+    "picker": {
+      "storage_title": "Выберите каталог хранения",
+      "downloads_title": "Выберите каталог загрузок"
+    },
+    "error": {
+      "private_key_invalid": "Недопустимый приватный ключ — должен содержать 64 hex-символа",
+      "invalid_eth_address": "Неверный формат адреса EVM"
+    },
+    "toast": {
+      "upload_history_cleared": "История загрузок очищена",
+      "update_check_failed": "Не удалось проверить обновление",
+      "update_available": "Доступно обновление: v{version}",
+      "on_latest_version": "У вас последняя версия (v{version})",
+      "daemon_restarted": "Демон перезапущен",
+      "daemon_restart_failed": "Не удалось перезапустить демон: {error}",
+      "storage_dir_updated": "Каталог хранения обновлён",
+      "storage_dir_verified": "Каталог хранения проверен",
+      "storage_dir_unwritable": "Невозможно использовать эту папку для хранения узлов",
+      "select_directory_failed": "Не удалось выбрать каталог",
+      "downloads_dir_updated": "Каталог загрузок обновлён",
+      "earnings_updated": "Адрес для вознаграждений обновлён",
+      "daemon_url_updated": "URL демона обновлён",
+      "diagnostics_copied": "Диагностика скопирована в буфер обмена",
+      "diagnostics_copy_failed": "Не удалось скопировать в буфер обмена",
+      "log_cleared": "Журнал очищен",
+      "indelible_connected": "Подключено к Indelible",
+      "indelible_disconnected": "Отключено от Indelible",
+      "wallet_connected": "Кошелёк подключён: {address}",
+      "wallet_disconnected": "Кошелёк отключён",
+      "wallet_attach_failed": "Не удалось присоединить кошелёк (сторона Rust): {error}"
+    }
+  },
+  "nav": {
+    "nodes": "Узлы",
+    "files": "Файлы",
+    "wallet": "Кошелёк",
+    "settings": "Настройки"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} активных",
+    "connecting": "Подключение",
+    "connecting_tooltip": "Подключение к сети Autonomi",
+    "connected": "Сеть",
+    "connected_tooltip": "Подключено к сети Autonomi",
+    "offline": "Не в сети · Повторить",
+    "offline_tooltip": "Сбой подключения — нажмите для повтора",
+    "connect_wallet": "Подключить кошелёк"
+  },
+  "sidebar": {
+    "pre_release": "ПРЕДВАРИТЕЛЬНАЯ",
+    "update_available": "Доступно обновление",
+    "update_pre_release_tag": "Предварительная",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA TESTNET"
+  },
+  "common": {
+    "cancel": "Отмена",
+    "confirm": "Подтвердить",
+    "close": "Закрыть",
+    "download": "Загрузить",
+    "start": "Запустить",
+    "stop": "Остановить",
+    "remove": "Удалить",
+    "close_panel": "Закрыть панель"
+  },
+  "nodes": {
+    "add_button": "+ Добавить узлы",
+    "start_all": "Запустить все",
+    "stop_all": "Остановить все",
+    "running_count": "{count} запущено",
+    "stopped_count": "{count} остановлено",
+    "errored_count": "{count} с ошибкой",
+    "filter_placeholder": "Фильтр...",
+    "filter_aria_label": "Фильтр узлов",
+    "starting_daemon": "Запуск демона узлов…",
+    "restarting_daemon": "Перезапуск демона узлов…",
+    "nodes_keep_running": "Ваши узлы продолжают работу.",
+    "daemon_disconnected": "Не удаётся подключиться к демону узлов",
+    "daemon_retrying": "Автоматический повтор…",
+    "empty_title": "Узлов пока нет",
+    "empty_hint": "Нажмите \"+ Добавить узлы\", чтобы начать",
+    "confirm_action": "Подтвердите действие",
+    "remove_node_message": "Удалить узел {id}? Это удалит все его данные.",
+    "stop_all_message": "Остановить все {count} запущенных узлов?",
+    "node_fallback_name": "Узел {id}",
+    "field": {
+      "node_id": "ID узла",
+      "status": "Статус",
+      "version": "Версия",
+      "pid": "PID",
+      "uptime": "Время работы",
+      "storage": "Хранилище",
+      "data_directory": "Каталог данных",
+      "log_directory": "Каталог журнала",
+      "port": "Порт",
+      "binary": "Бинарный файл",
+      "rewards_address": "Адрес вознаграждений",
+      "status_aria": "Статус: {status}"
+    },
+    "add_dialog": {
+      "title": "Добавить узлы",
+      "number_label": "Количество узлов",
+      "range_hint": "От 1 до 50",
+      "no_earnings_warning": "Адрес для вознаграждений не настроен. Задайте его на странице кошелька перед добавлением узлов.",
+      "submit_one": "Добавить 1 узел",
+      "submit_many": "Добавить {count} узлов"
+    },
+    "toast": {
+      "added": "Добавлено узлов: {count}",
+      "add_failed": "Не удалось добавить узлы: {error}",
+      "started": "Узел {id} запущен",
+      "start_failed": "Не удалось запустить узел {id}: {error}",
+      "stopped": "Узел {id} остановлен",
+      "stop_failed": "Не удалось остановить узел {id}: {error}",
+      "removed": "Узел {id} удалён",
+      "remove_failed": "Не удалось удалить узел {id}: {error}",
+      "no_stopped": "Нет остановленных узлов для запуска",
+      "no_running": "Нет запущенных узлов для остановки",
+      "node_failed": "Сбой узла {id}: {error}",
+      "started_count": "Запущено узлов: {count}",
+      "stopped_count": "Остановлено узлов: {count}",
+      "start_all_failed": "Не удалось запустить все: {error}",
+      "stop_all_failed": "Не удалось остановить все: {error}"
+    }
+  },
+  "files": {
+    "upload_button": "Загрузить файл(ы)",
+    "estimate_button": "Оценить стоимость",
+    "download_by_address": "Скачать по адресу",
+    "download_by_datamap": "Скачать по Datamap",
+    "uploads_heading": "Загрузки",
+    "downloads_heading": "Скачивания",
+    "clear": "Очистить",
+    "drop_files": "Перетащите файлы для загрузки",
+    "uploads_empty_title": "Загрузок пока нет",
+    "uploads_empty_hint": "Перетащите файлы сюда или используйте кнопки выше",
+    "downloads_empty_title": "Скачиваний пока нет",
+    "downloads_empty_hint": "Используйте \"Скачать по адресу\" или \"Скачать по Datamap\"",
+    "table": {
+      "name": "Имя",
+      "status": "Статус",
+      "size": "Размер",
+      "cost": "Стоимость",
+      "date": "Дата",
+      "address": "Адрес",
+      "saved_to": "Сохранено в",
+      "actions": "Действия"
+    },
+    "row": {
+      "free_already_stored": "Бесплатно — уже сохранён",
+      "gas_suffix": "+ {gas} газа",
+      "public_badge": "Публичный",
+      "retry": "↻ Повторить",
+      "public_tooltip": "Публичная загрузка — нажмите, чтобы скопировать общий сетевой адрес",
+      "reveal_datamap_tooltip": "Показать файл datamap в Finder/Explorer",
+      "copy_datamap_tooltip": "Скопировать путь к файлу datamap",
+      "copy_address_tooltip": "Скопировать сетевой адрес",
+      "retry_tooltip": "Повторить загрузку",
+      "remove_tooltip": "Удалить из списка"
+    },
+    "stage": {
+      "encrypting": "Шифрование…",
+      "quoting_pct": "Котировка · {pct}%",
+      "quoting_indeterminate": "Котировка…",
+      "storing_pct": "Сохранение · {pct}%",
+      "storing_indeterminate": "Сохранение…",
+      "resolving_pct": "Разрешение datamap · {pct}%",
+      "resolving_indeterminate": "Разрешение datamap…",
+      "downloading_pct": "Скачивание · {pct}%",
+      "downloading_indeterminate": "Скачивание…"
+    },
+    "picker": {
+      "upload_title": "Выберите файлы для загрузки",
+      "datamap_title": "Выберите файл datamap для скачивания",
+      "estimate_title": "Выберите файлы для оценки стоимости",
+      "datamap_filter": "Datamap"
+    },
+    "toast": {
+      "upload_requires_wallet": "Для загрузки требуется кошелёк",
+      "download_requires_network": "Для скачивания требуется подключение к сети",
+      "open_folder_failed": "Не удалось открыть папку",
+      "address_copied": "Адрес скопирован в буфер обмена",
+      "public_address_copied": "Публичный адрес скопирован — поделитесь, чтобы другие могли скачать этот файл",
+      "datamap_path_copied": "Путь к datamap скопирован в буфер обмена",
+      "already_stored_one": "1 файл уже сохранён — сохраняем datamap",
+      "already_stored_many": "{count} файлов уже сохранены — сохраняем datamap",
+      "upload_complete": "Загрузка завершена: {name}",
+      "upload_failed": "Сбой загрузки: {name} — {error}",
+      "payment_failed": "Сбой оплаты: {error}",
+      "download_complete": "Скачивание завершено: {name}",
+      "download_failed": "Сбой скачивания: {name} — {error}",
+      "datamap_missing": "Невозможно скачать: файл datamap отсутствует или не читается",
+      "datamap_read_failed": "Не удалось прочитать datamap: {error}"
+    },
+    "error": {
+      "wallet_not_connected": "Кошелёк не подключён",
+      "not_connected_to_network": "Нет подключения к сети"
+    },
+    "network": {
+      "unavailable": "Нет подключения к сети Autonomi — оценка стоимости недоступна.",
+      "retry_connection": "Повторить подключение",
+      "connecting": "Подключение к сети Autonomi…",
+      "obtaining_quote": "Получение котировки из сети…",
+      "obtaining_quotes": "Получение котировок из сети…"
+    },
+    "datamap_saveas": {
+      "title": "Сохранить скачанный файл как",
+      "filename_label": "Имя файла",
+      "filename_placeholder": "myfile.dat"
+    },
+    "download_dialog": {
+      "title": "Скачать файл",
+      "address_label": "Адрес файла",
+      "address_placeholder": "Адрес файла (hex)",
+      "filename_label": "Сохранить как",
+      "filename_placeholder": "myfile.dat"
+    },
+    "datamap_picker": {
+      "description": "Выберите предыдущую загрузку для повторного скачивания или найдите файл datamap, полученный из другого источника.",
+      "empty": "Нет предыдущих загрузок с сохранённым datamap.",
+      "browse_button": "Найти файл datamap…"
+    },
+    "cost_estimate": {
+      "title": "Оценка стоимости загрузки",
+      "loading": "Оценка стоимости…",
+      "no_files": "Файлы не выбраны",
+      "footnote": "Стоимость запрошена из сети Autonomi. Комиссии за газ (ETH) добавляются к стоимости хранения."
+    },
+    "upload_confirm": {
+      "title": "Подтвердите загрузку",
+      "info_banner": "Можно закрыть это окно и вернуться, когда придёт котировка. Загрузка остаётся в ожидании, пока вы её не одобрите или не отмените.",
+      "already_stored_badge": "Уже сохранён",
+      "payment_label": "Оплата",
+      "payment_mixed": "Смешанная",
+      "payment_mixed_detail": "{regular} обычных, {merkle} merkle — оплата за файл.",
+      "payment_merkle": "Дерево Merkle",
+      "payment_regular": "Обычная",
+      "payment_merkle_detail": "Одна транзакция для {count} фрагментов — меньше газа.",
+      "payment_regular_detail_one": "Пакетная оплата за 1 фрагмент.",
+      "payment_regular_detail_many": "Пакетная оплата за {count} фрагментов.",
+      "free_title": "Уже сохранён в сети — бесплатно",
+      "free_detail": "Все фрагменты уже есть. Ни ANT, ни газ потрачены не будут.",
+      "cost_label": "Стоимость хранения в сети",
+      "gas_label": "Оценка газа",
+      "some_already_stored": "Часть файлов уже сохранена — за эту часть платить не нужно.",
+      "visibility_label": "Видимость",
+      "visibility_private": "Приватная",
+      "visibility_private_desc": "Зашифрован и доступен только с вашей картой данных. Только вы можете получить файл.",
+      "visibility_public": "Публичная",
+      "visibility_public_desc": "Карта данных публикуется в сети. Поделитесь одним адресом, чтобы любой мог получить файл.",
+      "regular_footnote": "Оценено по одной сетевой котировке — итоговая стоимость может немного отличаться. Комиссии за газ добавляются сверху.",
+      "cancel_upload": "Отменить загрузку",
+      "ready_count": "Готово: {ready} из {total}",
+      "approve_button_one": "Одобрить загрузку",
+      "approve_button_many": "Одобрить {count} загрузок"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "Адрес для вознаграждений",
+    "earnings_description": "Куда отправляются вознаграждения вашего узла",
+    "earnings_not_configured": "Не настроен",
+    "edit": "Изменить",
+    "save": "Сохранить",
+    "earnings_use_payment_prompt": "Использовать адрес подключённого кошелька для вознаграждений?",
+    "earnings_use_payment_button": "Использовать {address}",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "Управляемое хранилище",
+    "managed_storage_org": "Хранилище управляется {org}",
+    "managed_storage_description": "Загрузки направляются через шлюз Indelible вашей организации. Локальный кошелёк не требуется.",
+    "payment_wallet_heading": "Платёжный кошелёк",
+    "payment_optional_hint": "Необязательно — требуется для загрузки файлов",
+    "connect_prompt": "Подключите кошелёк для оплаты хранения файлов",
+    "network_arbitrum_sepolia": "Arbitrum Sepolia testnet",
+    "network_arbitrum_one": "Требуется сеть Arbitrum One",
+    "import_key_hint": "Или импортируйте приватный ключ в {link}",
+    "import_key_hint_link_text": "Настройки > Расширенные",
+    "address_label": "Адрес",
+    "eth_balance_label": "Баланс ETH",
+    "ant_balance_label": "Баланс ANT",
+    "usdc_balance_label": "Баланс USDC",
+    "refresh_balances": "Обновить балансы",
+    "disconnect": "Отключиться",
+    "toast": {
+      "import_key_in_settings": "Импортируйте приватный ключ в Настройки > Расширенные",
+      "invalid_address": "Неверный адрес: должен быть 0x + 40 hex-символов",
+      "earnings_saved": "Адрес для вознаграждений сохранён",
+      "earnings_set_to_payment": "Адрес для вознаграждений установлен на платёжный кошелёк",
+      "wallet_disconnected": "Кошелёк отключён"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "Доступно обновление",
+      "version_ready": "v{version} готово к установке",
+      "pre_release_badge": "Предварительная",
+      "download_size": "Размер загрузки: {size}",
+      "release_notes": "Примечания к выпуску",
+      "no_release_notes": "Нет примечаний к выпуску для этой версии.",
+      "downloading": "Загрузка…",
+      "download_complete": "Загрузка успешна, приложение скоро перезапустится",
+      "auto_restart_hint": "Приложение перезапустится автоматически по завершении.",
+      "cancel_download": "Отменить загрузку",
+      "installing_tooltip": "Установка — подождите",
+      "not_now": "Не сейчас",
+      "update_restart": "Обновить и перезапустить"
+    },
+    "toast": {
+      "install_no_restart": "Обновление до v{version} установлено, но приложение не перезапустилось. Закройте и снова откройте Autonomi, чтобы завершить обновление.",
+      "install_failed": "Установка обновления не удалась: {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "Имя файла не может содержать специальные символы",
+      "ends_with_dot_or_space": "Имя файла не может заканчиваться точкой или пробелом",
+      "reserved_on_windows": "Это имя зарезервировано в Windows"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "Работает",
+      "stopped": "Остановлен",
+      "starting": "Запуск",
+      "stopping": "Остановка",
+      "adding": "Добавление…",
+      "errored": "Ошибка",
+      "upgrade_scheduled": "Обновление"
+    },
+    "file": {
+      "pending": "Ожидание",
+      "quoting": "Котировка",
+      "encrypting": "Шифрование…",
+      "resolving_datamap": "Разрешение datamap",
+      "queued_quoting": "В очереди: котировка",
+      "queued_uploading": "В очереди: загрузка",
+      "connecting_to_network": "Подключение к сети…",
+      "obtaining_quote": "Получение котировки…",
+      "saving_datamap": "Сохранение datamap…",
+      "network_unavailable": "Сеть недоступна",
+      "ready_to_approve": "Готов к одобрению",
+      "awaiting_approval": "Ожидает одобрения",
+      "uploading": "Загрузка",
+      "downloading": "Скачивание",
+      "done": "Готово",
+      "downloaded": "Скачано — нажмите, чтобы открыть"
+    }
+  },
+  "banners": {
+    "cjk_font_missing": {
+      "script_label": "日本語",
+      "message": "Японский текст может отображаться некорректно в этой системе. Чтобы исправить, установите шрифты Noto CJK и перезапустите приложение:",
+      "distro_arch": "Arch",
+      "distro_debian": "Debian / Ubuntu",
+      "distro_fedora": "Fedora",
+      "copy": "Скопировать команду",
+      "copied": "Команда скопирована в буфер обмена",
+      "dismiss": "Закрыть"
+    }
+  }
+}

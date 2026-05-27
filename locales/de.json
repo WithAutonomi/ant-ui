@@ -1,0 +1,482 @@
+{
+  "_translator_notes": "Machine-translated baseline (German, standard High German — should serve DE/AT/CH users with mild friction on a few Helvetisms). Community polish via PR welcome. Two plural forms (one/other) match the _one/_many convention cleanly.",
+  "settings": {
+    "language": {
+      "label": "Sprache",
+      "description": "Anzeigesprache der Benutzeroberfläche",
+      "system_default": "Systemstandard: {name}",
+      "system_default_pending": "Systemstandard"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "Mit verwaltetem Speicher-Gateway verbunden",
+      "subtitle_setup": "Mit einem selbst gehosteten Indelible-Gateway für verwalteten Speicher verbinden",
+      "connected_badge": "Verbunden",
+      "server_label": "Server",
+      "signed_in_as": "Angemeldet als",
+      "disconnect": "Trennen",
+      "server_url_label": "Server-URL",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "API-Schlüssel",
+      "api_key_placeholder": "Ihr API-Token",
+      "test_connect": "Testen & verbinden",
+      "testing": "Wird getestet…",
+      "configure": "Verbindung konfigurieren"
+    },
+    "storage": {
+      "title": "Speicherverzeichnis",
+      "description": "Wo Knoten-Daten auf der Festplatte gespeichert werden",
+      "default": "Standard",
+      "browse": "Durchsuchen",
+      "warning": "Gilt nur für neu hinzugefügte Knoten. Bestehende Knoten behalten ihr aktuelles Verzeichnis."
+    },
+    "downloads": {
+      "title": "Download-Verzeichnis",
+      "description": "Wo heruntergeladene Dateien gespeichert werden",
+      "not_set": "Nicht festgelegt",
+      "browse": "Durchsuchen"
+    },
+    "alert": {
+      "title": "Hinweiston",
+      "description": "Ton bei kritischen Knoten-Ausfällen abspielen",
+      "aria_toggle": "Hinweiston umschalten"
+    },
+    "theme": {
+      "title": "Hellmodus",
+      "description": "Zwischen hellem und dunklem Design wechseln",
+      "aria_toggle": "Hellmodus umschalten"
+    },
+    "advanced": {
+      "hide": "▾ Erweitert ausblenden",
+      "show": "▸ Erweitert anzeigen"
+    },
+    "daemon": {
+      "title": "Knoten-Daemon",
+      "description": "Starten Sie den Hintergrunddienst neu, der Ihre Knoten überwacht. Laufende Knoten laufen weiter — nur der Supervisor wird ersetzt.",
+      "restart": "Daemon neu starten",
+      "restarting": "Wird neu gestartet…"
+    },
+    "concurrency": {
+      "title": "Upload-Nebenläufigkeit",
+      "description_1": "Bestimmt, wie viele Angebote/Uploads gleichzeitig laufen können.",
+      "description_2": "Beachten Sie, dass dies einen sehr großen Einfluss auf die Leistung hat."
+    },
+    "prerelease": {
+      "title": "Vorab-Builds",
+      "description": "Automatische Updates für Vorab-Builds (rc / beta) zusätzlich zu stabilen Versionen erhalten. Standardmäßig deaktiviert.",
+      "restart_required": "Starten Sie die App neu, um diese Änderung zu übernehmen.",
+      "restart_now": "Jetzt neu starten"
+    },
+    "direct_wallet": {
+      "title": "Direkte Wallet",
+      "description": "Mit privatem Schlüssel verbinden (umgeht WalletConnect)",
+      "connected_badge": "Verbunden",
+      "address_label": "Adresse",
+      "disconnect": "Trennen",
+      "network_label": "Netzwerk",
+      "network_sepolia_option": "Arbitrum Sepolia (Testnetz)",
+      "network_arbitrum_option": "Arbitrum One (Mainnet)",
+      "rpc_url_label": "RPC-URL",
+      "rpc_url_optional": "(optional)",
+      "rpc_url_placeholder": "Standard: öffentliches RPC für die gewählte Chain",
+      "private_key_label": "Privater Schlüssel",
+      "private_key_placeholder": "0x... oder roher Hex",
+      "connect": "Verbinden",
+      "import_button": "Privaten Schlüssel importieren"
+    },
+    "diagnostics": {
+      "title": "Diagnose",
+      "summary": "{entries} Protokolleinträge ({errors} Fehler)",
+      "copy_button": "In Zwischenablage kopieren",
+      "clear_button": "Leeren",
+      "empty": "Keine Protokolleinträge",
+      "hide_log": "▾ Protokoll ausblenden",
+      "show_log": "▸ Protokoll anzeigen"
+    },
+    "upload_history": {
+      "title": "Upload-Verlauf",
+      "summary_one": "{count} Eintrag in upload_history.json. DataMaps auf der Festplatte und Chunks im Netzwerk bleiben unberührt.",
+      "summary_many": "{count} Einträge in upload_history.json. DataMaps auf der Festplatte und Chunks im Netzwerk bleiben unberührt.",
+      "clear_button": "Verlauf leeren",
+      "confirm_one": "1 Upload-Eintrag aus dem Verlauf löschen?\n\nDies entfernt die lokale Zeile und den gespeicherten Datensatz. DataMaps auf der Festplatte und Chunks im Netzwerk sind nicht betroffen.",
+      "confirm_many": "{count} Upload-Einträge aus dem Verlauf löschen?\n\nDies entfernt die lokalen Zeilen und gespeicherten Datensätze. DataMaps auf der Festplatte und Chunks im Netzwerk sind nicht betroffen."
+    },
+    "software": {
+      "title": "Software",
+      "app_version_label": "App-Version",
+      "node_version_label": "Knoten-Version",
+      "last_checked": "Zuletzt geprüft {label}",
+      "check_button": "Nach Updates suchen",
+      "checking": "Wird geprüft…"
+    },
+    "about": {
+      "title": "Über"
+    },
+    "relative_time": {
+      "just_now": "gerade eben",
+      "seconds_ago": "vor {n}s",
+      "minutes_ago": "vor {n} Min.",
+      "hours_ago": "vor {n}h",
+      "days_ago": "vor {n}d"
+    },
+    "picker": {
+      "storage_title": "Speicherverzeichnis auswählen",
+      "downloads_title": "Download-Verzeichnis auswählen"
+    },
+    "error": {
+      "private_key_invalid": "Ungültiger privater Schlüssel — muss 64 Hex-Zeichen lang sein",
+      "invalid_eth_address": "Ungültiges EVM-Adressformat"
+    },
+    "toast": {
+      "upload_history_cleared": "Upload-Verlauf geleert",
+      "update_check_failed": "Update-Prüfung fehlgeschlagen",
+      "update_available": "Update verfügbar: v{version}",
+      "on_latest_version": "Sie verwenden die neueste Version (v{version})",
+      "daemon_restarted": "Daemon neu gestartet",
+      "daemon_restart_failed": "Daemon-Neustart fehlgeschlagen: {error}",
+      "storage_dir_updated": "Speicherverzeichnis aktualisiert",
+      "storage_dir_verified": "Speicherverzeichnis verifiziert",
+      "storage_dir_unwritable": "Dieser Ordner kann nicht für Knotenspeicher verwendet werden",
+      "select_directory_failed": "Verzeichnisauswahl fehlgeschlagen",
+      "downloads_dir_updated": "Download-Verzeichnis aktualisiert",
+      "earnings_updated": "Einnahmenadresse aktualisiert",
+      "daemon_url_updated": "Daemon-URL aktualisiert",
+      "diagnostics_copied": "Diagnose in die Zwischenablage kopiert",
+      "diagnostics_copy_failed": "Kopieren in die Zwischenablage fehlgeschlagen",
+      "log_cleared": "Protokoll geleert",
+      "indelible_connected": "Mit Indelible verbunden",
+      "indelible_disconnected": "Von Indelible getrennt",
+      "wallet_connected": "Wallet verbunden: {address}",
+      "wallet_disconnected": "Wallet getrennt",
+      "wallet_attach_failed": "Wallet-Anbindung (Rust-Seite) fehlgeschlagen: {error}"
+    }
+  },
+  "nav": {
+    "nodes": "Knoten",
+    "files": "Dateien",
+    "wallet": "Wallet",
+    "settings": "Einstellungen"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} aktiv",
+    "connecting": "Verbinden",
+    "connecting_tooltip": "Verbindung zum Autonomi-Netzwerk wird hergestellt",
+    "connected": "Netzwerk",
+    "connected_tooltip": "Mit dem Autonomi-Netzwerk verbunden",
+    "offline": "Offline · Wiederholen",
+    "offline_tooltip": "Verbindung fehlgeschlagen — klicken, um es erneut zu versuchen",
+    "connect_wallet": "Wallet verbinden"
+  },
+  "sidebar": {
+    "pre_release": "VORAB",
+    "update_available": "Update verfügbar",
+    "update_pre_release_tag": "Vorab",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA TESTNET"
+  },
+  "common": {
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "close": "Schließen",
+    "download": "Herunterladen",
+    "start": "Starten",
+    "stop": "Stoppen",
+    "remove": "Entfernen",
+    "close_panel": "Panel schließen"
+  },
+  "nodes": {
+    "add_button": "+ Knoten hinzufügen",
+    "start_all": "Alle starten",
+    "stop_all": "Alle stoppen",
+    "running_count": "{count} laufen",
+    "stopped_count": "{count} gestoppt",
+    "errored_count": "{count} mit Fehlern",
+    "filter_placeholder": "Filtern...",
+    "filter_aria_label": "Knoten filtern",
+    "starting_daemon": "Knoten-Daemon wird gestartet…",
+    "restarting_daemon": "Knoten-Daemon wird neu gestartet…",
+    "nodes_keep_running": "Ihre Knoten laufen weiter.",
+    "daemon_disconnected": "Verbindung zum Knoten-Daemon nicht möglich",
+    "daemon_retrying": "Automatischer Wiederholungsversuch…",
+    "empty_title": "Noch keine Knoten",
+    "empty_hint": "Klicken Sie auf \"+ Knoten hinzufügen\", um zu beginnen",
+    "confirm_action": "Aktion bestätigen",
+    "remove_node_message": "Knoten {id} entfernen? Dadurch werden alle Daten gelöscht.",
+    "stop_all_message": "Alle {count} laufenden Knoten stoppen?",
+    "node_fallback_name": "Knoten {id}",
+    "field": {
+      "node_id": "Knoten-ID",
+      "status": "Status",
+      "version": "Version",
+      "pid": "PID",
+      "uptime": "Laufzeit",
+      "storage": "Speicher",
+      "data_directory": "Datenverzeichnis",
+      "log_directory": "Protokollverzeichnis",
+      "port": "Port",
+      "binary": "Binärdatei",
+      "rewards_address": "Belohnungsadresse",
+      "status_aria": "Status: {status}"
+    },
+    "add_dialog": {
+      "title": "Knoten hinzufügen",
+      "number_label": "Anzahl der Knoten",
+      "range_hint": "Zwischen 1 und 50",
+      "no_earnings_warning": "Keine Einnahmenadresse konfiguriert. Legen Sie eine auf der Wallet-Seite fest, bevor Sie Knoten hinzufügen.",
+      "submit_one": "1 Knoten hinzufügen",
+      "submit_many": "{count} Knoten hinzufügen"
+    },
+    "toast": {
+      "added": "{count} Knoten hinzugefügt",
+      "add_failed": "Hinzufügen der Knoten fehlgeschlagen: {error}",
+      "started": "Knoten {id} gestartet",
+      "start_failed": "Start des Knotens {id} fehlgeschlagen: {error}",
+      "stopped": "Knoten {id} gestoppt",
+      "stop_failed": "Stopp des Knotens {id} fehlgeschlagen: {error}",
+      "removed": "Knoten {id} entfernt",
+      "remove_failed": "Entfernen des Knotens {id} fehlgeschlagen: {error}",
+      "no_stopped": "Keine gestoppten Knoten zum Starten",
+      "no_running": "Keine laufenden Knoten zum Stoppen",
+      "node_failed": "Knoten {id} fehlgeschlagen: {error}",
+      "started_count": "{count} Knoten gestartet",
+      "stopped_count": "{count} Knoten gestoppt",
+      "start_all_failed": "Start aller fehlgeschlagen: {error}",
+      "stop_all_failed": "Stopp aller fehlgeschlagen: {error}"
+    }
+  },
+  "files": {
+    "upload_button": "Datei(en) hochladen",
+    "estimate_button": "Kosten schätzen",
+    "download_by_address": "Per Adresse herunterladen",
+    "download_by_datamap": "Per Datamap herunterladen",
+    "uploads_heading": "Uploads",
+    "downloads_heading": "Downloads",
+    "clear": "Leeren",
+    "drop_files": "Dateien zum Hochladen ablegen",
+    "uploads_empty_title": "Noch keine Uploads",
+    "uploads_empty_hint": "Ziehen Sie Dateien hierher oder verwenden Sie die Schaltflächen oben",
+    "downloads_empty_title": "Noch keine Downloads",
+    "downloads_empty_hint": "Verwenden Sie \"Per Adresse herunterladen\" oder \"Per Datamap herunterladen\"",
+    "table": {
+      "name": "Name",
+      "status": "Status",
+      "size": "Größe",
+      "cost": "Kosten",
+      "date": "Datum",
+      "address": "Adresse",
+      "saved_to": "Gespeichert in",
+      "actions": "Aktionen"
+    },
+    "row": {
+      "free_already_stored": "Kostenlos — bereits gespeichert",
+      "gas_suffix": "+ {gas} Gas",
+      "public_badge": "Öffentlich",
+      "retry": "↻ Wiederholen",
+      "public_tooltip": "Öffentlicher Upload — klicken, um die teilbare Netzwerkadresse zu kopieren",
+      "reveal_datamap_tooltip": "Datamap-Datei in Finder/Explorer anzeigen",
+      "copy_datamap_tooltip": "Datamap-Dateipfad kopieren",
+      "copy_address_tooltip": "Netzwerkadresse kopieren",
+      "retry_tooltip": "Upload wiederholen",
+      "remove_tooltip": "Aus Liste entfernen"
+    },
+    "stage": {
+      "encrypting": "Verschlüsseln…",
+      "quoting_pct": "Angebot · {pct}%",
+      "quoting_indeterminate": "Angebot…",
+      "storing_pct": "Speichern · {pct}%",
+      "storing_indeterminate": "Speichern…",
+      "resolving_pct": "Datamap auflösen · {pct}%",
+      "resolving_indeterminate": "Datamap auflösen…",
+      "downloading_pct": "Herunterladen · {pct}%",
+      "downloading_indeterminate": "Herunterladen…"
+    },
+    "picker": {
+      "upload_title": "Dateien zum Hochladen auswählen",
+      "datamap_title": "Datamap-Datei zum Herunterladen auswählen",
+      "estimate_title": "Dateien für Kostenschätzung auswählen",
+      "datamap_filter": "Datamap"
+    },
+    "toast": {
+      "upload_requires_wallet": "Upload erfordert eine Wallet",
+      "download_requires_network": "Download erfordert eine Netzwerkverbindung",
+      "open_folder_failed": "Ordner konnte nicht geöffnet werden",
+      "address_copied": "Adresse in die Zwischenablage kopiert",
+      "public_address_copied": "Öffentliche Adresse kopiert — teilen, damit andere diese Datei herunterladen können",
+      "datamap_path_copied": "Datamap-Pfad in die Zwischenablage kopiert",
+      "already_stored_one": "1 Datei bereits gespeichert — Datamap wird gespeichert",
+      "already_stored_many": "{count} Dateien bereits gespeichert — Datamap wird gespeichert",
+      "upload_complete": "Upload abgeschlossen: {name}",
+      "upload_failed": "Upload fehlgeschlagen: {name} — {error}",
+      "payment_failed": "Zahlung fehlgeschlagen: {error}",
+      "download_complete": "Download abgeschlossen: {name}",
+      "download_failed": "Download fehlgeschlagen: {name} — {error}",
+      "datamap_missing": "Download nicht möglich: Datamap-Datei fehlt oder ist nicht lesbar",
+      "datamap_read_failed": "Datamap konnte nicht gelesen werden: {error}"
+    },
+    "error": {
+      "wallet_not_connected": "Wallet nicht verbunden",
+      "not_connected_to_network": "Nicht mit dem Netzwerk verbunden"
+    },
+    "network": {
+      "unavailable": "Nicht mit dem Autonomi-Netzwerk verbunden — Kostenschätzung nicht verfügbar.",
+      "retry_connection": "Verbindung erneut versuchen",
+      "connecting": "Verbindung zum Autonomi-Netzwerk wird hergestellt…",
+      "obtaining_quote": "Angebot vom Netzwerk wird eingeholt…",
+      "obtaining_quotes": "Angebote vom Netzwerk werden eingeholt…"
+    },
+    "datamap_saveas": {
+      "title": "Heruntergeladene Datei speichern unter",
+      "filename_label": "Dateiname",
+      "filename_placeholder": "myfile.dat"
+    },
+    "download_dialog": {
+      "title": "Datei herunterladen",
+      "address_label": "Dateiadresse",
+      "address_placeholder": "Dateiadresse (hex)",
+      "filename_label": "Speichern unter",
+      "filename_placeholder": "myfile.dat"
+    },
+    "datamap_picker": {
+      "description": "Wählen Sie einen früheren Upload zum erneuten Herunterladen aus oder suchen Sie eine Datamap-Datei, die Sie anderswo erhalten haben.",
+      "empty": "Noch keine früheren Uploads mit gespeicherter Datamap.",
+      "browse_button": "Datamap-Datei durchsuchen…"
+    },
+    "cost_estimate": {
+      "title": "Upload-Kostenschätzung",
+      "loading": "Kosten werden geschätzt…",
+      "no_files": "Keine Dateien ausgewählt",
+      "footnote": "Kosten vom Autonomi-Netzwerk abgefragt. Gas-Gebühren (ETH) fallen zusätzlich zu den Speicherkosten an."
+    },
+    "upload_confirm": {
+      "title": "Upload bestätigen",
+      "info_banner": "Sie können dieses Fenster schließen und zurückkommen, wenn das Angebot eintrifft. Der Upload bleibt ausstehend, bis Sie ihn genehmigen oder abbrechen.",
+      "already_stored_badge": "Bereits gespeichert",
+      "payment_label": "Zahlung",
+      "payment_mixed": "Gemischt",
+      "payment_mixed_detail": "{regular} regulär, {merkle} Merkle — pro Datei bezahlt.",
+      "payment_merkle": "Merkle-Baum",
+      "payment_regular": "Regulär",
+      "payment_merkle_detail": "Einzeltransaktion für {count} Chunks — weniger Gas.",
+      "payment_regular_detail_one": "Stapelzahlung für 1 Chunk.",
+      "payment_regular_detail_many": "Stapelzahlung für {count} Chunks.",
+      "free_title": "Bereits im Netzwerk gespeichert — kostenlos",
+      "free_detail": "Jeder Chunk ist bereits vorhanden. Es werden weder ANT noch Gas ausgegeben.",
+      "cost_label": "Netzwerk-Speicherkosten",
+      "gas_label": "Geschätztes Gas",
+      "some_already_stored": "Einige Dateien sind bereits gespeichert — dieser Teil kostet nichts.",
+      "visibility_label": "Sichtbarkeit",
+      "visibility_private": "Privat",
+      "visibility_private_desc": "Verschlüsselt und nur mit Ihrer Datenkarte zugänglich. Nur Sie können die Datei abrufen.",
+      "visibility_public": "Öffentlich",
+      "visibility_public_desc": "Die Datenkarte wird im Netzwerk veröffentlicht. Teilen Sie eine einzige Adresse, damit jeder die Datei abrufen kann.",
+      "regular_footnote": "Aus einem einzigen Netzwerk-Angebot geschätzt — die endgültigen Kosten können leicht abweichen. Gas-Gebühren fallen zusätzlich an.",
+      "cancel_upload": "Upload abbrechen",
+      "ready_count": "Bereit: {ready} von {total}",
+      "approve_button_one": "Upload genehmigen",
+      "approve_button_many": "{count} Uploads genehmigen"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "Einnahmenadresse",
+    "earnings_description": "Wohin Ihre Knoten-Einnahmen gesendet werden",
+    "earnings_not_configured": "Nicht konfiguriert",
+    "edit": "Bearbeiten",
+    "save": "Speichern",
+    "earnings_use_payment_prompt": "Adresse Ihrer verbundenen Wallet für Einnahmen verwenden?",
+    "earnings_use_payment_button": "{address} verwenden",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "Verwalteter Speicher",
+    "managed_storage_org": "Speicher verwaltet von {org}",
+    "managed_storage_description": "Uploads werden über das Indelible-Gateway Ihrer Organisation geleitet. Keine lokale Wallet erforderlich.",
+    "payment_wallet_heading": "Zahlungs-Wallet",
+    "payment_optional_hint": "Optional — erforderlich für Datei-Uploads",
+    "connect_prompt": "Verbinden Sie eine Wallet, um für Dateispeicherung zu bezahlen",
+    "network_arbitrum_sepolia": "Arbitrum Sepolia testnet",
+    "network_arbitrum_one": "Arbitrum One-Netzwerk erforderlich",
+    "import_key_hint": "Oder importieren Sie einen privaten Schlüssel in {link}",
+    "import_key_hint_link_text": "Einstellungen > Erweitert",
+    "address_label": "Adresse",
+    "eth_balance_label": "ETH-Saldo",
+    "ant_balance_label": "ANT-Saldo",
+    "usdc_balance_label": "USDC-Saldo",
+    "refresh_balances": "Salden aktualisieren",
+    "disconnect": "Trennen",
+    "toast": {
+      "import_key_in_settings": "Importieren Sie einen privaten Schlüssel in Einstellungen > Erweitert",
+      "invalid_address": "Ungültige Adresse: muss 0x + 40 Hex-Zeichen sein",
+      "earnings_saved": "Einnahmenadresse gespeichert",
+      "earnings_set_to_payment": "Einnahmenadresse auf Zahlungs-Wallet gesetzt",
+      "wallet_disconnected": "Wallet getrennt"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "Update verfügbar",
+      "version_ready": "v{version} ist installationsbereit",
+      "pre_release_badge": "Vorab",
+      "download_size": "Downloadgröße: {size}",
+      "release_notes": "Versionshinweise",
+      "no_release_notes": "Keine Versionshinweise für diese Version verfügbar.",
+      "downloading": "Wird heruntergeladen…",
+      "download_complete": "Download erfolgreich, die App wird in Kürze neu gestartet",
+      "auto_restart_hint": "Die App wird nach Abschluss automatisch neu gestartet.",
+      "cancel_download": "Download abbrechen",
+      "installing_tooltip": "Wird installiert — bitte warten",
+      "not_now": "Nicht jetzt",
+      "update_restart": "Aktualisieren & neu starten"
+    },
+    "toast": {
+      "install_no_restart": "Update auf v{version} wurde installiert, aber die App wurde nicht neu gestartet. Beenden Sie Autonomi und öffnen Sie es erneut, um das Update abzuschließen.",
+      "install_failed": "Update-Installation fehlgeschlagen: {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "Der Dateiname darf keine Sonderzeichen enthalten",
+      "ends_with_dot_or_space": "Der Dateiname darf nicht mit einem Punkt oder Leerzeichen enden",
+      "reserved_on_windows": "Dieser Name ist unter Windows reserviert"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "Läuft",
+      "stopped": "Gestoppt",
+      "starting": "Wird gestartet",
+      "stopping": "Wird gestoppt",
+      "adding": "Wird hinzugefügt…",
+      "errored": "Fehler",
+      "upgrade_scheduled": "Wird aktualisiert"
+    },
+    "file": {
+      "pending": "Ausstehend",
+      "quoting": "Angebot",
+      "encrypting": "Verschlüsseln…",
+      "resolving_datamap": "Datamap wird aufgelöst",
+      "queued_quoting": "In Warteschlange: Angebot",
+      "queued_uploading": "In Warteschlange: Upload",
+      "connecting_to_network": "Verbindung zum Netzwerk wird hergestellt…",
+      "obtaining_quote": "Angebot wird eingeholt…",
+      "saving_datamap": "Datamap wird gespeichert…",
+      "network_unavailable": "Netzwerk nicht verfügbar",
+      "ready_to_approve": "Bereit zur Genehmigung",
+      "awaiting_approval": "Wartet auf Genehmigung",
+      "uploading": "Wird hochgeladen",
+      "downloading": "Wird heruntergeladen",
+      "done": "Fertig",
+      "downloaded": "Heruntergeladen — klicken, um zu öffnen"
+    }
+  },
+  "banners": {
+    "cjk_font_missing": {
+      "script_label": "日本語",
+      "message": "Japanischer Text wird auf diesem System möglicherweise nicht korrekt dargestellt. Um dies zu beheben, installieren Sie die Noto CJK-Schriftarten und starten Sie die App neu:",
+      "distro_arch": "Arch",
+      "distro_debian": "Debian / Ubuntu",
+      "distro_fedora": "Fedora",
+      "copy": "Befehl kopieren",
+      "copied": "Befehl in die Zwischenablage kopiert",
+      "dismiss": "Schließen"
+    }
+  }
+}

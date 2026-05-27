@@ -1,0 +1,482 @@
+{
+  "_translator_notes": "Machine-translated baseline (Vietnamese). Community polish via PR welcome. Note: Vietnamese has no grammatical plural; _one and _many strings differ only in the count context.",
+  "settings": {
+    "language": {
+      "label": "Ngôn ngữ",
+      "description": "Ngôn ngữ hiển thị giao diện",
+      "system_default": "Mặc định hệ thống: {name}",
+      "system_default_pending": "Mặc định hệ thống"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "Đã kết nối đến cổng lưu trữ được quản lý",
+      "subtitle_setup": "Kết nối đến cổng Indelible tự lưu trữ để có lưu trữ được quản lý",
+      "connected_badge": "Đã kết nối",
+      "server_label": "Máy chủ",
+      "signed_in_as": "Đã đăng nhập với",
+      "disconnect": "Ngắt kết nối",
+      "server_url_label": "URL máy chủ",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "Khóa API",
+      "api_key_placeholder": "Mã thông báo API của bạn",
+      "test_connect": "Kiểm tra và kết nối",
+      "testing": "Đang kiểm tra…",
+      "configure": "Cấu hình kết nối"
+    },
+    "storage": {
+      "title": "Thư mục lưu trữ",
+      "description": "Nơi dữ liệu nút được lưu trên đĩa",
+      "default": "Mặc định",
+      "browse": "Duyệt",
+      "warning": "Chỉ áp dụng cho các nút mới thêm. Các nút hiện tại giữ thư mục hiện hành."
+    },
+    "downloads": {
+      "title": "Thư mục tải xuống",
+      "description": "Nơi tệp đã tải xuống được lưu",
+      "not_set": "Chưa đặt",
+      "browse": "Duyệt"
+    },
+    "alert": {
+      "title": "Âm thanh cảnh báo",
+      "description": "Phát âm thanh khi có lỗi nghiêm trọng của nút",
+      "aria_toggle": "Bật/tắt âm thanh cảnh báo"
+    },
+    "theme": {
+      "title": "Chế độ sáng",
+      "description": "Chuyển giữa giao diện tối và sáng",
+      "aria_toggle": "Bật/tắt chế độ sáng"
+    },
+    "advanced": {
+      "hide": "▾ Ẩn nâng cao",
+      "show": "▸ Hiển thị nâng cao"
+    },
+    "daemon": {
+      "title": "Dịch vụ nút",
+      "description": "Khởi động lại dịch vụ nền giám sát các nút của bạn. Các nút đang chạy vẫn tiếp tục chạy — chỉ thay đổi bộ giám sát.",
+      "restart": "Khởi động lại dịch vụ",
+      "restarting": "Đang khởi động lại…"
+    },
+    "concurrency": {
+      "title": "Đồng thời tải lên",
+      "description_1": "Điều khiển có bao nhiêu báo giá/tải lên có thể chạy cùng lúc.",
+      "description_2": "Lưu ý rằng điều này có tác động rất lớn đến hiệu suất."
+    },
+    "prerelease": {
+      "title": "Bản dựng tiền phát hành",
+      "description": "Nhận cập nhật tự động cho các bản dựng tiền phát hành (rc / beta) cùng với các bản phát hành ổn định. Mặc định tắt.",
+      "restart_required": "Khởi động lại ứng dụng để áp dụng thay đổi.",
+      "restart_now": "Khởi động lại ngay"
+    },
+    "direct_wallet": {
+      "title": "Ví trực tiếp",
+      "description": "Kết nối bằng khóa riêng (bỏ qua WalletConnect)",
+      "connected_badge": "Đã kết nối",
+      "address_label": "Địa chỉ",
+      "disconnect": "Ngắt kết nối",
+      "network_label": "Mạng",
+      "network_sepolia_option": "Arbitrum Sepolia (testnet)",
+      "network_arbitrum_option": "Arbitrum One (mainnet)",
+      "rpc_url_label": "URL RPC",
+      "rpc_url_optional": "(tùy chọn)",
+      "rpc_url_placeholder": "Mặc định là RPC công khai cho chuỗi đã chọn",
+      "private_key_label": "Khóa riêng",
+      "private_key_placeholder": "0x... hoặc hex thô",
+      "connect": "Kết nối",
+      "import_button": "Nhập khóa riêng"
+    },
+    "diagnostics": {
+      "title": "Chẩn đoán",
+      "summary": "{entries} mục nhật ký ({errors} lỗi)",
+      "copy_button": "Sao chép vào clipboard",
+      "clear_button": "Xóa",
+      "empty": "Không có mục nhật ký",
+      "hide_log": "▾ Ẩn nhật ký",
+      "show_log": "▸ Hiển thị nhật ký"
+    },
+    "upload_history": {
+      "title": "Lịch sử tải lên",
+      "summary_one": "{count} mục đã hoàn tất trong upload_history.json. DataMaps trên đĩa và các chunk trên mạng không bị ảnh hưởng.",
+      "summary_many": "{count} mục đã hoàn tất trong upload_history.json. DataMaps trên đĩa và các chunk trên mạng không bị ảnh hưởng.",
+      "clear_button": "Xóa lịch sử",
+      "confirm_one": "Xóa 1 mục tải lên khỏi lịch sử?\n\nThao tác này xóa hàng cục bộ và bản ghi đã lưu. DataMaps trên đĩa và các chunk trên mạng không bị ảnh hưởng.",
+      "confirm_many": "Xóa {count} mục tải lên khỏi lịch sử?\n\nThao tác này xóa các hàng cục bộ và bản ghi đã lưu. DataMaps trên đĩa và các chunk trên mạng không bị ảnh hưởng."
+    },
+    "software": {
+      "title": "Phần mềm",
+      "app_version_label": "Phiên bản ứng dụng",
+      "node_version_label": "Phiên bản nút",
+      "last_checked": "Kiểm tra lần cuối {label}",
+      "check_button": "Kiểm tra cập nhật",
+      "checking": "Đang kiểm tra…"
+    },
+    "about": {
+      "title": "Giới thiệu"
+    },
+    "relative_time": {
+      "just_now": "vừa xong",
+      "seconds_ago": "{n} giây trước",
+      "minutes_ago": "{n} phút trước",
+      "hours_ago": "{n} giờ trước",
+      "days_ago": "{n} ngày trước"
+    },
+    "picker": {
+      "storage_title": "Chọn thư mục lưu trữ",
+      "downloads_title": "Chọn thư mục tải xuống"
+    },
+    "error": {
+      "private_key_invalid": "Khóa riêng không hợp lệ — phải có 64 ký tự hex",
+      "invalid_eth_address": "Định dạng địa chỉ EVM không hợp lệ"
+    },
+    "toast": {
+      "upload_history_cleared": "Đã xóa lịch sử tải lên",
+      "update_check_failed": "Kiểm tra cập nhật thất bại",
+      "update_available": "Có cập nhật: v{version}",
+      "on_latest_version": "Bạn đang dùng phiên bản mới nhất (v{version})",
+      "daemon_restarted": "Dịch vụ đã được khởi động lại",
+      "daemon_restart_failed": "Không thể khởi động lại dịch vụ: {error}",
+      "storage_dir_updated": "Đã cập nhật thư mục lưu trữ",
+      "storage_dir_verified": "Đã xác minh thư mục lưu trữ",
+      "storage_dir_unwritable": "Không thể dùng thư mục đó để lưu trữ nút",
+      "select_directory_failed": "Không thể chọn thư mục",
+      "downloads_dir_updated": "Đã cập nhật thư mục tải xuống",
+      "earnings_updated": "Đã cập nhật địa chỉ thu nhập",
+      "daemon_url_updated": "Đã cập nhật URL dịch vụ",
+      "diagnostics_copied": "Đã sao chép chẩn đoán vào clipboard",
+      "diagnostics_copy_failed": "Sao chép vào clipboard thất bại",
+      "log_cleared": "Đã xóa nhật ký",
+      "indelible_connected": "Đã kết nối đến Indelible",
+      "indelible_disconnected": "Đã ngắt kết nối khỏi Indelible",
+      "wallet_connected": "Ví đã kết nối: {address}",
+      "wallet_disconnected": "Ví đã ngắt kết nối",
+      "wallet_attach_failed": "Đính kèm ví (phía Rust) thất bại: {error}"
+    }
+  },
+  "nav": {
+    "nodes": "Nút",
+    "files": "Tệp",
+    "wallet": "Ví",
+    "settings": "Cài đặt"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} đang hoạt động",
+    "connecting": "Đang kết nối",
+    "connecting_tooltip": "Đang kết nối đến mạng Autonomi",
+    "connected": "Mạng",
+    "connected_tooltip": "Đã kết nối đến mạng Autonomi",
+    "offline": "Ngoại tuyến · Thử lại",
+    "offline_tooltip": "Kết nối thất bại — nhấp để thử lại",
+    "connect_wallet": "Kết nối ví"
+  },
+  "sidebar": {
+    "pre_release": "TIỀN PHÁT HÀNH",
+    "update_available": "Có cập nhật",
+    "update_pre_release_tag": "Tiền phát hành",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA TESTNET"
+  },
+  "common": {
+    "cancel": "Hủy",
+    "confirm": "Xác nhận",
+    "close": "Đóng",
+    "download": "Tải xuống",
+    "start": "Bắt đầu",
+    "stop": "Dừng",
+    "remove": "Xóa",
+    "close_panel": "Đóng bảng"
+  },
+  "nodes": {
+    "add_button": "+ Thêm nút",
+    "start_all": "Khởi động tất cả",
+    "stop_all": "Dừng tất cả",
+    "running_count": "{count} đang chạy",
+    "stopped_count": "{count} đã dừng",
+    "errored_count": "{count} lỗi",
+    "filter_placeholder": "Lọc...",
+    "filter_aria_label": "Lọc nút",
+    "starting_daemon": "Đang khởi động dịch vụ nút…",
+    "restarting_daemon": "Đang khởi động lại dịch vụ nút…",
+    "nodes_keep_running": "Các nút của bạn vẫn tiếp tục chạy.",
+    "daemon_disconnected": "Không thể kết nối đến dịch vụ nút",
+    "daemon_retrying": "Đang thử lại tự động…",
+    "empty_title": "Chưa có nút nào",
+    "empty_hint": "Nhấp \"+ Thêm nút\" để bắt đầu",
+    "confirm_action": "Xác nhận hành động",
+    "remove_node_message": "Xóa nút {id}? Thao tác này sẽ xóa toàn bộ dữ liệu của nó.",
+    "stop_all_message": "Dừng tất cả {count} nút đang chạy?",
+    "node_fallback_name": "Nút {id}",
+    "field": {
+      "node_id": "ID nút",
+      "status": "Trạng thái",
+      "version": "Phiên bản",
+      "pid": "PID",
+      "uptime": "Thời gian hoạt động",
+      "storage": "Lưu trữ",
+      "data_directory": "Thư mục dữ liệu",
+      "log_directory": "Thư mục nhật ký",
+      "port": "Cổng",
+      "binary": "Tệp nhị phân",
+      "rewards_address": "Địa chỉ phần thưởng",
+      "status_aria": "Trạng thái: {status}"
+    },
+    "add_dialog": {
+      "title": "Thêm nút",
+      "number_label": "Số lượng nút",
+      "range_hint": "Từ 1 đến 50",
+      "no_earnings_warning": "Chưa cấu hình địa chỉ thu nhập. Đặt một địa chỉ trên trang Ví trước khi thêm nút.",
+      "submit_one": "Thêm 1 nút",
+      "submit_many": "Thêm {count} nút"
+    },
+    "toast": {
+      "added": "Đã thêm {count} nút",
+      "add_failed": "Không thể thêm nút: {error}",
+      "started": "Nút {id} đã khởi động",
+      "start_failed": "Không thể khởi động nút {id}: {error}",
+      "stopped": "Nút {id} đã dừng",
+      "stop_failed": "Không thể dừng nút {id}: {error}",
+      "removed": "Nút {id} đã xóa",
+      "remove_failed": "Không thể xóa nút {id}: {error}",
+      "no_stopped": "Không có nút đã dừng để khởi động",
+      "no_running": "Không có nút đang chạy để dừng",
+      "node_failed": "Nút {id} lỗi: {error}",
+      "started_count": "Đã khởi động {count} nút",
+      "stopped_count": "Đã dừng {count} nút",
+      "start_all_failed": "Không thể khởi động tất cả: {error}",
+      "stop_all_failed": "Không thể dừng tất cả: {error}"
+    }
+  },
+  "files": {
+    "upload_button": "Tải tệp lên",
+    "estimate_button": "Ước tính chi phí",
+    "download_by_address": "Tải xuống theo địa chỉ",
+    "download_by_datamap": "Tải xuống theo Datamap",
+    "uploads_heading": "Tải lên",
+    "downloads_heading": "Tải xuống",
+    "clear": "Xóa",
+    "drop_files": "Thả tệp để tải lên",
+    "uploads_empty_title": "Chưa có tải lên nào",
+    "uploads_empty_hint": "Kéo tệp vào đây, hoặc dùng các nút phía trên",
+    "downloads_empty_title": "Chưa có tải xuống nào",
+    "downloads_empty_hint": "Dùng \"Tải xuống theo địa chỉ\" hoặc \"Tải xuống theo Datamap\"",
+    "table": {
+      "name": "Tên",
+      "status": "Trạng thái",
+      "size": "Kích thước",
+      "cost": "Chi phí",
+      "date": "Ngày",
+      "address": "Địa chỉ",
+      "saved_to": "Đã lưu vào",
+      "actions": "Hành động"
+    },
+    "row": {
+      "free_already_stored": "Miễn phí — đã lưu trữ",
+      "gas_suffix": "+ {gas} gas",
+      "public_badge": "Công khai",
+      "retry": "↻ Thử lại",
+      "public_tooltip": "Tải lên công khai — nhấp để sao chép địa chỉ mạng có thể chia sẻ",
+      "reveal_datamap_tooltip": "Hiển thị tệp datamap trong Finder/Explorer",
+      "copy_datamap_tooltip": "Sao chép đường dẫn tệp datamap",
+      "copy_address_tooltip": "Sao chép địa chỉ mạng",
+      "retry_tooltip": "Thử lại tải lên",
+      "remove_tooltip": "Xóa khỏi danh sách"
+    },
+    "stage": {
+      "encrypting": "Đang mã hóa…",
+      "quoting_pct": "Báo giá · {pct}%",
+      "quoting_indeterminate": "Đang báo giá…",
+      "storing_pct": "Đang lưu · {pct}%",
+      "storing_indeterminate": "Đang lưu…",
+      "resolving_pct": "Đang phân giải datamap · {pct}%",
+      "resolving_indeterminate": "Đang phân giải datamap…",
+      "downloading_pct": "Đang tải xuống · {pct}%",
+      "downloading_indeterminate": "Đang tải xuống…"
+    },
+    "picker": {
+      "upload_title": "Chọn tệp để tải lên",
+      "datamap_title": "Chọn tệp datamap để tải xuống",
+      "estimate_title": "Chọn tệp để ước tính chi phí",
+      "datamap_filter": "Datamap"
+    },
+    "toast": {
+      "upload_requires_wallet": "Tải lên cần có ví",
+      "download_requires_network": "Tải xuống cần kết nối mạng",
+      "open_folder_failed": "Không thể mở thư mục",
+      "address_copied": "Đã sao chép địa chỉ vào clipboard",
+      "public_address_copied": "Đã sao chép địa chỉ công khai — chia sẻ để người khác có thể tải tệp này",
+      "datamap_path_copied": "Đã sao chép đường dẫn datamap vào clipboard",
+      "already_stored_one": "1 tệp đã được lưu — đang lưu datamap",
+      "already_stored_many": "{count} tệp đã được lưu — đang lưu datamap",
+      "upload_complete": "Tải lên hoàn tất: {name}",
+      "upload_failed": "Tải lên thất bại: {name} — {error}",
+      "payment_failed": "Thanh toán thất bại: {error}",
+      "download_complete": "Tải xuống hoàn tất: {name}",
+      "download_failed": "Tải xuống thất bại: {name} — {error}",
+      "datamap_missing": "Không thể tải xuống: tệp datamap bị thiếu hoặc không đọc được",
+      "datamap_read_failed": "Không thể đọc datamap: {error}"
+    },
+    "error": {
+      "wallet_not_connected": "Ví chưa kết nối",
+      "not_connected_to_network": "Chưa kết nối đến mạng"
+    },
+    "network": {
+      "unavailable": "Chưa kết nối đến mạng Autonomi — ước tính chi phí không khả dụng.",
+      "retry_connection": "Thử kết nối lại",
+      "connecting": "Đang kết nối đến mạng Autonomi…",
+      "obtaining_quote": "Đang lấy báo giá từ mạng…",
+      "obtaining_quotes": "Đang lấy các báo giá từ mạng…"
+    },
+    "datamap_saveas": {
+      "title": "Lưu tệp đã tải xuống thành",
+      "filename_label": "Tên tệp",
+      "filename_placeholder": "myfile.dat"
+    },
+    "download_dialog": {
+      "title": "Tải xuống tệp",
+      "address_label": "Địa chỉ tệp",
+      "address_placeholder": "Địa chỉ tệp (hex)",
+      "filename_label": "Lưu thành",
+      "filename_placeholder": "myfile.dat"
+    },
+    "datamap_picker": {
+      "description": "Chọn một lần tải lên trước đó để tải lại, hoặc duyệt tệp datamap nhận được từ nơi khác.",
+      "empty": "Chưa có lần tải lên trước có datamap đã lưu.",
+      "browse_button": "Duyệt tệp datamap…"
+    },
+    "cost_estimate": {
+      "title": "Ước tính chi phí tải lên",
+      "loading": "Đang ước tính chi phí…",
+      "no_files": "Chưa chọn tệp nào",
+      "footnote": "Chi phí được truy vấn từ mạng Autonomi. Phí gas (ETH) được tính thêm trên chi phí lưu trữ."
+    },
+    "upload_confirm": {
+      "title": "Xác nhận tải lên",
+      "info_banner": "Bạn có thể đóng cửa sổ này và quay lại khi có báo giá. Việc tải lên sẽ chờ cho đến khi bạn phê duyệt hoặc hủy.",
+      "already_stored_badge": "Đã lưu",
+      "payment_label": "Thanh toán",
+      "payment_mixed": "Hỗn hợp",
+      "payment_mixed_detail": "{regular} thông thường, {merkle} merkle — thanh toán theo tệp.",
+      "payment_merkle": "Cây Merkle",
+      "payment_regular": "Thông thường",
+      "payment_merkle_detail": "Một giao dịch duy nhất cho {count} chunk — gas thấp hơn.",
+      "payment_regular_detail_one": "Thanh toán theo lô cho 1 chunk.",
+      "payment_regular_detail_many": "Thanh toán theo lô cho {count} chunk.",
+      "free_title": "Đã lưu trên mạng — miễn phí",
+      "free_detail": "Mọi chunk đều đã có. Không tốn ANT hoặc gas.",
+      "cost_label": "Chi phí lưu trữ mạng",
+      "gas_label": "Ước tính gas",
+      "some_already_stored": "Một số tệp đã được lưu — phần đó không tốn chi phí.",
+      "visibility_label": "Hiển thị",
+      "visibility_private": "Riêng tư",
+      "visibility_private_desc": "Được mã hóa và chỉ có thể truy cập với bản đồ dữ liệu của bạn. Chỉ bạn mới có thể lấy tệp.",
+      "visibility_public": "Công khai",
+      "visibility_public_desc": "Bản đồ dữ liệu được công bố lên mạng. Chia sẻ một địa chỉ duy nhất để bất kỳ ai cũng có thể lấy tệp.",
+      "regular_footnote": "Ước tính từ một báo giá mạng duy nhất — chi phí cuối cùng có thể khác đôi chút. Phí gas được tính thêm.",
+      "cancel_upload": "Hủy tải lên",
+      "ready_count": "Sẵn sàng: {ready} / {total}",
+      "approve_button_one": "Phê duyệt tải lên",
+      "approve_button_many": "Phê duyệt {count} tải lên"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "Địa chỉ thu nhập",
+    "earnings_description": "Nơi thu nhập từ nút của bạn được gửi đến",
+    "earnings_not_configured": "Chưa cấu hình",
+    "edit": "Sửa",
+    "save": "Lưu",
+    "earnings_use_payment_prompt": "Dùng địa chỉ ví đã kết nối làm địa chỉ thu nhập?",
+    "earnings_use_payment_button": "Dùng {address}",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "Lưu trữ được quản lý",
+    "managed_storage_org": "Lưu trữ được quản lý bởi {org}",
+    "managed_storage_description": "Các lần tải lên được định tuyến qua cổng Indelible của tổ chức bạn. Không cần ví cục bộ.",
+    "payment_wallet_heading": "Ví thanh toán",
+    "payment_optional_hint": "Tùy chọn — bắt buộc để tải tệp lên",
+    "connect_prompt": "Kết nối ví để thanh toán lưu trữ tệp",
+    "network_arbitrum_sepolia": "Arbitrum Sepolia testnet",
+    "network_arbitrum_one": "Cần mạng Arbitrum One",
+    "import_key_hint": "Hoặc nhập khóa riêng tại {link}",
+    "import_key_hint_link_text": "Cài đặt > Nâng cao",
+    "address_label": "Địa chỉ",
+    "eth_balance_label": "Số dư ETH",
+    "ant_balance_label": "Số dư ANT",
+    "usdc_balance_label": "Số dư USDC",
+    "refresh_balances": "Làm mới số dư",
+    "disconnect": "Ngắt kết nối",
+    "toast": {
+      "import_key_in_settings": "Nhập khóa riêng tại Cài đặt > Nâng cao",
+      "invalid_address": "Địa chỉ không hợp lệ: phải là 0x + 40 ký tự hex",
+      "earnings_saved": "Đã lưu địa chỉ thu nhập",
+      "earnings_set_to_payment": "Đã đặt địa chỉ thu nhập thành ví thanh toán",
+      "wallet_disconnected": "Ví đã ngắt kết nối"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "Có cập nhật",
+      "version_ready": "v{version} sẵn sàng cài đặt",
+      "pre_release_badge": "Tiền phát hành",
+      "download_size": "Kích thước tải xuống: {size}",
+      "release_notes": "Ghi chú phát hành",
+      "no_release_notes": "Không có ghi chú phát hành cho phiên bản này.",
+      "downloading": "Đang tải xuống…",
+      "download_complete": "Tải xuống thành công, ứng dụng sẽ khởi động lại sớm",
+      "auto_restart_hint": "Ứng dụng sẽ tự động khởi động lại khi hoàn tất.",
+      "cancel_download": "Hủy tải xuống",
+      "installing_tooltip": "Đang cài đặt — vui lòng đợi",
+      "not_now": "Không phải bây giờ",
+      "update_restart": "Cập nhật và khởi động lại"
+    },
+    "toast": {
+      "install_no_restart": "Cập nhật lên v{version} đã được cài đặt nhưng ứng dụng không khởi động lại. Thoát và mở lại Autonomi để hoàn tất cập nhật.",
+      "install_failed": "Cài đặt cập nhật thất bại: {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "Tên tệp không được chứa ký tự đặc biệt",
+      "ends_with_dot_or_space": "Tên tệp không được kết thúc bằng dấu chấm hoặc khoảng trắng",
+      "reserved_on_windows": "Tên đó được dành riêng trên Windows"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "Đang chạy",
+      "stopped": "Đã dừng",
+      "starting": "Đang khởi động",
+      "stopping": "Đang dừng",
+      "adding": "Đang thêm…",
+      "errored": "Lỗi",
+      "upgrade_scheduled": "Đang nâng cấp"
+    },
+    "file": {
+      "pending": "Đang chờ",
+      "quoting": "Đang báo giá",
+      "encrypting": "Đang mã hóa…",
+      "resolving_datamap": "Đang phân giải datamap",
+      "queued_quoting": "Trong hàng đợi: báo giá",
+      "queued_uploading": "Trong hàng đợi: tải lên",
+      "connecting_to_network": "Đang kết nối đến mạng…",
+      "obtaining_quote": "Đang lấy báo giá…",
+      "saving_datamap": "Đang lưu datamap…",
+      "network_unavailable": "Mạng không khả dụng",
+      "ready_to_approve": "Sẵn sàng phê duyệt",
+      "awaiting_approval": "Đang chờ phê duyệt",
+      "uploading": "Đang tải lên",
+      "downloading": "Đang tải xuống",
+      "done": "Hoàn tất",
+      "downloaded": "Đã tải xuống — nhấp để mở"
+    }
+  },
+  "banners": {
+    "cjk_font_missing": {
+      "script_label": "日本語",
+      "message": "Văn bản tiếng Nhật có thể không hiển thị đúng trên hệ thống này. Để khắc phục, hãy cài đặt phông chữ Noto CJK và khởi động lại ứng dụng:",
+      "distro_arch": "Arch",
+      "distro_debian": "Debian / Ubuntu",
+      "distro_fedora": "Fedora",
+      "copy": "Sao chép lệnh",
+      "copied": "Đã sao chép lệnh vào clipboard",
+      "dismiss": "Đóng"
+    }
+  }
+}

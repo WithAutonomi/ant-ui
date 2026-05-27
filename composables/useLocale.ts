@@ -3,7 +3,7 @@ import { locale as osLocaleApi } from '@tauri-apps/plugin-os'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '~/stores/settings'
 
-export const SUPPORTED_LOCALES = ['en', 'ja', 'ko', 'nl', 'fr', 'bg', 'es', 'ar', 'he'] as const
+export const SUPPORTED_LOCALES = ['en', 'ja', 'ko', 'nl', 'fr', 'bg', 'es', 'ar', 'he', 'ru', 'uk', 'zh-CN', 'zh-TW', 'pt-BR', 'tr', 'vi', 'id', 'de'] as const
 export type SupportedLocale = typeof SUPPORTED_LOCALES[number]
 const DEFAULT_LOCALE: SupportedLocale = 'en'
 
@@ -18,8 +18,7 @@ export function isRtlLocale(value: string): boolean {
 }
 
 /** Each locale's name in its own script. Used in the Settings picker so the
- *  user sees "English" / "日本語" / "한국어" / "Nederlands" / "Français" / "Български" / "Español" / "العربية" / "עברית"
- *  regardless of the currently-active UI locale. */
+ *  user sees the language name regardless of the currently-active UI locale. */
 export const NATIVE_LOCALE_NAMES: Record<SupportedLocale, string> = {
   en: 'English',
   ja: '日本語',
@@ -30,6 +29,15 @@ export const NATIVE_LOCALE_NAMES: Record<SupportedLocale, string> = {
   es: 'Español',
   ar: 'العربية',
   he: 'עברית',
+  ru: 'Русский',
+  uk: 'Українська',
+  'zh-CN': '简体中文',
+  'zh-TW': '繁體中文',
+  'pt-BR': 'Português (Brasil)',
+  tr: 'Türkçe',
+  vi: 'Tiếng Việt',
+  id: 'Bahasa Indonesia',
+  de: 'Deutsch',
 }
 
 /** Module-scoped cache of the OS-resolved locale. Warmed on the first
@@ -43,7 +51,16 @@ function isSupported(value: string): value is SupportedLocale {
 
 function normalizeLocale(raw: string | null | undefined): SupportedLocale {
   if (!raw) return DEFAULT_LOCALE
-  const base = raw.toLowerCase().split('-')[0]
+  // First try the full IETF tag (lang+region) — handles zh-CN / zh-TW / pt-BR
+  // where the region carries the meaning. Casing must match SUPPORTED_LOCALES
+  // exactly (lower-case lang, upper-case region per BCP 47).
+  const parts = raw.split('-')
+  if (parts.length >= 2) {
+    const tagged = `${parts[0].toLowerCase()}-${parts[1].toUpperCase()}`
+    if (isSupported(tagged)) return tagged
+  }
+  // Fall back to the bare language tag — fr-CA → fr, en-GB → en, etc.
+  const base = parts[0].toLowerCase()
   return isSupported(base) ? base : DEFAULT_LOCALE
 }
 

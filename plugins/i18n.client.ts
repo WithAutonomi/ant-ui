@@ -8,6 +8,15 @@ import bg from '~/locales/bg.json'
 import es from '~/locales/es.json'
 import ar from '~/locales/ar.json'
 import he from '~/locales/he.json'
+import ru from '~/locales/ru.json'
+import uk from '~/locales/uk.json'
+import zhCN from '~/locales/zh-CN.json'
+import zhTW from '~/locales/zh-TW.json'
+import ptBR from '~/locales/pt-BR.json'
+import tr from '~/locales/tr.json'
+import vi from '~/locales/vi.json'
+import id from '~/locales/id.json'
+import de from '~/locales/de.json'
 
 /**
  * Exported so non-component code (Pinia options-API stores, plain utility
@@ -18,7 +27,7 @@ export const i18n = createI18n({
   legacy: false,
   locale: 'en',
   fallbackLocale: 'en',
-  messages: { en, ja, ko, nl, fr, bg, es, ar, he },
+  messages: { en, ja, ko, nl, fr, bg, es, ar, he, ru, uk, 'zh-CN': zhCN, 'zh-TW': zhTW, 'pt-BR': ptBR, tr, vi, id, de },
   missingWarn: true,
   fallbackWarn: false,
 })

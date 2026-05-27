@@ -1,0 +1,482 @@
+{
+  "_translator_notes": "Machine-translated baseline (Indonesian). Community polish via PR welcome. Note: Indonesian has no grammatical plural; _one and _many strings differ only in the count context. Optional reduplication ('file-file') is omitted for brevity.",
+  "settings": {
+    "language": {
+      "label": "Bahasa",
+      "description": "Bahasa tampilan antarmuka",
+      "system_default": "Default sistem: {name}",
+      "system_default_pending": "Default sistem"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "Terhubung ke gateway penyimpanan terkelola",
+      "subtitle_setup": "Hubungkan ke gateway Indelible yang dihosting sendiri untuk penyimpanan terkelola",
+      "connected_badge": "Terhubung",
+      "server_label": "Server",
+      "signed_in_as": "Masuk sebagai",
+      "disconnect": "Putuskan",
+      "server_url_label": "URL Server",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "Kunci API",
+      "api_key_placeholder": "Token API Anda",
+      "test_connect": "Uji & hubungkan",
+      "testing": "Menguji…",
+      "configure": "Konfigurasikan koneksi"
+    },
+    "storage": {
+      "title": "Direktori penyimpanan",
+      "description": "Tempat data node disimpan di disk",
+      "default": "Default",
+      "browse": "Telusuri",
+      "warning": "Hanya berlaku untuk node yang baru ditambahkan. Node yang ada mempertahankan direktori saat ini."
+    },
+    "downloads": {
+      "title": "Direktori unduhan",
+      "description": "Tempat file yang diunduh disimpan",
+      "not_set": "Belum diatur",
+      "browse": "Telusuri"
+    },
+    "alert": {
+      "title": "Suara peringatan",
+      "description": "Mainkan suara saat kegagalan node yang kritis",
+      "aria_toggle": "Aktifkan/nonaktifkan suara peringatan"
+    },
+    "theme": {
+      "title": "Mode terang",
+      "description": "Beralih antara tema gelap dan terang",
+      "aria_toggle": "Aktifkan/nonaktifkan mode terang"
+    },
+    "advanced": {
+      "hide": "▾ Sembunyikan lanjutan",
+      "show": "▸ Tampilkan lanjutan"
+    },
+    "daemon": {
+      "title": "Daemon node",
+      "description": "Mulai ulang layanan latar belakang yang mengawasi node Anda. Node yang berjalan tetap berjalan — hanya pengawas yang diganti.",
+      "restart": "Mulai ulang daemon",
+      "restarting": "Memulai ulang…"
+    },
+    "concurrency": {
+      "title": "Konkurensi unggahan",
+      "description_1": "Mengontrol berapa banyak penawaran/unggahan yang bisa berjalan secara bersamaan.",
+      "description_2": "Perhatikan bahwa ini berdampak sangat besar pada kinerja."
+    },
+    "prerelease": {
+      "title": "Build pra-rilis",
+      "description": "Terima pembaruan otomatis untuk build pra-rilis (rc / beta) selain rilis stabil. Default nonaktif.",
+      "restart_required": "Mulai ulang aplikasi untuk menerapkan perubahan ini.",
+      "restart_now": "Mulai ulang sekarang"
+    },
+    "direct_wallet": {
+      "title": "Dompet langsung",
+      "description": "Hubungkan dengan kunci pribadi (melewati WalletConnect)",
+      "connected_badge": "Terhubung",
+      "address_label": "Alamat",
+      "disconnect": "Putuskan",
+      "network_label": "Jaringan",
+      "network_sepolia_option": "Arbitrum Sepolia (testnet)",
+      "network_arbitrum_option": "Arbitrum One (mainnet)",
+      "rpc_url_label": "URL RPC",
+      "rpc_url_optional": "(opsional)",
+      "rpc_url_placeholder": "Default ke RPC publik untuk chain yang dipilih",
+      "private_key_label": "Kunci pribadi",
+      "private_key_placeholder": "0x... atau hex mentah",
+      "connect": "Hubungkan",
+      "import_button": "Impor kunci pribadi"
+    },
+    "diagnostics": {
+      "title": "Diagnostik",
+      "summary": "{entries} entri log ({errors} kesalahan)",
+      "copy_button": "Salin ke clipboard",
+      "clear_button": "Hapus",
+      "empty": "Tidak ada entri log",
+      "hide_log": "▾ Sembunyikan log",
+      "show_log": "▸ Tampilkan log"
+    },
+    "upload_history": {
+      "title": "Riwayat unggahan",
+      "summary_one": "{count} entri di upload_history.json. DataMaps di disk dan chunk di jaringan tidak terpengaruh.",
+      "summary_many": "{count} entri di upload_history.json. DataMaps di disk dan chunk di jaringan tidak terpengaruh.",
+      "clear_button": "Hapus riwayat",
+      "confirm_one": "Hapus 1 entri unggahan dari riwayat?\n\nIni menghapus baris lokal dan catatan yang tersimpan. DataMaps di disk dan chunk di jaringan tidak terpengaruh.",
+      "confirm_many": "Hapus {count} entri unggahan dari riwayat?\n\nIni menghapus baris lokal dan catatan yang tersimpan. DataMaps di disk dan chunk di jaringan tidak terpengaruh."
+    },
+    "software": {
+      "title": "Perangkat lunak",
+      "app_version_label": "Versi aplikasi",
+      "node_version_label": "Versi node",
+      "last_checked": "Pemeriksaan terakhir {label}",
+      "check_button": "Periksa pembaruan",
+      "checking": "Memeriksa…"
+    },
+    "about": {
+      "title": "Tentang"
+    },
+    "relative_time": {
+      "just_now": "baru saja",
+      "seconds_ago": "{n} dtk lalu",
+      "minutes_ago": "{n} mnt lalu",
+      "hours_ago": "{n} jam lalu",
+      "days_ago": "{n} hari lalu"
+    },
+    "picker": {
+      "storage_title": "Pilih direktori penyimpanan",
+      "downloads_title": "Pilih direktori unduhan"
+    },
+    "error": {
+      "private_key_invalid": "Kunci pribadi tidak valid — harus 64 karakter hex",
+      "invalid_eth_address": "Format alamat EVM tidak valid"
+    },
+    "toast": {
+      "upload_history_cleared": "Riwayat unggahan dihapus",
+      "update_check_failed": "Pemeriksaan pembaruan gagal",
+      "update_available": "Pembaruan tersedia: v{version}",
+      "on_latest_version": "Anda menggunakan versi terbaru (v{version})",
+      "daemon_restarted": "Daemon dimulai ulang",
+      "daemon_restart_failed": "Gagal memulai ulang daemon: {error}",
+      "storage_dir_updated": "Direktori penyimpanan diperbarui",
+      "storage_dir_verified": "Direktori penyimpanan diverifikasi",
+      "storage_dir_unwritable": "Tidak dapat menggunakan folder itu untuk penyimpanan node",
+      "select_directory_failed": "Gagal memilih direktori",
+      "downloads_dir_updated": "Direktori unduhan diperbarui",
+      "earnings_updated": "Alamat penghasilan diperbarui",
+      "daemon_url_updated": "URL daemon diperbarui",
+      "diagnostics_copied": "Diagnostik disalin ke clipboard",
+      "diagnostics_copy_failed": "Gagal menyalin ke clipboard",
+      "log_cleared": "Log dihapus",
+      "indelible_connected": "Terhubung ke Indelible",
+      "indelible_disconnected": "Terputus dari Indelible",
+      "wallet_connected": "Dompet terhubung: {address}",
+      "wallet_disconnected": "Dompet terputus",
+      "wallet_attach_failed": "Lampiran dompet (sisi Rust) gagal: {error}"
+    }
+  },
+  "nav": {
+    "nodes": "Node",
+    "files": "File",
+    "wallet": "Dompet",
+    "settings": "Pengaturan"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} aktif",
+    "connecting": "Menghubungkan",
+    "connecting_tooltip": "Menghubungkan ke jaringan Autonomi",
+    "connected": "Jaringan",
+    "connected_tooltip": "Terhubung ke jaringan Autonomi",
+    "offline": "Offline · Coba lagi",
+    "offline_tooltip": "Koneksi gagal — klik untuk coba lagi",
+    "connect_wallet": "Hubungkan dompet"
+  },
+  "sidebar": {
+    "pre_release": "PRA-RILIS",
+    "update_available": "Pembaruan tersedia",
+    "update_pre_release_tag": "Pra-rilis",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA TESTNET"
+  },
+  "common": {
+    "cancel": "Batal",
+    "confirm": "Konfirmasi",
+    "close": "Tutup",
+    "download": "Unduh",
+    "start": "Mulai",
+    "stop": "Hentikan",
+    "remove": "Hapus",
+    "close_panel": "Tutup panel"
+  },
+  "nodes": {
+    "add_button": "+ Tambah node",
+    "start_all": "Mulai semua",
+    "stop_all": "Hentikan semua",
+    "running_count": "{count} berjalan",
+    "stopped_count": "{count} dihentikan",
+    "errored_count": "{count} error",
+    "filter_placeholder": "Saring...",
+    "filter_aria_label": "Saring node",
+    "starting_daemon": "Memulai daemon node…",
+    "restarting_daemon": "Memulai ulang daemon node…",
+    "nodes_keep_running": "Node Anda tetap berjalan.",
+    "daemon_disconnected": "Tidak dapat terhubung ke daemon node",
+    "daemon_retrying": "Mencoba ulang otomatis…",
+    "empty_title": "Belum ada node",
+    "empty_hint": "Klik \"+ Tambah node\" untuk memulai",
+    "confirm_action": "Konfirmasi tindakan",
+    "remove_node_message": "Hapus node {id}? Ini akan menghapus semua datanya.",
+    "stop_all_message": "Hentikan semua {count} node yang berjalan?",
+    "node_fallback_name": "Node {id}",
+    "field": {
+      "node_id": "ID node",
+      "status": "Status",
+      "version": "Versi",
+      "pid": "PID",
+      "uptime": "Waktu aktif",
+      "storage": "Penyimpanan",
+      "data_directory": "Direktori data",
+      "log_directory": "Direktori log",
+      "port": "Port",
+      "binary": "Berkas biner",
+      "rewards_address": "Alamat imbalan",
+      "status_aria": "Status: {status}"
+    },
+    "add_dialog": {
+      "title": "Tambah node",
+      "number_label": "Jumlah node",
+      "range_hint": "Antara 1 dan 50",
+      "no_earnings_warning": "Alamat penghasilan belum dikonfigurasi. Atur di halaman Dompet sebelum menambah node.",
+      "submit_one": "Tambah 1 node",
+      "submit_many": "Tambah {count} node"
+    },
+    "toast": {
+      "added": "{count} node ditambahkan",
+      "add_failed": "Gagal menambah node: {error}",
+      "started": "Node {id} dimulai",
+      "start_failed": "Gagal memulai node {id}: {error}",
+      "stopped": "Node {id} dihentikan",
+      "stop_failed": "Gagal menghentikan node {id}: {error}",
+      "removed": "Node {id} dihapus",
+      "remove_failed": "Gagal menghapus node {id}: {error}",
+      "no_stopped": "Tidak ada node yang dihentikan untuk dimulai",
+      "no_running": "Tidak ada node yang berjalan untuk dihentikan",
+      "node_failed": "Node {id} gagal: {error}",
+      "started_count": "{count} node dimulai",
+      "stopped_count": "{count} node dihentikan",
+      "start_all_failed": "Gagal memulai semua: {error}",
+      "stop_all_failed": "Gagal menghentikan semua: {error}"
+    }
+  },
+  "files": {
+    "upload_button": "Unggah file",
+    "estimate_button": "Estimasi biaya",
+    "download_by_address": "Unduh berdasarkan alamat",
+    "download_by_datamap": "Unduh berdasarkan Datamap",
+    "uploads_heading": "Unggahan",
+    "downloads_heading": "Unduhan",
+    "clear": "Hapus",
+    "drop_files": "Lepaskan file untuk diunggah",
+    "uploads_empty_title": "Belum ada unggahan",
+    "uploads_empty_hint": "Seret file ke sini, atau gunakan tombol di atas",
+    "downloads_empty_title": "Belum ada unduhan",
+    "downloads_empty_hint": "Gunakan \"Unduh berdasarkan alamat\" atau \"Unduh berdasarkan Datamap\"",
+    "table": {
+      "name": "Nama",
+      "status": "Status",
+      "size": "Ukuran",
+      "cost": "Biaya",
+      "date": "Tanggal",
+      "address": "Alamat",
+      "saved_to": "Disimpan ke",
+      "actions": "Tindakan"
+    },
+    "row": {
+      "free_already_stored": "Gratis — sudah disimpan",
+      "gas_suffix": "+ {gas} gas",
+      "public_badge": "Publik",
+      "retry": "↻ Coba lagi",
+      "public_tooltip": "Unggahan publik — klik untuk menyalin alamat jaringan yang dapat dibagikan",
+      "reveal_datamap_tooltip": "Tampilkan file datamap di Finder/Explorer",
+      "copy_datamap_tooltip": "Salin jalur file datamap",
+      "copy_address_tooltip": "Salin alamat jaringan",
+      "retry_tooltip": "Coba unggah ulang",
+      "remove_tooltip": "Hapus dari daftar"
+    },
+    "stage": {
+      "encrypting": "Mengenkripsi…",
+      "quoting_pct": "Penawaran · {pct}%",
+      "quoting_indeterminate": "Penawaran…",
+      "storing_pct": "Menyimpan · {pct}%",
+      "storing_indeterminate": "Menyimpan…",
+      "resolving_pct": "Menyelesaikan datamap · {pct}%",
+      "resolving_indeterminate": "Menyelesaikan datamap…",
+      "downloading_pct": "Mengunduh · {pct}%",
+      "downloading_indeterminate": "Mengunduh…"
+    },
+    "picker": {
+      "upload_title": "Pilih file untuk diunggah",
+      "datamap_title": "Pilih file datamap untuk diunduh",
+      "estimate_title": "Pilih file untuk estimasi biaya",
+      "datamap_filter": "Datamap"
+    },
+    "toast": {
+      "upload_requires_wallet": "Unggahan memerlukan dompet",
+      "download_requires_network": "Unduhan memerlukan koneksi jaringan",
+      "open_folder_failed": "Tidak dapat membuka folder",
+      "address_copied": "Alamat disalin ke clipboard",
+      "public_address_copied": "Alamat publik disalin — bagikan agar orang lain dapat mengunduh file ini",
+      "datamap_path_copied": "Jalur datamap disalin ke clipboard",
+      "already_stored_one": "1 file sudah disimpan — menyimpan datamap",
+      "already_stored_many": "{count} file sudah disimpan — menyimpan datamap",
+      "upload_complete": "Unggahan selesai: {name}",
+      "upload_failed": "Unggahan gagal: {name} — {error}",
+      "payment_failed": "Pembayaran gagal: {error}",
+      "download_complete": "Unduhan selesai: {name}",
+      "download_failed": "Unduhan gagal: {name} — {error}",
+      "datamap_missing": "Tidak dapat mengunduh: file datamap hilang atau tidak dapat dibaca",
+      "datamap_read_failed": "Tidak dapat membaca datamap: {error}"
+    },
+    "error": {
+      "wallet_not_connected": "Dompet tidak terhubung",
+      "not_connected_to_network": "Tidak terhubung ke jaringan"
+    },
+    "network": {
+      "unavailable": "Tidak terhubung ke jaringan Autonomi — estimasi biaya tidak tersedia.",
+      "retry_connection": "Coba sambungkan ulang",
+      "connecting": "Menghubungkan ke jaringan Autonomi…",
+      "obtaining_quote": "Mendapatkan penawaran dari jaringan…",
+      "obtaining_quotes": "Mendapatkan penawaran dari jaringan…"
+    },
+    "datamap_saveas": {
+      "title": "Simpan file yang diunduh sebagai",
+      "filename_label": "Nama file",
+      "filename_placeholder": "myfile.dat"
+    },
+    "download_dialog": {
+      "title": "Unduh file",
+      "address_label": "Alamat file",
+      "address_placeholder": "Alamat file (hex)",
+      "filename_label": "Simpan sebagai",
+      "filename_placeholder": "myfile.dat"
+    },
+    "datamap_picker": {
+      "description": "Pilih unggahan sebelumnya untuk diunduh ulang, atau cari file datamap yang Anda terima dari tempat lain.",
+      "empty": "Belum ada unggahan sebelumnya dengan datamap tersimpan.",
+      "browse_button": "Cari file datamap…"
+    },
+    "cost_estimate": {
+      "title": "Estimasi biaya unggahan",
+      "loading": "Mengestimasi biaya…",
+      "no_files": "Tidak ada file yang dipilih",
+      "footnote": "Biaya ditanyakan dari jaringan Autonomi. Biaya gas (ETH) berlaku di atas biaya penyimpanan."
+    },
+    "upload_confirm": {
+      "title": "Konfirmasi unggahan",
+      "info_banner": "Anda dapat menutup jendela ini dan kembali saat penawaran masuk. Unggahan tetap tertunda sampai Anda menyetujui atau membatalkannya.",
+      "already_stored_badge": "Sudah disimpan",
+      "payment_label": "Pembayaran",
+      "payment_mixed": "Campuran",
+      "payment_mixed_detail": "{regular} reguler, {merkle} merkle — dibayar per file.",
+      "payment_merkle": "Pohon Merkle",
+      "payment_regular": "Reguler",
+      "payment_merkle_detail": "Satu transaksi untuk {count} chunk — gas lebih rendah.",
+      "payment_regular_detail_one": "Pembayaran per-batch untuk 1 chunk.",
+      "payment_regular_detail_many": "Pembayaran per-batch untuk {count} chunk.",
+      "free_title": "Sudah disimpan di jaringan — gratis",
+      "free_detail": "Setiap chunk sudah ada. Tidak ada ANT atau gas yang akan dihabiskan.",
+      "cost_label": "Biaya penyimpanan jaringan",
+      "gas_label": "Estimasi gas",
+      "some_already_stored": "Beberapa file sudah disimpan — bagian itu tidak dikenakan biaya.",
+      "visibility_label": "Visibilitas",
+      "visibility_private": "Pribadi",
+      "visibility_private_desc": "Terenkripsi dan hanya dapat diakses dengan peta data Anda. Hanya Anda yang dapat mengambil file.",
+      "visibility_public": "Publik",
+      "visibility_public_desc": "Peta data dipublikasikan ke jaringan. Bagikan satu alamat agar siapa pun dapat mengambil file.",
+      "regular_footnote": "Diestimasi dari satu penawaran jaringan — biaya akhir mungkin sedikit berbeda. Biaya gas berlaku di atas.",
+      "cancel_upload": "Batalkan unggahan",
+      "ready_count": "Siap: {ready} dari {total}",
+      "approve_button_one": "Setujui unggahan",
+      "approve_button_many": "Setujui {count} unggahan"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "Alamat penghasilan",
+    "earnings_description": "Tempat penghasilan node Anda dikirim",
+    "earnings_not_configured": "Belum dikonfigurasi",
+    "edit": "Edit",
+    "save": "Simpan",
+    "earnings_use_payment_prompt": "Gunakan alamat dompet yang terhubung untuk penghasilan?",
+    "earnings_use_payment_button": "Gunakan {address}",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "Penyimpanan terkelola",
+    "managed_storage_org": "Penyimpanan dikelola oleh {org}",
+    "managed_storage_description": "Unggahan dirutekan melalui gateway Indelible organisasi Anda. Tidak diperlukan dompet lokal.",
+    "payment_wallet_heading": "Dompet pembayaran",
+    "payment_optional_hint": "Opsional — diperlukan untuk unggahan file",
+    "connect_prompt": "Hubungkan dompet untuk membayar penyimpanan file",
+    "network_arbitrum_sepolia": "Arbitrum Sepolia testnet",
+    "network_arbitrum_one": "Jaringan Arbitrum One diperlukan",
+    "import_key_hint": "Atau impor kunci pribadi di {link}",
+    "import_key_hint_link_text": "Pengaturan > Lanjutan",
+    "address_label": "Alamat",
+    "eth_balance_label": "Saldo ETH",
+    "ant_balance_label": "Saldo ANT",
+    "usdc_balance_label": "Saldo USDC",
+    "refresh_balances": "Perbarui saldo",
+    "disconnect": "Putuskan",
+    "toast": {
+      "import_key_in_settings": "Impor kunci pribadi di Pengaturan > Lanjutan",
+      "invalid_address": "Alamat tidak valid: harus 0x + 40 karakter hex",
+      "earnings_saved": "Alamat penghasilan disimpan",
+      "earnings_set_to_payment": "Alamat penghasilan diatur ke dompet pembayaran",
+      "wallet_disconnected": "Dompet terputus"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "Pembaruan tersedia",
+      "version_ready": "v{version} siap diinstal",
+      "pre_release_badge": "Pra-rilis",
+      "download_size": "Ukuran unduhan: {size}",
+      "release_notes": "Catatan rilis",
+      "no_release_notes": "Tidak ada catatan rilis untuk versi ini.",
+      "downloading": "Mengunduh…",
+      "download_complete": "Unduhan berhasil, aplikasi akan dimulai ulang segera",
+      "auto_restart_hint": "Aplikasi akan dimulai ulang secara otomatis saat selesai.",
+      "cancel_download": "Batalkan unduhan",
+      "installing_tooltip": "Menginstal — mohon tunggu",
+      "not_now": "Lain kali",
+      "update_restart": "Perbarui & mulai ulang"
+    },
+    "toast": {
+      "install_no_restart": "Pembaruan ke v{version} terinstal tetapi aplikasi tidak dimulai ulang. Keluar dan buka kembali Autonomi untuk menyelesaikan pembaruan.",
+      "install_failed": "Pemasangan pembaruan gagal: {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "Nama file tidak boleh berisi karakter khusus",
+      "ends_with_dot_or_space": "Nama file tidak boleh diakhiri dengan titik atau spasi",
+      "reserved_on_windows": "Nama itu dicadangkan di Windows"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "Berjalan",
+      "stopped": "Dihentikan",
+      "starting": "Memulai",
+      "stopping": "Menghentikan",
+      "adding": "Menambahkan…",
+      "errored": "Error",
+      "upgrade_scheduled": "Memperbarui"
+    },
+    "file": {
+      "pending": "Tertunda",
+      "quoting": "Penawaran",
+      "encrypting": "Mengenkripsi…",
+      "resolving_datamap": "Menyelesaikan datamap",
+      "queued_quoting": "Antrian: penawaran",
+      "queued_uploading": "Antrian: mengunggah",
+      "connecting_to_network": "Menghubungkan ke jaringan…",
+      "obtaining_quote": "Mendapatkan penawaran…",
+      "saving_datamap": "Menyimpan datamap…",
+      "network_unavailable": "Jaringan tidak tersedia",
+      "ready_to_approve": "Siap disetujui",
+      "awaiting_approval": "Menunggu persetujuan",
+      "uploading": "Mengunggah",
+      "downloading": "Mengunduh",
+      "done": "Selesai",
+      "downloaded": "Diunduh — klik untuk membuka"
+    }
+  },
+  "banners": {
+    "cjk_font_missing": {
+      "script_label": "日本語",
+      "message": "Teks Jepang mungkin tidak ditampilkan dengan benar di sistem ini. Untuk memperbaikinya, instal font Noto CJK dan mulai ulang aplikasi:",
+      "distro_arch": "Arch",
+      "distro_debian": "Debian / Ubuntu",
+      "distro_fedora": "Fedora",
+      "copy": "Salin perintah",
+      "copied": "Perintah disalin ke clipboard",
+      "dismiss": "Tutup"
+    }
+  }
+}

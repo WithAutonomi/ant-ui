@@ -1,0 +1,482 @@
+{
+  "_translator_notes": "Machine-translated baseline (Traditional Chinese, Taiwan-leaning vocabulary; should serve HK users with mild friction). Community polish via PR welcome. Note: Chinese has no grammatical plural forms — _one/_many strings differ only in number context, not in word morphology.",
+  "settings": {
+    "language": {
+      "label": "語言",
+      "description": "介面顯示語言",
+      "system_default": "系統預設:{name}",
+      "system_default_pending": "系統預設"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "已連線到託管儲存閘道",
+      "subtitle_setup": "連線到自我託管的 Indelible 閘道以使用託管儲存",
+      "connected_badge": "已連線",
+      "server_label": "伺服器",
+      "signed_in_as": "登入身分",
+      "disconnect": "中斷連線",
+      "server_url_label": "伺服器 URL",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "API 金鑰",
+      "api_key_placeholder": "您的 API 權杖",
+      "test_connect": "測試並連線",
+      "testing": "測試中…",
+      "configure": "設定連線"
+    },
+    "storage": {
+      "title": "儲存目錄",
+      "description": "節點資料在磁碟上的儲存位置",
+      "default": "預設",
+      "browse": "瀏覽",
+      "warning": "僅適用於新增的節點。現有節點保持目前目錄。"
+    },
+    "downloads": {
+      "title": "下載目錄",
+      "description": "下載檔案的儲存位置",
+      "not_set": "未設定",
+      "browse": "瀏覽"
+    },
+    "alert": {
+      "title": "提示音",
+      "description": "節點發生嚴重故障時播放提示音",
+      "aria_toggle": "切換提示音"
+    },
+    "theme": {
+      "title": "淺色模式",
+      "description": "在深色與淺色主題之間切換",
+      "aria_toggle": "切換淺色模式"
+    },
+    "advanced": {
+      "hide": "▾ 隱藏進階選項",
+      "show": "▸ 顯示進階選項"
+    },
+    "daemon": {
+      "title": "節點守護程式",
+      "description": "重新啟動監督節點的背景服務。執行中的節點會繼續執行——只更換監督程式。",
+      "restart": "重新啟動守護程式",
+      "restarting": "重新啟動中…"
+    },
+    "concurrency": {
+      "title": "上傳並行",
+      "description_1": "控制可同時執行的報價/上傳數量。",
+      "description_2": "請注意,這對效能有極大影響。"
+    },
+    "prerelease": {
+      "title": "預先發行版本",
+      "description": "除穩定版外,還接收預先發行版本(rc / beta)的自動更新。預設關閉。",
+      "restart_required": "請重新啟動應用程式以套用此變更。",
+      "restart_now": "立即重新啟動"
+    },
+    "direct_wallet": {
+      "title": "直接錢包",
+      "description": "使用私鑰連線(略過 WalletConnect)",
+      "connected_badge": "已連線",
+      "address_label": "位址",
+      "disconnect": "中斷連線",
+      "network_label": "網路",
+      "network_sepolia_option": "Arbitrum Sepolia(測試網)",
+      "network_arbitrum_option": "Arbitrum One(主網)",
+      "rpc_url_label": "RPC URL",
+      "rpc_url_optional": "(選用)",
+      "rpc_url_placeholder": "預設使用所選鏈的公共 RPC",
+      "private_key_label": "私鑰",
+      "private_key_placeholder": "0x... 或原始 hex",
+      "connect": "連線",
+      "import_button": "匯入私鑰"
+    },
+    "diagnostics": {
+      "title": "診斷",
+      "summary": "{entries} 筆紀錄({errors} 個錯誤)",
+      "copy_button": "複製到剪貼簿",
+      "clear_button": "清除",
+      "empty": "無紀錄",
+      "hide_log": "▾ 隱藏紀錄",
+      "show_log": "▸ 顯示紀錄"
+    },
+    "upload_history": {
+      "title": "上傳歷史",
+      "summary_one": "upload_history.json 中有 {count} 筆已完成紀錄。磁碟上的 DataMaps 與網路上的分片不受影響。",
+      "summary_many": "upload_history.json 中有 {count} 筆已完成紀錄。磁碟上的 DataMaps 與網路上的分片不受影響。",
+      "clear_button": "清除歷史",
+      "confirm_one": "從歷史中清除 1 筆上傳紀錄?\n\n這將刪除本機列與已儲存的紀錄。磁碟上的 DataMaps 與網路上的分片不受影響。",
+      "confirm_many": "從歷史中清除 {count} 筆上傳紀錄?\n\n這將刪除本機列與已儲存的紀錄。磁碟上的 DataMaps 與網路上的分片不受影響。"
+    },
+    "software": {
+      "title": "軟體",
+      "app_version_label": "應用程式版本",
+      "node_version_label": "節點版本",
+      "last_checked": "上次檢查 {label}",
+      "check_button": "檢查更新",
+      "checking": "檢查中…"
+    },
+    "about": {
+      "title": "關於"
+    },
+    "relative_time": {
+      "just_now": "剛剛",
+      "seconds_ago": "{n} 秒前",
+      "minutes_ago": "{n} 分鐘前",
+      "hours_ago": "{n} 小時前",
+      "days_ago": "{n} 天前"
+    },
+    "picker": {
+      "storage_title": "選擇儲存目錄",
+      "downloads_title": "選擇下載目錄"
+    },
+    "error": {
+      "private_key_invalid": "無效的私鑰——必須是 64 個十六進位字元",
+      "invalid_eth_address": "EVM 位址格式無效"
+    },
+    "toast": {
+      "upload_history_cleared": "上傳歷史已清除",
+      "update_check_failed": "更新檢查失敗",
+      "update_available": "有可用更新:v{version}",
+      "on_latest_version": "您使用的是最新版本(v{version})",
+      "daemon_restarted": "守護程式已重新啟動",
+      "daemon_restart_failed": "守護程式重新啟動失敗:{error}",
+      "storage_dir_updated": "儲存目錄已更新",
+      "storage_dir_verified": "儲存目錄已驗證",
+      "storage_dir_unwritable": "無法使用該資料夾儲存節點",
+      "select_directory_failed": "選擇目錄失敗",
+      "downloads_dir_updated": "下載目錄已更新",
+      "earnings_updated": "收益位址已更新",
+      "daemon_url_updated": "守護程式 URL 已更新",
+      "diagnostics_copied": "診斷資訊已複製到剪貼簿",
+      "diagnostics_copy_failed": "複製到剪貼簿失敗",
+      "log_cleared": "紀錄已清除",
+      "indelible_connected": "已連線到 Indelible",
+      "indelible_disconnected": "已中斷與 Indelible 的連線",
+      "wallet_connected": "錢包已連線:{address}",
+      "wallet_disconnected": "錢包已中斷連線",
+      "wallet_attach_failed": "錢包附加(Rust 端)失敗:{error}"
+    }
+  },
+  "nav": {
+    "nodes": "節點",
+    "files": "檔案",
+    "wallet": "錢包",
+    "settings": "設定"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} 個進行中",
+    "connecting": "連線中",
+    "connecting_tooltip": "正在連線到 Autonomi 網路",
+    "connected": "網路",
+    "connected_tooltip": "已連線到 Autonomi 網路",
+    "offline": "離線 · 重試",
+    "offline_tooltip": "連線失敗——按一下重試",
+    "connect_wallet": "連線錢包"
+  },
+  "sidebar": {
+    "pre_release": "預先發行",
+    "update_available": "有可用更新",
+    "update_pre_release_tag": "預先發行",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA TESTNET"
+  },
+  "common": {
+    "cancel": "取消",
+    "confirm": "確認",
+    "close": "關閉",
+    "download": "下載",
+    "start": "啟動",
+    "stop": "停止",
+    "remove": "移除",
+    "close_panel": "關閉面板"
+  },
+  "nodes": {
+    "add_button": "+ 新增節點",
+    "start_all": "全部啟動",
+    "stop_all": "全部停止",
+    "running_count": "{count} 個執行中",
+    "stopped_count": "{count} 個已停止",
+    "errored_count": "{count} 個錯誤",
+    "filter_placeholder": "篩選...",
+    "filter_aria_label": "篩選節點",
+    "starting_daemon": "正在啟動節點守護程式…",
+    "restarting_daemon": "正在重新啟動節點守護程式…",
+    "nodes_keep_running": "您的節點繼續執行。",
+    "daemon_disconnected": "無法連線到節點守護程式",
+    "daemon_retrying": "自動重試中…",
+    "empty_title": "尚無節點",
+    "empty_hint": "按一下「+ 新增節點」以開始",
+    "confirm_action": "確認動作",
+    "remove_node_message": "移除節點 {id}?這將刪除其所有資料。",
+    "stop_all_message": "停止全部 {count} 個執行中的節點?",
+    "node_fallback_name": "節點 {id}",
+    "field": {
+      "node_id": "節點 ID",
+      "status": "狀態",
+      "version": "版本",
+      "pid": "PID",
+      "uptime": "執行時間",
+      "storage": "儲存",
+      "data_directory": "資料目錄",
+      "log_directory": "紀錄目錄",
+      "port": "連接埠",
+      "binary": "執行檔",
+      "rewards_address": "獎勵位址",
+      "status_aria": "狀態:{status}"
+    },
+    "add_dialog": {
+      "title": "新增節點",
+      "number_label": "節點數量",
+      "range_hint": "1 到 50 之間",
+      "no_earnings_warning": "未設定收益位址。請在新增節點前於錢包頁面設定一個。",
+      "submit_one": "新增 1 個節點",
+      "submit_many": "新增 {count} 個節點"
+    },
+    "toast": {
+      "added": "已新增 {count} 個節點",
+      "add_failed": "新增節點失敗:{error}",
+      "started": "節點 {id} 已啟動",
+      "start_failed": "啟動節點 {id} 失敗:{error}",
+      "stopped": "節點 {id} 已停止",
+      "stop_failed": "停止節點 {id} 失敗:{error}",
+      "removed": "節點 {id} 已移除",
+      "remove_failed": "移除節點 {id} 失敗:{error}",
+      "no_stopped": "沒有已停止的節點可啟動",
+      "no_running": "沒有執行中的節點可停止",
+      "node_failed": "節點 {id} 故障:{error}",
+      "started_count": "已啟動 {count} 個節點",
+      "stopped_count": "已停止 {count} 個節點",
+      "start_all_failed": "全部啟動失敗:{error}",
+      "stop_all_failed": "全部停止失敗:{error}"
+    }
+  },
+  "files": {
+    "upload_button": "上傳檔案",
+    "estimate_button": "估算費用",
+    "download_by_address": "依位址下載",
+    "download_by_datamap": "依 Datamap 下載",
+    "uploads_heading": "上傳",
+    "downloads_heading": "下載",
+    "clear": "清除",
+    "drop_files": "拖放檔案以上傳",
+    "uploads_empty_title": "尚無上傳",
+    "uploads_empty_hint": "將檔案拖到此處,或使用上方按鈕",
+    "downloads_empty_title": "尚無下載",
+    "downloads_empty_hint": "使用「依位址下載」或「依 Datamap 下載」",
+    "table": {
+      "name": "名稱",
+      "status": "狀態",
+      "size": "大小",
+      "cost": "費用",
+      "date": "日期",
+      "address": "位址",
+      "saved_to": "儲存位置",
+      "actions": "動作"
+    },
+    "row": {
+      "free_already_stored": "免費——已儲存",
+      "gas_suffix": "+ {gas} gas",
+      "public_badge": "公開",
+      "retry": "↻ 重試",
+      "public_tooltip": "公開上傳——按一下複製可分享的網路位址",
+      "reveal_datamap_tooltip": "在 Finder/檔案總管中顯示 datamap 檔案",
+      "copy_datamap_tooltip": "複製 datamap 檔案路徑",
+      "copy_address_tooltip": "複製網路位址",
+      "retry_tooltip": "重試上傳",
+      "remove_tooltip": "從清單移除"
+    },
+    "stage": {
+      "encrypting": "加密中…",
+      "quoting_pct": "報價中 · {pct}%",
+      "quoting_indeterminate": "報價中…",
+      "storing_pct": "儲存中 · {pct}%",
+      "storing_indeterminate": "儲存中…",
+      "resolving_pct": "解析 datamap · {pct}%",
+      "resolving_indeterminate": "解析 datamap…",
+      "downloading_pct": "下載中 · {pct}%",
+      "downloading_indeterminate": "下載中…"
+    },
+    "picker": {
+      "upload_title": "選擇要上傳的檔案",
+      "datamap_title": "選擇要下載的 datamap 檔案",
+      "estimate_title": "選擇要估算費用的檔案",
+      "datamap_filter": "Datamap"
+    },
+    "toast": {
+      "upload_requires_wallet": "上傳需要錢包",
+      "download_requires_network": "下載需要網路連線",
+      "open_folder_failed": "無法開啟資料夾",
+      "address_copied": "位址已複製到剪貼簿",
+      "public_address_copied": "公開位址已複製——分享以便他人下載此檔案",
+      "datamap_path_copied": "Datamap 路徑已複製到剪貼簿",
+      "already_stored_one": "1 個檔案已儲存——正在儲存 datamap",
+      "already_stored_many": "{count} 個檔案已儲存——正在儲存 datamap",
+      "upload_complete": "上傳完成:{name}",
+      "upload_failed": "上傳失敗:{name} — {error}",
+      "payment_failed": "付款失敗:{error}",
+      "download_complete": "下載完成:{name}",
+      "download_failed": "下載失敗:{name} — {error}",
+      "datamap_missing": "無法下載:datamap 檔案遺失或無法讀取",
+      "datamap_read_failed": "無法讀取 datamap:{error}"
+    },
+    "error": {
+      "wallet_not_connected": "錢包未連線",
+      "not_connected_to_network": "未連線到網路"
+    },
+    "network": {
+      "unavailable": "未連線到 Autonomi 網路——費用估算不可用。",
+      "retry_connection": "重試連線",
+      "connecting": "正在連線到 Autonomi 網路…",
+      "obtaining_quote": "正在從網路取得報價…",
+      "obtaining_quotes": "正在從網路取得報價…"
+    },
+    "datamap_saveas": {
+      "title": "下載檔案另存為",
+      "filename_label": "檔名",
+      "filename_placeholder": "myfile.dat"
+    },
+    "download_dialog": {
+      "title": "下載檔案",
+      "address_label": "檔案位址",
+      "address_placeholder": "檔案位址(hex)",
+      "filename_label": "另存為",
+      "filename_placeholder": "myfile.dat"
+    },
+    "datamap_picker": {
+      "description": "選擇先前的上傳以重新下載,或瀏覽從他處接收的 datamap 檔案。",
+      "empty": "尚無帶儲存 datamap 的上傳。",
+      "browse_button": "瀏覽 datamap 檔案…"
+    },
+    "cost_estimate": {
+      "title": "上傳費用估算",
+      "loading": "估算費用…",
+      "no_files": "未選擇檔案",
+      "footnote": "費用從 Autonomi 網路查詢。Gas 費用(ETH)會在儲存費用之上額外收取。"
+    },
+    "upload_confirm": {
+      "title": "確認上傳",
+      "info_banner": "您可以關閉此視窗,在報價到達後再回來。在您核准或取消之前,上傳保持等待狀態。",
+      "already_stored_badge": "已儲存",
+      "payment_label": "付款",
+      "payment_mixed": "混合",
+      "payment_mixed_detail": "{regular} 個一般,{merkle} 個 merkle——按檔案付款。",
+      "payment_merkle": "Merkle 樹",
+      "payment_regular": "一般",
+      "payment_merkle_detail": "{count} 個分片的單次交易——更低 gas。",
+      "payment_regular_detail_one": "1 個分片的批次付款。",
+      "payment_regular_detail_many": "{count} 個分片的批次付款。",
+      "free_title": "已儲存在網路上——免費",
+      "free_detail": "每個分片都已存在。不會消耗 ANT 或 gas。",
+      "cost_label": "網路儲存費用",
+      "gas_label": "估算 gas",
+      "some_already_stored": "部分檔案已儲存——該部分不收費。",
+      "visibility_label": "可見性",
+      "visibility_private": "私人",
+      "visibility_private_desc": "已加密,僅能透過您的資料圖存取。只有您可以取回檔案。",
+      "visibility_public": "公開",
+      "visibility_public_desc": "資料圖發布到網路。分享單一位址,任何人都可以取回檔案。",
+      "regular_footnote": "依單次網路報價估算——最終費用可能略有差異。Gas 費用另計。",
+      "cancel_upload": "取消上傳",
+      "ready_count": "就緒:{ready} / {total}",
+      "approve_button_one": "核准上傳",
+      "approve_button_many": "核准 {count} 個上傳"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "收益位址",
+    "earnings_description": "節點收益的傳送位址",
+    "earnings_not_configured": "未設定",
+    "edit": "編輯",
+    "save": "儲存",
+    "earnings_use_payment_prompt": "使用您已連線錢包的位址作為收益位址?",
+    "earnings_use_payment_button": "使用 {address}",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "託管儲存",
+    "managed_storage_org": "儲存由 {org} 託管",
+    "managed_storage_description": "上傳透過貴組織的 Indelible 閘道路由。無需本機錢包。",
+    "payment_wallet_heading": "付款錢包",
+    "payment_optional_hint": "選用——上傳檔案需要",
+    "connect_prompt": "連線錢包以支付檔案儲存費用",
+    "network_arbitrum_sepolia": "Arbitrum Sepolia testnet",
+    "network_arbitrum_one": "需要 Arbitrum One 網路",
+    "import_key_hint": "或在 {link} 中匯入私鑰",
+    "import_key_hint_link_text": "設定 > 進階",
+    "address_label": "位址",
+    "eth_balance_label": "ETH 餘額",
+    "ant_balance_label": "ANT 餘額",
+    "usdc_balance_label": "USDC 餘額",
+    "refresh_balances": "重新整理餘額",
+    "disconnect": "中斷連線",
+    "toast": {
+      "import_key_in_settings": "在 設定 > 進階 中匯入私鑰",
+      "invalid_address": "無效位址:必須是 0x + 40 個十六進位字元",
+      "earnings_saved": "收益位址已儲存",
+      "earnings_set_to_payment": "收益位址已設為付款錢包",
+      "wallet_disconnected": "錢包已中斷連線"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "有可用更新",
+      "version_ready": "v{version} 已準備好安裝",
+      "pre_release_badge": "預先發行",
+      "download_size": "下載大小:{size}",
+      "release_notes": "發行說明",
+      "no_release_notes": "此版本沒有發行說明。",
+      "downloading": "下載中…",
+      "download_complete": "下載成功,應用程式即將重新啟動",
+      "auto_restart_hint": "完成後應用程式將自動重新啟動。",
+      "cancel_download": "取消下載",
+      "installing_tooltip": "安裝中——請稍候",
+      "not_now": "暫不",
+      "update_restart": "更新並重新啟動"
+    },
+    "toast": {
+      "install_no_restart": "更新到 v{version} 已安裝,但應用程式未重新啟動。請結束並重新開啟 Autonomi 以完成更新。",
+      "install_failed": "更新安裝失敗:{error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "檔名不能包含特殊字元",
+      "ends_with_dot_or_space": "檔名不能以句點或空格結尾",
+      "reserved_on_windows": "該名稱在 Windows 上是保留的"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "執行中",
+      "stopped": "已停止",
+      "starting": "啟動中",
+      "stopping": "停止中",
+      "adding": "新增中…",
+      "errored": "錯誤",
+      "upgrade_scheduled": "升級中"
+    },
+    "file": {
+      "pending": "等待中",
+      "quoting": "報價中",
+      "encrypting": "加密中…",
+      "resolving_datamap": "解析 datamap",
+      "queued_quoting": "佇列中:報價",
+      "queued_uploading": "佇列中:上傳",
+      "connecting_to_network": "連線到網路…",
+      "obtaining_quote": "取得報價…",
+      "saving_datamap": "儲存 datamap…",
+      "network_unavailable": "網路不可用",
+      "ready_to_approve": "準備核准",
+      "awaiting_approval": "等待核准",
+      "uploading": "上傳中",
+      "downloading": "下載中",
+      "done": "完成",
+      "downloaded": "已下載——按一下開啟"
+    }
+  },
+  "banners": {
+    "cjk_font_missing": {
+      "script_label": "日本語",
+      "message": "日文文字在此系統上可能無法正確顯示。要修正,請安裝 Noto CJK 字型並重新啟動應用程式:",
+      "distro_arch": "Arch",
+      "distro_debian": "Debian / Ubuntu",
+      "distro_fedora": "Fedora",
+      "copy": "複製命令",
+      "copied": "命令已複製到剪貼簿",
+      "dismiss": "關閉"
+    }
+  }
+}
