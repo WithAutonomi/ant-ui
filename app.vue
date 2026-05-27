@@ -15,8 +15,11 @@ import { useNodesStore } from '~/stores/nodes'
 import { useFilesStore } from '~/stores/files'
 import { useConnectionStore } from '~/stores/connection'
 
+const { init: initLocale, dir: localeDir } = useLocale()
+
 useHead({
   title: 'Autonomi',
+  htmlAttrs: { dir: localeDir },
   bodyAttrs: { class: 'bg-autonomi-dark text-autonomi-text' },
 })
 
@@ -31,8 +34,6 @@ const updaterStore = useUpdaterStore()
 const nodesStore = useNodesStore()
 const filesStore = useFilesStore()
 const connectionStore = useConnectionStore()
-
-const { init: initLocale } = useLocale()
 
 onMounted(async () => {
   // Config first — useLocale.init() reads the persisted choice from

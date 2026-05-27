@@ -1,0 +1,482 @@
+{
+  "_translator_notes": "Machine-translated baseline. Community polish via PR welcome. RTL script — see CONTRIBUTING-i18n.md for the dir-attribute hookup.",
+  "settings": {
+    "language": {
+      "label": "اللغة",
+      "description": "لغة عرض واجهة المستخدم",
+      "system_default": "افتراضي النظام: {name}",
+      "system_default_pending": "افتراضي النظام"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "متصل ببوابة التخزين المُدارة",
+      "subtitle_setup": "اتصل ببوابة Indelible مُستضافة ذاتيًا لتخزين مُدار",
+      "connected_badge": "متصل",
+      "server_label": "الخادم",
+      "signed_in_as": "تم تسجيل الدخول باسم",
+      "disconnect": "قطع الاتصال",
+      "server_url_label": "عنوان URL للخادم",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "مفتاح API",
+      "api_key_placeholder": "رمز API الخاص بك",
+      "test_connect": "اختبار واتصال",
+      "testing": "جارٍ الاختبار…",
+      "configure": "تكوين الاتصال"
+    },
+    "storage": {
+      "title": "دليل التخزين",
+      "description": "مكان تخزين بيانات العقدة على القرص",
+      "default": "افتراضي",
+      "browse": "تصفّح",
+      "warning": "ينطبق فقط على العقد المُضافة حديثًا. تحتفظ العقد الحالية بدليلها الحالي."
+    },
+    "downloads": {
+      "title": "دليل التنزيلات",
+      "description": "مكان حفظ الملفات المُنزَّلة",
+      "not_set": "غير محدد",
+      "browse": "تصفّح"
+    },
+    "alert": {
+      "title": "صوت التنبيه",
+      "description": "تشغيل صوت عند الأعطال الحرجة للعقدة",
+      "aria_toggle": "تبديل صوت التنبيه"
+    },
+    "theme": {
+      "title": "الوضع الفاتح",
+      "description": "التبديل بين السمتين الفاتحة والداكنة",
+      "aria_toggle": "تبديل الوضع الفاتح"
+    },
+    "advanced": {
+      "hide": "▾ إخفاء الإعدادات المتقدمة",
+      "show": "▸ إظهار الإعدادات المتقدمة"
+    },
+    "daemon": {
+      "title": "خدمة العقدة",
+      "description": "أعد تشغيل الخدمة الخلفية التي تُشرف على العقد. تظل العقد قيد التشغيل — يتم تبديل المُشرف فقط.",
+      "restart": "إعادة تشغيل الخدمة",
+      "restarting": "جارٍ إعادة التشغيل…"
+    },
+    "concurrency": {
+      "title": "تزامن الرفع",
+      "description_1": "يتحكم هذا في عدد عمليات التسعير/الرفع التي يمكن تشغيلها في نفس الوقت.",
+      "description_2": "لاحظ أن لهذا تأثيرًا كبيرًا جدًا على الأداء."
+    },
+    "prerelease": {
+      "title": "إصدارات ما قبل الإطلاق",
+      "description": "احصل على تحديثات تلقائية لإصدارات ما قبل الإطلاق (rc / beta) بالإضافة إلى الإصدارات المستقرة. مُعطّل افتراضيًا.",
+      "restart_required": "أعد تشغيل التطبيق لتطبيق هذا التغيير.",
+      "restart_now": "إعادة التشغيل الآن"
+    },
+    "direct_wallet": {
+      "title": "محفظة مباشرة",
+      "description": "الاتصال باستخدام مفتاح خاص (يتجاوز WalletConnect)",
+      "connected_badge": "متصل",
+      "address_label": "العنوان",
+      "disconnect": "قطع الاتصال",
+      "network_label": "الشبكة",
+      "network_sepolia_option": "Arbitrum Sepolia (شبكة اختبار)",
+      "network_arbitrum_option": "Arbitrum One (الشبكة الرئيسية)",
+      "rpc_url_label": "عنوان RPC",
+      "rpc_url_optional": "(اختياري)",
+      "rpc_url_placeholder": "افتراضي إلى RPC العام للسلسلة المختارة",
+      "private_key_label": "المفتاح الخاص",
+      "private_key_placeholder": "0x... أو سداسي عشري خام",
+      "connect": "اتصال",
+      "import_button": "استيراد مفتاح خاص"
+    },
+    "diagnostics": {
+      "title": "التشخيصات",
+      "summary": "{entries} إدخالات سجل ({errors} أخطاء)",
+      "copy_button": "نسخ إلى الحافظة",
+      "clear_button": "مسح",
+      "empty": "لا توجد إدخالات سجل",
+      "hide_log": "▾ إخفاء السجل",
+      "show_log": "▸ إظهار السجل"
+    },
+    "upload_history": {
+      "title": "سجل الرفع",
+      "summary_one": "{count} إدخال مستقر في upload_history.json. ملفات DataMaps على القرص والمقاطع على الشبكة لم تُمَس.",
+      "summary_many": "{count} إدخالات مستقرة في upload_history.json. ملفات DataMaps على القرص والمقاطع على الشبكة لم تُمَس.",
+      "clear_button": "مسح السجل",
+      "confirm_one": "مسح إدخال رفع واحد من السجل؟\n\nيؤدي هذا إلى إزالة الصف المحلي + السجل المحفوظ. لا تتأثر ملفات DataMaps على القرص ولا المقاطع على الشبكة.",
+      "confirm_many": "مسح {count} إدخالات رفع من السجل؟\n\nيؤدي هذا إلى إزالة الصف المحلي + السجل المحفوظ. لا تتأثر ملفات DataMaps على القرص ولا المقاطع على الشبكة."
+    },
+    "software": {
+      "title": "البرنامج",
+      "app_version_label": "إصدار التطبيق",
+      "node_version_label": "إصدار العقدة",
+      "last_checked": "آخر تحقق {label}",
+      "check_button": "التحقق من التحديثات",
+      "checking": "جارٍ التحقق…"
+    },
+    "about": {
+      "title": "حول"
+    },
+    "relative_time": {
+      "just_now": "الآن",
+      "seconds_ago": "{n} ث مضت",
+      "minutes_ago": "{n} د مضت",
+      "hours_ago": "{n} س مضت",
+      "days_ago": "{n} ي مضت"
+    },
+    "picker": {
+      "storage_title": "اختر دليل التخزين",
+      "downloads_title": "اختر دليل التنزيلات"
+    },
+    "error": {
+      "private_key_invalid": "مفتاح خاص غير صالح — يجب أن يكون 64 حرفًا سداسيًا عشريًا",
+      "invalid_eth_address": "تنسيق عنوان EVM غير صالح"
+    },
+    "toast": {
+      "upload_history_cleared": "تم مسح سجل الرفع",
+      "update_check_failed": "فشل التحقق من التحديث",
+      "update_available": "تحديث متاح: v{version}",
+      "on_latest_version": "أنت على أحدث إصدار (v{version})",
+      "daemon_restarted": "تم إعادة تشغيل الخدمة",
+      "daemon_restart_failed": "فشل في إعادة تشغيل الخدمة: {error}",
+      "storage_dir_updated": "تم تحديث دليل التخزين",
+      "storage_dir_verified": "تم التحقق من دليل التخزين",
+      "storage_dir_unwritable": "لا يمكن استخدام هذا المجلد لتخزين العقدة",
+      "select_directory_failed": "فشل في اختيار الدليل",
+      "downloads_dir_updated": "تم تحديث دليل التنزيلات",
+      "earnings_updated": "تم تحديث عنوان الأرباح",
+      "daemon_url_updated": "تم تحديث عنوان URL للخدمة",
+      "diagnostics_copied": "تم نسخ التشخيصات إلى الحافظة",
+      "diagnostics_copy_failed": "فشل النسخ إلى الحافظة",
+      "log_cleared": "تم مسح السجل",
+      "indelible_connected": "تم الاتصال بـ Indelible",
+      "indelible_disconnected": "تم قطع الاتصال بـ Indelible",
+      "wallet_connected": "تم توصيل المحفظة: {address}",
+      "wallet_disconnected": "تم فصل المحفظة",
+      "wallet_attach_failed": "فشل إرفاق المحفظة (جانب Rust): {error}"
+    }
+  },
+  "nav": {
+    "nodes": "العقد",
+    "files": "الملفات",
+    "wallet": "المحفظة",
+    "settings": "الإعدادات"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} نشطة",
+    "connecting": "جارٍ الاتصال",
+    "connecting_tooltip": "جارٍ الاتصال بشبكة Autonomi",
+    "connected": "الشبكة",
+    "connected_tooltip": "متصل بشبكة Autonomi",
+    "offline": "غير متصل · إعادة المحاولة",
+    "offline_tooltip": "فشل الاتصال — انقر لإعادة المحاولة",
+    "connect_wallet": "توصيل المحفظة"
+  },
+  "sidebar": {
+    "pre_release": "ما قبل الإطلاق",
+    "update_available": "تحديث متاح",
+    "update_pre_release_tag": "ما قبل الإطلاق",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA TESTNET"
+  },
+  "common": {
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "close": "إغلاق",
+    "download": "تنزيل",
+    "start": "بدء",
+    "stop": "إيقاف",
+    "remove": "إزالة",
+    "close_panel": "إغلاق اللوحة"
+  },
+  "nodes": {
+    "add_button": "+ إضافة عقد",
+    "start_all": "بدء الكل",
+    "stop_all": "إيقاف الكل",
+    "running_count": "{count} قيد التشغيل",
+    "stopped_count": "{count} متوقفة",
+    "errored_count": "{count} أخطأت",
+    "filter_placeholder": "تصفية...",
+    "filter_aria_label": "تصفية العقد",
+    "starting_daemon": "جارٍ بدء خدمة العقدة…",
+    "restarting_daemon": "جارٍ إعادة تشغيل خدمة العقدة…",
+    "nodes_keep_running": "تظل عقدك قيد التشغيل.",
+    "daemon_disconnected": "تعذّر الاتصال بخدمة العقدة",
+    "daemon_retrying": "جارٍ إعادة المحاولة تلقائيًا…",
+    "empty_title": "لا توجد عقد بعد",
+    "empty_hint": "انقر على \"+ إضافة عقد\" للبدء",
+    "confirm_action": "تأكيد الإجراء",
+    "remove_node_message": "إزالة العقدة {id}؟ سيحذف هذا جميع بياناتها.",
+    "stop_all_message": "إيقاف جميع العقد {count} قيد التشغيل؟",
+    "node_fallback_name": "العقدة {id}",
+    "field": {
+      "node_id": "معرّف العقدة",
+      "status": "الحالة",
+      "version": "الإصدار",
+      "pid": "PID",
+      "uptime": "وقت التشغيل",
+      "storage": "التخزين",
+      "data_directory": "دليل البيانات",
+      "log_directory": "دليل السجل",
+      "port": "المنفذ",
+      "binary": "الملف الثنائي",
+      "rewards_address": "عنوان المكافآت",
+      "status_aria": "الحالة: {status}"
+    },
+    "add_dialog": {
+      "title": "إضافة عقد",
+      "number_label": "عدد العقد",
+      "range_hint": "بين 1 و 50",
+      "no_earnings_warning": "لم يتم تكوين عنوان أرباح. عيّن واحدًا في صفحة المحفظة قبل إضافة العقد.",
+      "submit_one": "إضافة عقدة واحدة",
+      "submit_many": "إضافة {count} عقد"
+    },
+    "toast": {
+      "added": "تمت إضافة {count} عقدة/عقد",
+      "add_failed": "فشل في إضافة العقد: {error}",
+      "started": "تم بدء العقدة {id}",
+      "start_failed": "فشل في بدء العقدة {id}: {error}",
+      "stopped": "تم إيقاف العقدة {id}",
+      "stop_failed": "فشل في إيقاف العقدة {id}: {error}",
+      "removed": "تمت إزالة العقدة {id}",
+      "remove_failed": "فشل في إزالة العقدة {id}: {error}",
+      "no_stopped": "لا توجد عقد متوقفة لبدئها",
+      "no_running": "لا توجد عقد قيد التشغيل لإيقافها",
+      "node_failed": "فشلت العقدة {id}: {error}",
+      "started_count": "تم بدء {count} عقدة/عقد",
+      "stopped_count": "تم إيقاف {count} عقدة/عقد",
+      "start_all_failed": "فشل في بدء الكل: {error}",
+      "stop_all_failed": "فشل في إيقاف الكل: {error}"
+    }
+  },
+  "files": {
+    "upload_button": "رفع ملف/ملفات",
+    "estimate_button": "تقدير التكلفة",
+    "download_by_address": "تنزيل بالعنوان",
+    "download_by_datamap": "تنزيل بـ Datamap",
+    "uploads_heading": "عمليات الرفع",
+    "downloads_heading": "عمليات التنزيل",
+    "clear": "مسح",
+    "drop_files": "أفلت الملفات للرفع",
+    "uploads_empty_title": "لا توجد عمليات رفع بعد",
+    "uploads_empty_hint": "اسحب الملفات هنا، أو استخدم الأزرار أعلاه",
+    "downloads_empty_title": "لا توجد عمليات تنزيل بعد",
+    "downloads_empty_hint": "استخدم \"تنزيل بالعنوان\" أو \"تنزيل بـ Datamap\"",
+    "table": {
+      "name": "الاسم",
+      "status": "الحالة",
+      "size": "الحجم",
+      "cost": "التكلفة",
+      "date": "التاريخ",
+      "address": "العنوان",
+      "saved_to": "محفوظ في",
+      "actions": "الإجراءات"
+    },
+    "row": {
+      "free_already_stored": "مجاني — مُخزّن بالفعل",
+      "gas_suffix": "+ {gas} غاز",
+      "public_badge": "عام",
+      "retry": "↻ إعادة المحاولة",
+      "public_tooltip": "رفع عام — انقر لنسخ عنوان الشبكة القابل للمشاركة",
+      "reveal_datamap_tooltip": "إظهار ملف datamap في Finder/Explorer",
+      "copy_datamap_tooltip": "نسخ مسار ملف datamap",
+      "copy_address_tooltip": "نسخ عنوان الشبكة",
+      "retry_tooltip": "إعادة محاولة الرفع",
+      "remove_tooltip": "إزالة من القائمة"
+    },
+    "stage": {
+      "encrypting": "جارٍ التشفير…",
+      "quoting_pct": "تسعير · {pct}%",
+      "quoting_indeterminate": "جارٍ التسعير…",
+      "storing_pct": "تخزين · {pct}%",
+      "storing_indeterminate": "جارٍ التخزين…",
+      "resolving_pct": "جارٍ تحليل datamap · {pct}%",
+      "resolving_indeterminate": "جارٍ تحليل datamap…",
+      "downloading_pct": "تنزيل · {pct}%",
+      "downloading_indeterminate": "جارٍ التنزيل…"
+    },
+    "picker": {
+      "upload_title": "اختر الملفات للرفع",
+      "datamap_title": "اختر ملف datamap للتنزيل",
+      "estimate_title": "اختر الملفات لتقدير التكلفة",
+      "datamap_filter": "Datamap"
+    },
+    "toast": {
+      "upload_requires_wallet": "الرفع يتطلب محفظة",
+      "download_requires_network": "التنزيل يتطلب اتصال شبكة",
+      "open_folder_failed": "تعذّر فتح المجلد",
+      "address_copied": "تم نسخ العنوان إلى الحافظة",
+      "public_address_copied": "تم نسخ العنوان العام — شاركه ليتمكن الآخرون من تنزيل هذا الملف",
+      "datamap_path_copied": "تم نسخ مسار datamap إلى الحافظة",
+      "already_stored_one": "ملف واحد مُخزّن بالفعل — جارٍ حفظ datamap",
+      "already_stored_many": "{count} ملفات مُخزّنة بالفعل — جارٍ حفظ datamap",
+      "upload_complete": "اكتمل الرفع: {name}",
+      "upload_failed": "فشل الرفع: {name} — {error}",
+      "payment_failed": "فشل الدفع: {error}",
+      "download_complete": "اكتمل التنزيل: {name}",
+      "download_failed": "فشل التنزيل: {name} — {error}",
+      "datamap_missing": "تعذّر التنزيل: ملف datamap مفقود أو غير قابل للقراءة",
+      "datamap_read_failed": "تعذّر قراءة datamap: {error}"
+    },
+    "error": {
+      "wallet_not_connected": "المحفظة غير متصلة",
+      "not_connected_to_network": "غير متصل بالشبكة"
+    },
+    "network": {
+      "unavailable": "غير متصل بشبكة Autonomi — تقدير التكلفة غير متاح.",
+      "retry_connection": "إعادة محاولة الاتصال",
+      "connecting": "جارٍ الاتصال بشبكة Autonomi…",
+      "obtaining_quote": "الحصول على عرض سعر من الشبكة…",
+      "obtaining_quotes": "الحصول على عروض الأسعار من الشبكة…"
+    },
+    "datamap_saveas": {
+      "title": "حفظ الملف المُنزَّل باسم",
+      "filename_label": "اسم الملف",
+      "filename_placeholder": "myfile.dat"
+    },
+    "download_dialog": {
+      "title": "تنزيل ملف",
+      "address_label": "عنوان الملف",
+      "address_placeholder": "عنوان الملف (سداسي عشري)",
+      "filename_label": "حفظ باسم",
+      "filename_placeholder": "myfile.dat"
+    },
+    "datamap_picker": {
+      "description": "اختر رفعًا سابقًا لإعادة تنزيله، أو تصفّح بحثًا عن ملف datamap تلقيته من مكان آخر.",
+      "empty": "لا توجد عمليات رفع سابقة مع datamap محفوظ بعد.",
+      "browse_button": "تصفّح بحثًا عن ملف datamap…"
+    },
+    "cost_estimate": {
+      "title": "تقدير تكلفة الرفع",
+      "loading": "جارٍ تقدير التكلفة…",
+      "no_files": "لا توجد ملفات مُختارة",
+      "footnote": "تم الاستعلام عن التكاليف من شبكة Autonomi. رسوم الغاز (ETH) تنطبق فوق تكاليف التخزين."
+    },
+    "upload_confirm": {
+      "title": "تأكيد الرفع",
+      "info_banner": "يمكنك إغلاق هذه النافذة والعودة عندما يصل العرض. يبقى الرفع معلقًا حتى تُوافق عليه أو تُلغيه.",
+      "already_stored_badge": "مُخزّن بالفعل",
+      "payment_label": "الدفع",
+      "payment_mixed": "مختلط",
+      "payment_mixed_detail": "{regular} عادي، {merkle} merkle — دفع لكل ملف.",
+      "payment_merkle": "شجرة Merkle",
+      "payment_regular": "عادي",
+      "payment_merkle_detail": "معاملة واحدة لـ {count} مقاطع — غاز أقل.",
+      "payment_regular_detail_one": "دفع لكل دفعة لمقطع واحد.",
+      "payment_regular_detail_many": "دفع لكل دفعة لـ {count} مقاطع.",
+      "free_title": "مُخزّن بالفعل على الشبكة — مجاني",
+      "free_detail": "كل مقطع موجود بالفعل. لن يتم إنفاق ANT أو غاز.",
+      "cost_label": "تكلفة تخزين الشبكة",
+      "gas_label": "الغاز المُقدَّر",
+      "some_already_stored": "بعض الملفات مُخزّنة بالفعل — لا يكلّف هذا الجزء شيئًا.",
+      "visibility_label": "الرؤية",
+      "visibility_private": "خاص",
+      "visibility_private_desc": "مشفّر ولا يمكن الوصول إليه إلا بخريطة البيانات الخاصة بك. أنت فقط من يمكنه استرجاع الملف.",
+      "visibility_public": "عام",
+      "visibility_public_desc": "تُنشَر خريطة البيانات على الشبكة. شارك عنوانًا واحدًا حتى يتمكن أي شخص من استرجاع الملف.",
+      "regular_footnote": "تم التقدير من عرض سعر شبكة واحد — قد تتفاوت التكلفة النهائية قليلًا. رسوم الغاز تنطبق فوق ذلك.",
+      "cancel_upload": "إلغاء الرفع",
+      "ready_count": "جاهز: {ready} من {total}",
+      "approve_button_one": "الموافقة على الرفع",
+      "approve_button_many": "الموافقة على {count} عمليات رفع"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "عنوان الأرباح",
+    "earnings_description": "حيث تُرسل أرباح عقدتك",
+    "earnings_not_configured": "غير مُكوَّن",
+    "edit": "تعديل",
+    "save": "حفظ",
+    "earnings_use_payment_prompt": "استخدام عنوان محفظتك المتصلة للأرباح؟",
+    "earnings_use_payment_button": "استخدم {address}",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "تخزين مُدار",
+    "managed_storage_org": "تخزين مُدار بواسطة {org}",
+    "managed_storage_description": "تُوجَّه عمليات الرفع عبر بوابة Indelible الخاصة بمؤسستك. لا حاجة لمحفظة محلية.",
+    "payment_wallet_heading": "محفظة الدفع",
+    "payment_optional_hint": "اختياري — مطلوب لرفع الملفات",
+    "connect_prompt": "اتصل بمحفظة للدفع لتخزين الملفات",
+    "network_arbitrum_sepolia": "Arbitrum Sepolia testnet",
+    "network_arbitrum_one": "شبكة Arbitrum One مطلوبة",
+    "import_key_hint": "أو استورد مفتاحًا خاصًا في {link}",
+    "import_key_hint_link_text": "الإعدادات > متقدم",
+    "address_label": "العنوان",
+    "eth_balance_label": "رصيد ETH",
+    "ant_balance_label": "رصيد ANT",
+    "usdc_balance_label": "رصيد USDC",
+    "refresh_balances": "تحديث الأرصدة",
+    "disconnect": "قطع الاتصال",
+    "toast": {
+      "import_key_in_settings": "استورد مفتاحًا خاصًا في الإعدادات > متقدم",
+      "invalid_address": "عنوان غير صالح: يجب أن يكون 0x + 40 حرفًا سداسيًا عشريًا",
+      "earnings_saved": "تم حفظ عنوان الأرباح",
+      "earnings_set_to_payment": "تم تعيين عنوان الأرباح إلى محفظة الدفع",
+      "wallet_disconnected": "تم فصل المحفظة"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "تحديث متاح",
+      "version_ready": "v{version} جاهز للتثبيت",
+      "pre_release_badge": "ما قبل الإطلاق",
+      "download_size": "حجم التنزيل: {size}",
+      "release_notes": "ملاحظات الإصدار",
+      "no_release_notes": "لا توجد ملاحظات إصدار لهذه النسخة.",
+      "downloading": "جارٍ التنزيل…",
+      "download_complete": "نجح التنزيل، سيُعيد التطبيق التشغيل قريبًا",
+      "auto_restart_hint": "سيُعيد التطبيق التشغيل تلقائيًا عند الاكتمال.",
+      "cancel_download": "إلغاء التنزيل",
+      "installing_tooltip": "جارٍ التثبيت — يُرجى الانتظار",
+      "not_now": "ليس الآن",
+      "update_restart": "تحديث وإعادة تشغيل"
+    },
+    "toast": {
+      "install_no_restart": "تم تثبيت التحديث إلى v{version} لكن التطبيق لم يُعِد التشغيل. أغلق Autonomi وأعد فتحه لإنهاء التحديث.",
+      "install_failed": "فشل تثبيت التحديث: {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "لا يمكن أن يحتوي اسم الملف على أحرف خاصة",
+      "ends_with_dot_or_space": "لا يمكن أن ينتهي اسم الملف بنقطة أو مسافة",
+      "reserved_on_windows": "هذا الاسم محجوز على Windows"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "قيد التشغيل",
+      "stopped": "متوقفة",
+      "starting": "جارٍ البدء",
+      "stopping": "جارٍ الإيقاف",
+      "adding": "جارٍ الإضافة…",
+      "errored": "خطأ",
+      "upgrade_scheduled": "جارٍ الترقية"
+    },
+    "file": {
+      "pending": "قيد الانتظار",
+      "quoting": "جارٍ التسعير",
+      "encrypting": "جارٍ التشفير…",
+      "resolving_datamap": "جارٍ تحليل datamap",
+      "queued_quoting": "في الطابور: تسعير",
+      "queued_uploading": "في الطابور: رفع",
+      "connecting_to_network": "جارٍ الاتصال بالشبكة…",
+      "obtaining_quote": "الحصول على عرض سعر…",
+      "saving_datamap": "جارٍ حفظ datamap…",
+      "network_unavailable": "الشبكة غير متاحة",
+      "ready_to_approve": "جاهز للموافقة",
+      "awaiting_approval": "بانتظار الموافقة",
+      "uploading": "جارٍ الرفع",
+      "downloading": "جارٍ التنزيل",
+      "done": "تم",
+      "downloaded": "تم التنزيل — انقر للفتح"
+    }
+  },
+  "banners": {
+    "cjk_font_missing": {
+      "script_label": "日本語",
+      "message": "قد لا تُعرض النصوص اليابانية بشكل صحيح على هذا النظام. للإصلاح، ثبّت خطوط Noto CJK وأعد تشغيل التطبيق:",
+      "distro_arch": "Arch",
+      "distro_debian": "Debian / Ubuntu",
+      "distro_fedora": "Fedora",
+      "copy": "نسخ الأمر",
+      "copied": "تم نسخ الأمر إلى الحافظة",
+      "dismiss": "تجاهل"
+    }
+  }
+}

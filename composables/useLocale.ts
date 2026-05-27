@@ -1,14 +1,24 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { locale as osLocaleApi } from '@tauri-apps/plugin-os'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '~/stores/settings'
 
-export const SUPPORTED_LOCALES = ['en', 'ja', 'ko', 'nl', 'fr', 'bg', 'es'] as const
+export const SUPPORTED_LOCALES = ['en', 'ja', 'ko', 'nl', 'fr', 'bg', 'es', 'ar', 'he'] as const
 export type SupportedLocale = typeof SUPPORTED_LOCALES[number]
 const DEFAULT_LOCALE: SupportedLocale = 'en'
 
+/** Locales whose script flows right-to-left. The active value is applied as
+ *  `dir="rtl"` on the <html> element via useHead() in app.vue, which lets
+ *  Tailwind's `rtl:` variant flip individual classes that aren't already on
+ *  logical properties. */
+export const RTL_LOCALES: ReadonlySet<SupportedLocale> = new Set(['ar', 'he'])
+
+export function isRtlLocale(value: string): boolean {
+  return RTL_LOCALES.has(value as SupportedLocale)
+}
+
 /** Each locale's name in its own script. Used in the Settings picker so the
- *  user sees "English" / "日本語" / "한국어" / "Nederlands" / "Français" / "Български" / "Español"
+ *  user sees "English" / "日本語" / "한국어" / "Nederlands" / "Français" / "Български" / "Español" / "العربية" / "עברית"
  *  regardless of the currently-active UI locale. */
 export const NATIVE_LOCALE_NAMES: Record<SupportedLocale, string> = {
   en: 'English',
@@ -18,6 +28,8 @@ export const NATIVE_LOCALE_NAMES: Record<SupportedLocale, string> = {
   fr: 'Français',
   bg: 'Български',
   es: 'Español',
+  ar: 'العربية',
+  he: 'עברית',
 }
 
 /** Module-scoped cache of the OS-resolved locale. Warmed on the first
@@ -82,5 +94,10 @@ export function useLocale() {
     locale.value = next
   }
 
-  return { locale, setLocale, init, t, osLocale: osLocaleRef }
+  /** Reactive `ltr`/`rtl` flag tracking the active locale. Bound into the
+   *  <html dir=...> attribute by app.vue so Tailwind `rtl:` variants flip
+   *  in lockstep with the locale picker. */
+  const dir = computed<'ltr' | 'rtl'>(() => (isRtlLocale(locale.value) ? 'rtl' : 'ltr'))
+
+  return { locale, dir, setLocale, init, t, osLocale: osLocaleRef }
 }

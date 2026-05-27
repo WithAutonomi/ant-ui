@@ -1,0 +1,482 @@
+{
+  "_translator_notes": "Machine-translated baseline. Community polish via PR welcome. RTL script — see CONTRIBUTING-i18n.md for the dir-attribute hookup.",
+  "settings": {
+    "language": {
+      "label": "שפה",
+      "description": "שפת תצוגת הממשק",
+      "system_default": "ברירת מחדל של המערכת: {name}",
+      "system_default_pending": "ברירת מחדל של המערכת"
+    },
+    "indelible": {
+      "title": "Indelible Enterprise",
+      "subtitle_connected": "מחובר לשער אחסון מנוהל",
+      "subtitle_setup": "התחבר לשער Indelible מאוחסן עצמית עבור אחסון מנוהל",
+      "connected_badge": "מחובר",
+      "server_label": "שרת",
+      "signed_in_as": "מחובר בתור",
+      "disconnect": "התנתק",
+      "server_url_label": "כתובת URL של השרת",
+      "server_url_placeholder": "https://files.acme.com",
+      "api_key_label": "מפתח API",
+      "api_key_placeholder": "אסימון ה-API שלך",
+      "test_connect": "בדיקה והתחברות",
+      "testing": "בודק…",
+      "configure": "הגדרת חיבור"
+    },
+    "storage": {
+      "title": "תיקיית אחסון",
+      "description": "היכן נתוני הצומת מאוחסנים בדיסק",
+      "default": "ברירת מחדל",
+      "browse": "עיון",
+      "warning": "חל רק על צמתים חדשים שנוספים. צמתים קיימים שומרים על התיקייה הנוכחית שלהם."
+    },
+    "downloads": {
+      "title": "תיקיית הורדות",
+      "description": "היכן קבצים שהורדו נשמרים",
+      "not_set": "לא הוגדר",
+      "browse": "עיון"
+    },
+    "alert": {
+      "title": "צליל התראה",
+      "description": "השמע צליל בעת כשלים קריטיים של צומת",
+      "aria_toggle": "החלף צליל התראה"
+    },
+    "theme": {
+      "title": "מצב בהיר",
+      "description": "החלף בין ערכות נושא כהות ובהירות",
+      "aria_toggle": "החלף מצב בהיר"
+    },
+    "advanced": {
+      "hide": "▾ הסתר מתקדם",
+      "show": "▸ הצג מתקדם"
+    },
+    "daemon": {
+      "title": "שירות צמתים",
+      "description": "הפעל מחדש את שירות הרקע שמפקח על הצמתים שלך. הצמתים הפועלים שלך ממשיכים לפעול — רק המפקח מוחלף.",
+      "restart": "הפעל מחדש את השירות",
+      "restarting": "מפעיל מחדש…"
+    },
+    "concurrency": {
+      "title": "מקביליות העלאה",
+      "description_1": "פעולה זו שולטת בכמה הצעות מחיר/העלאות יכולות לפעול בו-זמנית.",
+      "description_2": "שים לב שיש לכך השפעה גדולה מאוד על הביצועים."
+    },
+    "prerelease": {
+      "title": "גרסאות טרום שחרור",
+      "description": "קבל עדכונים אוטומטיים עבור גרסאות טרום שחרור (rc / beta) בנוסף לגרסאות יציבות. כבוי כברירת מחדל.",
+      "restart_required": "הפעל מחדש את האפליקציה כדי להחיל את השינוי.",
+      "restart_now": "הפעל מחדש עכשיו"
+    },
+    "direct_wallet": {
+      "title": "ארנק ישיר",
+      "description": "התחבר עם מפתח פרטי (עוקף את WalletConnect)",
+      "connected_badge": "מחובר",
+      "address_label": "כתובת",
+      "disconnect": "התנתק",
+      "network_label": "רשת",
+      "network_sepolia_option": "Arbitrum Sepolia (רשת בדיקה)",
+      "network_arbitrum_option": "Arbitrum One (רשת ראשית)",
+      "rpc_url_label": "כתובת RPC",
+      "rpc_url_optional": "(אופציונלי)",
+      "rpc_url_placeholder": "ברירת מחדל ל-RPC ציבורי של השרשרת שנבחרה",
+      "private_key_label": "מפתח פרטי",
+      "private_key_placeholder": "0x... או hex גולמי",
+      "connect": "התחבר",
+      "import_button": "ייבוא מפתח פרטי"
+    },
+    "diagnostics": {
+      "title": "אבחון",
+      "summary": "{entries} ערכי יומן ({errors} שגיאות)",
+      "copy_button": "העתק ללוח",
+      "clear_button": "נקה",
+      "empty": "אין ערכי יומן",
+      "hide_log": "▾ הסתר יומן",
+      "show_log": "▸ הצג יומן"
+    },
+    "upload_history": {
+      "title": "היסטוריית העלאות",
+      "summary_one": "{count} ערך מסודר ב-upload_history.json. קבצי DataMaps בדיסק והמקטעים ברשת אינם נפגעים.",
+      "summary_many": "{count} ערכים מסודרים ב-upload_history.json. קבצי DataMaps בדיסק והמקטעים ברשת אינם נפגעים.",
+      "clear_button": "נקה היסטוריה",
+      "confirm_one": "לנקות ערך העלאה אחד מההיסטוריה?\n\nפעולה זו מסירה את השורה המקומית + הרישום השמור. קבצי DataMaps בדיסק והמקטעים ברשת אינם מושפעים.",
+      "confirm_many": "לנקות {count} ערכי העלאה מההיסטוריה?\n\nפעולה זו מסירה את השורה המקומית + הרישום השמור. קבצי DataMaps בדיסק והמקטעים ברשת אינם מושפעים."
+    },
+    "software": {
+      "title": "תוכנה",
+      "app_version_label": "גרסת אפליקציה",
+      "node_version_label": "גרסת צומת",
+      "last_checked": "נבדק לאחרונה {label}",
+      "check_button": "בדוק עדכונים",
+      "checking": "בודק…"
+    },
+    "about": {
+      "title": "אודות"
+    },
+    "relative_time": {
+      "just_now": "הרגע",
+      "seconds_ago": "לפני {n} שנ׳",
+      "minutes_ago": "לפני {n} דק׳",
+      "hours_ago": "לפני {n} שע׳",
+      "days_ago": "לפני {n} יום"
+    },
+    "picker": {
+      "storage_title": "בחר תיקיית אחסון",
+      "downloads_title": "בחר תיקיית הורדות"
+    },
+    "error": {
+      "private_key_invalid": "מפתח פרטי לא חוקי — חייב להיות 64 תווי hex",
+      "invalid_eth_address": "פורמט כתובת EVM לא חוקי"
+    },
+    "toast": {
+      "upload_history_cleared": "היסטוריית העלאות נוקתה",
+      "update_check_failed": "בדיקת עדכון נכשלה",
+      "update_available": "עדכון זמין: v{version}",
+      "on_latest_version": "אתה בגרסה האחרונה (v{version})",
+      "daemon_restarted": "השירות הופעל מחדש",
+      "daemon_restart_failed": "נכשלה הפעלת השירות מחדש: {error}",
+      "storage_dir_updated": "תיקיית האחסון עודכנה",
+      "storage_dir_verified": "תיקיית האחסון אומתה",
+      "storage_dir_unwritable": "לא ניתן להשתמש בתיקייה זו לאחסון צמתים",
+      "select_directory_failed": "נכשלה בחירת תיקייה",
+      "downloads_dir_updated": "תיקיית ההורדות עודכנה",
+      "earnings_updated": "כתובת הרווחים עודכנה",
+      "daemon_url_updated": "כתובת ה-URL של השירות עודכנה",
+      "diagnostics_copied": "האבחון הועתק ללוח",
+      "diagnostics_copy_failed": "ההעתקה ללוח נכשלה",
+      "log_cleared": "היומן נוקה",
+      "indelible_connected": "מחובר ל-Indelible",
+      "indelible_disconnected": "מנותק מ-Indelible",
+      "wallet_connected": "ארנק מחובר: {address}",
+      "wallet_disconnected": "ארנק התנתק",
+      "wallet_attach_failed": "צירוף ארנק (צד Rust) נכשל: {error}"
+    }
+  },
+  "nav": {
+    "nodes": "צמתים",
+    "files": "קבצים",
+    "wallet": "ארנק",
+    "settings": "הגדרות"
+  },
+  "header": {
+    "title": "Autonomi",
+    "active_transfers": "{count} פעילים",
+    "connecting": "מתחבר",
+    "connecting_tooltip": "מתחבר לרשת Autonomi",
+    "connected": "רשת",
+    "connected_tooltip": "מחובר לרשת Autonomi",
+    "offline": "לא מקוון · נסה שוב",
+    "offline_tooltip": "החיבור נכשל — לחץ לנסות שוב",
+    "connect_wallet": "התחבר לארנק"
+  },
+  "sidebar": {
+    "pre_release": "טרום שחרור",
+    "update_available": "עדכון זמין",
+    "update_pre_release_tag": "טרום שחרור",
+    "network_devnet": "DEVNET",
+    "network_sepolia": "SEPOLIA TESTNET"
+  },
+  "common": {
+    "cancel": "ביטול",
+    "confirm": "אישור",
+    "close": "סגור",
+    "download": "הורד",
+    "start": "הפעל",
+    "stop": "עצור",
+    "remove": "הסר",
+    "close_panel": "סגור חלונית"
+  },
+  "nodes": {
+    "add_button": "+ הוסף צמתים",
+    "start_all": "הפעל הכל",
+    "stop_all": "עצור הכל",
+    "running_count": "{count} פועלים",
+    "stopped_count": "{count} עצורים",
+    "errored_count": "{count} בשגיאה",
+    "filter_placeholder": "סינון...",
+    "filter_aria_label": "סינון צמתים",
+    "starting_daemon": "מפעיל שירות צמתים…",
+    "restarting_daemon": "מפעיל מחדש שירות צמתים…",
+    "nodes_keep_running": "הצמתים שלך ממשיכים לפעול.",
+    "daemon_disconnected": "לא ניתן להתחבר לשירות הצמתים",
+    "daemon_retrying": "מנסה שוב אוטומטית…",
+    "empty_title": "אין צמתים עדיין",
+    "empty_hint": "לחץ \"+ הוסף צמתים\" כדי להתחיל",
+    "confirm_action": "אישור פעולה",
+    "remove_node_message": "להסיר את הצומת {id}? פעולה זו תמחק את כל הנתונים שלו.",
+    "stop_all_message": "לעצור את כל {count} הצמתים הפועלים?",
+    "node_fallback_name": "צומת {id}",
+    "field": {
+      "node_id": "מזהה צומת",
+      "status": "סטטוס",
+      "version": "גרסה",
+      "pid": "PID",
+      "uptime": "זמן פעולה",
+      "storage": "אחסון",
+      "data_directory": "תיקיית נתונים",
+      "log_directory": "תיקיית יומן",
+      "port": "פורט",
+      "binary": "קובץ הפעלה",
+      "rewards_address": "כתובת תגמולים",
+      "status_aria": "סטטוס: {status}"
+    },
+    "add_dialog": {
+      "title": "הוסף צמתים",
+      "number_label": "מספר צמתים",
+      "range_hint": "בין 1 ל-50",
+      "no_earnings_warning": "לא הוגדרה כתובת רווחים. הגדר אחת בדף הארנק לפני הוספת צמתים.",
+      "submit_one": "הוסף צומת אחד",
+      "submit_many": "הוסף {count} צמתים"
+    },
+    "toast": {
+      "added": "נוספו {count} צמתים",
+      "add_failed": "הוספת הצמתים נכשלה: {error}",
+      "started": "צומת {id} הופעל",
+      "start_failed": "הפעלת צומת {id} נכשלה: {error}",
+      "stopped": "צומת {id} נעצר",
+      "stop_failed": "עצירת צומת {id} נכשלה: {error}",
+      "removed": "צומת {id} הוסר",
+      "remove_failed": "הסרת צומת {id} נכשלה: {error}",
+      "no_stopped": "אין צמתים עצורים להפעלה",
+      "no_running": "אין צמתים פועלים לעצירה",
+      "node_failed": "צומת {id} נכשל: {error}",
+      "started_count": "הופעלו {count} צמתים",
+      "stopped_count": "נעצרו {count} צמתים",
+      "start_all_failed": "הפעלת הכל נכשלה: {error}",
+      "stop_all_failed": "עצירת הכל נכשלה: {error}"
+    }
+  },
+  "files": {
+    "upload_button": "העלה קבצים",
+    "estimate_button": "אמוד עלות",
+    "download_by_address": "הורד לפי כתובת",
+    "download_by_datamap": "הורד לפי Datamap",
+    "uploads_heading": "העלאות",
+    "downloads_heading": "הורדות",
+    "clear": "נקה",
+    "drop_files": "שחרר קבצים להעלאה",
+    "uploads_empty_title": "אין העלאות עדיין",
+    "uploads_empty_hint": "גרור קבצים לכאן, או השתמש בכפתורים למעלה",
+    "downloads_empty_title": "אין הורדות עדיין",
+    "downloads_empty_hint": "השתמש ב-\"הורד לפי כתובת\" או \"הורד לפי Datamap\"",
+    "table": {
+      "name": "שם",
+      "status": "סטטוס",
+      "size": "גודל",
+      "cost": "עלות",
+      "date": "תאריך",
+      "address": "כתובת",
+      "saved_to": "נשמר ב",
+      "actions": "פעולות"
+    },
+    "row": {
+      "free_already_stored": "חינם — כבר מאוחסן",
+      "gas_suffix": "+ {gas} גז",
+      "public_badge": "ציבורי",
+      "retry": "↻ נסה שוב",
+      "public_tooltip": "העלאה ציבורית — לחץ להעתיק את כתובת הרשת לשיתוף",
+      "reveal_datamap_tooltip": "הצג קובץ datamap ב-Finder/Explorer",
+      "copy_datamap_tooltip": "העתק נתיב קובץ datamap",
+      "copy_address_tooltip": "העתק כתובת רשת",
+      "retry_tooltip": "נסה שוב העלאה",
+      "remove_tooltip": "הסר מהרשימה"
+    },
+    "stage": {
+      "encrypting": "מצפין…",
+      "quoting_pct": "מתמחר · {pct}%",
+      "quoting_indeterminate": "מתמחר…",
+      "storing_pct": "מאחסן · {pct}%",
+      "storing_indeterminate": "מאחסן…",
+      "resolving_pct": "פותר datamap · {pct}%",
+      "resolving_indeterminate": "פותר datamap…",
+      "downloading_pct": "מוריד · {pct}%",
+      "downloading_indeterminate": "מוריד…"
+    },
+    "picker": {
+      "upload_title": "בחר קבצים להעלאה",
+      "datamap_title": "בחר קובץ datamap להורדה",
+      "estimate_title": "בחר קבצים לאמידת עלות",
+      "datamap_filter": "Datamap"
+    },
+    "toast": {
+      "upload_requires_wallet": "ההעלאה דורשת ארנק",
+      "download_requires_network": "ההורדה דורשת חיבור רשת",
+      "open_folder_failed": "לא ניתן לפתוח את התיקייה",
+      "address_copied": "הכתובת הועתקה ללוח",
+      "public_address_copied": "כתובת ציבורית הועתקה — שתף כדי שאחרים יוכלו להוריד את הקובץ",
+      "datamap_path_copied": "נתיב datamap הועתק ללוח",
+      "already_stored_one": "קובץ אחד כבר מאוחסן — שומר datamap",
+      "already_stored_many": "{count} קבצים כבר מאוחסנים — שומר datamap",
+      "upload_complete": "ההעלאה הושלמה: {name}",
+      "upload_failed": "ההעלאה נכשלה: {name} — {error}",
+      "payment_failed": "התשלום נכשל: {error}",
+      "download_complete": "ההורדה הושלמה: {name}",
+      "download_failed": "ההורדה נכשלה: {name} — {error}",
+      "datamap_missing": "לא ניתן להוריד: קובץ datamap חסר או לא קריא",
+      "datamap_read_failed": "לא ניתן לקרוא את datamap: {error}"
+    },
+    "error": {
+      "wallet_not_connected": "הארנק לא מחובר",
+      "not_connected_to_network": "לא מחובר לרשת"
+    },
+    "network": {
+      "unavailable": "לא מחובר לרשת Autonomi — אמידת עלות לא זמינה.",
+      "retry_connection": "נסה לחבר שוב",
+      "connecting": "מתחבר לרשת Autonomi…",
+      "obtaining_quote": "מקבל הצעת מחיר מהרשת…",
+      "obtaining_quotes": "מקבל הצעות מחיר מהרשת…"
+    },
+    "datamap_saveas": {
+      "title": "שמור את הקובץ שהורד בשם",
+      "filename_label": "שם קובץ",
+      "filename_placeholder": "myfile.dat"
+    },
+    "download_dialog": {
+      "title": "הורד קובץ",
+      "address_label": "כתובת קובץ",
+      "address_placeholder": "כתובת קובץ (hex)",
+      "filename_label": "שמור בשם",
+      "filename_placeholder": "myfile.dat"
+    },
+    "datamap_picker": {
+      "description": "בחר העלאה קודמת להורדה מחדש, או חפש קובץ datamap שקיבלת ממקור אחר.",
+      "empty": "אין העלאות קודמות עם datamap שמור עדיין.",
+      "browse_button": "חפש קובץ datamap…"
+    },
+    "cost_estimate": {
+      "title": "אמדן עלות העלאה",
+      "loading": "אומד עלות…",
+      "no_files": "לא נבחרו קבצים",
+      "footnote": "העלויות מתקבלות מרשת Autonomi. דמי גז (ETH) חלים בנוסף לעלויות האחסון."
+    },
+    "upload_confirm": {
+      "title": "אישור העלאה",
+      "info_banner": "אתה יכול לסגור את החלון ולחזור כשהצעת המחיר תגיע. ההעלאה ממתינה עד שתאשר או תבטל אותה.",
+      "already_stored_badge": "כבר מאוחסן",
+      "payment_label": "תשלום",
+      "payment_mixed": "מעורב",
+      "payment_mixed_detail": "{regular} רגיל, {merkle} merkle — תשלום לכל קובץ.",
+      "payment_merkle": "עץ Merkle",
+      "payment_regular": "רגיל",
+      "payment_merkle_detail": "עסקה אחת ל-{count} מקטעים — פחות גז.",
+      "payment_regular_detail_one": "תשלום לכל אצווה עבור מקטע אחד.",
+      "payment_regular_detail_many": "תשלום לכל אצווה עבור {count} מקטעים.",
+      "free_title": "כבר מאוחסן ברשת — חינם",
+      "free_detail": "כל מקטע כבר קיים. לא יושקעו ANT או גז.",
+      "cost_label": "עלות אחסון רשת",
+      "gas_label": "גז משוער",
+      "some_already_stored": "חלק מהקבצים כבר מאוחסנים — אותו חלק לא עולה דבר.",
+      "visibility_label": "נראות",
+      "visibility_private": "פרטי",
+      "visibility_private_desc": "מוצפן ונגיש רק עם מפת הנתונים שלך. רק אתה יכול לאחזר את הקובץ.",
+      "visibility_public": "ציבורי",
+      "visibility_public_desc": "מפת הנתונים מתפרסמת לרשת. שתף כתובת אחת כדי שכל אחד יוכל לאחזר את הקובץ.",
+      "regular_footnote": "אמדן מהצעת מחיר רשת אחת — העלות הסופית עשויה להשתנות מעט. דמי גז חלים בנוסף.",
+      "cancel_upload": "בטל העלאה",
+      "ready_count": "מוכן: {ready} מתוך {total}",
+      "approve_button_one": "אשר העלאה",
+      "approve_button_many": "אשר {count} העלאות"
+    }
+  },
+  "wallet": {
+    "earnings_heading": "כתובת רווחים",
+    "earnings_description": "לאן רווחי הצמתים שלך נשלחים",
+    "earnings_not_configured": "לא הוגדר",
+    "edit": "ערוך",
+    "save": "שמור",
+    "earnings_use_payment_prompt": "להשתמש בכתובת הארנק המחובר שלך עבור רווחים?",
+    "earnings_use_payment_button": "השתמש ב-{address}",
+    "earnings_placeholder": "0x...",
+    "managed_storage_heading": "אחסון מנוהל",
+    "managed_storage_org": "אחסון מנוהל על ידי {org}",
+    "managed_storage_description": "ההעלאות מנותבות דרך שער Indelible של הארגון שלך. אין צורך בארנק מקומי.",
+    "payment_wallet_heading": "ארנק תשלומים",
+    "payment_optional_hint": "אופציונלי — נדרש להעלאת קבצים",
+    "connect_prompt": "חבר ארנק כדי לשלם עבור אחסון קבצים",
+    "network_arbitrum_sepolia": "Arbitrum Sepolia testnet",
+    "network_arbitrum_one": "נדרשת רשת Arbitrum One",
+    "import_key_hint": "או ייבא מפתח פרטי ב-{link}",
+    "import_key_hint_link_text": "הגדרות > מתקדם",
+    "address_label": "כתובת",
+    "eth_balance_label": "יתרת ETH",
+    "ant_balance_label": "יתרת ANT",
+    "usdc_balance_label": "יתרת USDC",
+    "refresh_balances": "רענן יתרות",
+    "disconnect": "התנתק",
+    "toast": {
+      "import_key_in_settings": "ייבא מפתח פרטי בהגדרות > מתקדם",
+      "invalid_address": "כתובת לא חוקית: חייבת להיות 0x + 40 תווי hex",
+      "earnings_saved": "כתובת הרווחים נשמרה",
+      "earnings_set_to_payment": "כתובת הרווחים הוגדרה לארנק התשלומים",
+      "wallet_disconnected": "הארנק התנתק"
+    }
+  },
+  "updater": {
+    "dialog": {
+      "title": "עדכון זמין",
+      "version_ready": "v{version} מוכן להתקנה",
+      "pre_release_badge": "טרום שחרור",
+      "download_size": "גודל הורדה: {size}",
+      "release_notes": "הערות שחרור",
+      "no_release_notes": "אין הערות שחרור עבור גרסה זו.",
+      "downloading": "מוריד…",
+      "download_complete": "ההורדה הצליחה, האפליקציה תופעל מחדש בקרוב",
+      "auto_restart_hint": "האפליקציה תופעל מחדש אוטומטית עם השלמת הפעולה.",
+      "cancel_download": "בטל הורדה",
+      "installing_tooltip": "מתקין — אנא המתן",
+      "not_now": "לא עכשיו",
+      "update_restart": "עדכן והפעל מחדש"
+    },
+    "toast": {
+      "install_no_restart": "העדכון ל-v{version} הותקן אבל האפליקציה לא הופעלה מחדש. צא מ-Autonomi ופתח שוב כדי לסיים את העדכון.",
+      "install_failed": "התקנת העדכון נכשלה: {error}"
+    }
+  },
+  "validators": {
+    "filename": {
+      "has_special_chars": "שם הקובץ לא יכול להכיל תווים מיוחדים",
+      "ends_with_dot_or_space": "שם הקובץ לא יכול להסתיים בנקודה או רווח",
+      "reserved_on_windows": "שם זה שמור ב-Windows"
+    }
+  },
+  "status": {
+    "node": {
+      "running": "פועל",
+      "stopped": "עצור",
+      "starting": "מפעיל",
+      "stopping": "עוצר",
+      "adding": "מוסיף…",
+      "errored": "שגיאה",
+      "upgrade_scheduled": "משדרג"
+    },
+    "file": {
+      "pending": "ממתין",
+      "quoting": "מתמחר",
+      "encrypting": "מצפין…",
+      "resolving_datamap": "פותר datamap",
+      "queued_quoting": "בתור: מתמחר",
+      "queued_uploading": "בתור: מעלה",
+      "connecting_to_network": "מתחבר לרשת…",
+      "obtaining_quote": "מקבל הצעת מחיר…",
+      "saving_datamap": "שומר datamap…",
+      "network_unavailable": "הרשת לא זמינה",
+      "ready_to_approve": "מוכן לאישור",
+      "awaiting_approval": "ממתין לאישור",
+      "uploading": "מעלה",
+      "downloading": "מוריד",
+      "done": "הושלם",
+      "downloaded": "הורד — לחץ לפתיחה"
+    }
+  },
+  "banners": {
+    "cjk_font_missing": {
+      "script_label": "日本語",
+      "message": "טקסט יפני עשוי שלא להופיע נכון במערכת זו. לתיקון, התקן את גופני Noto CJK והפעל את האפליקציה מחדש:",
+      "distro_arch": "Arch",
+      "distro_debian": "Debian / Ubuntu",
+      "distro_fedora": "Fedora",
+      "copy": "העתק פקודה",
+      "copied": "הפקודה הועתקה ללוח",
+      "dismiss": "סגור"
+    }
+  }
+}

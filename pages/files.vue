@@ -80,7 +80,7 @@
         <div v-else class="overflow-hidden rounded-lg border border-autonomi-border">
           <table class="w-full text-sm">
             <thead class="bg-autonomi-surface">
-              <tr class="text-left text-xs uppercase tracking-wider text-autonomi-muted">
+              <tr class="text-start text-xs uppercase tracking-wider text-autonomi-muted">
                 <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleUploadSort('name')">
                   {{ $t('files.table.name') }} {{ uploadSortIndicator('name') }}
                 </th>
@@ -181,7 +181,7 @@
                   </span>
                   <span v-else class="text-autonomi-muted">-</span>
                 </td>
-                <td class="px-2 py-2.5 text-right whitespace-nowrap">
+                <td class="px-2 py-2.5 text-end whitespace-nowrap">
                   <span v-if="isSettled(file)" class="inline-flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
                       v-if="canRetry(file)"
@@ -234,7 +234,7 @@
       <div v-else class="overflow-hidden rounded-lg border border-autonomi-border">
         <table class="w-full text-sm">
           <thead class="bg-autonomi-surface">
-            <tr class="text-left text-xs uppercase tracking-wider text-autonomi-muted">
+            <tr class="text-start text-xs uppercase tracking-wider text-autonomi-muted">
               <th class="cursor-pointer px-4 py-2.5 hover:text-autonomi-text" @click="toggleDownloadSort('name')">
                 {{ $t('files.table.name') }} {{ downloadSortIndicator('name') }}
               </th>
@@ -282,7 +282,7 @@
                 {{ file.dest_path ? basenameOf(file.dest_path) : '-' }}
               </td>
               <td class="px-4 py-2.5 text-autonomi-muted">{{ formatDate(file.date) }}</td>
-              <td class="px-2 py-2.5 text-right whitespace-nowrap">
+              <td class="px-2 py-2.5 text-end whitespace-nowrap">
                 <span v-if="isSettled(file)" class="inline-flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                   <button
                     class="rounded px-1.5 py-0.5 text-[11px] text-autonomi-muted hover:bg-autonomi-surface hover:text-autonomi-error"
@@ -352,7 +352,7 @@ import { useSettingsStore } from '~/stores/settings'
 import { useToastStore } from '~/stores/toasts'
 import { useConnectionStore } from '~/stores/connection'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 interface FileMeta {
   path: string
@@ -1085,7 +1085,7 @@ function datamapBasename(path: string): string {
 function formatDate(iso: string): string {
   try {
     const d = new Date(iso)
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleDateString(locale.value, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
   } catch {
     return iso
   }

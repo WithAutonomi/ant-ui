@@ -8,7 +8,7 @@
     @click="$emit('select', node.id)"
   >
     <!-- Status indicator dot -->
-    <div class="absolute left-3 top-3" :aria-label="$t('nodes.field.status_aria', { status: node.status })" role="img">
+    <div class="absolute start-3 top-3" :aria-label="$t('nodes.field.status_aria', { status: node.status })" role="img">
       <span class="relative flex h-2.5 w-2.5">
         <span
           v-if="node.status === 'running' || node.status === 'adding' || node.status === 'upgrade_scheduled'"
@@ -20,7 +20,7 @@
     </div>
 
     <!-- Node name / ID -->
-    <div class="mb-3 mt-1 pl-5">
+    <div class="mb-3 mt-1 ps-5">
       <p class="text-sm font-medium text-autonomi-text">{{ node.name || $t('nodes.node_fallback_name', { id: node.id }) }}</p>
       <p v-if="node.version" class="text-[10px] text-autonomi-muted">
         v{{ node.version }}<span

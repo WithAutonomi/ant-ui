@@ -6,6 +6,8 @@ import nl from '~/locales/nl.json'
 import fr from '~/locales/fr.json'
 import bg from '~/locales/bg.json'
 import es from '~/locales/es.json'
+import ar from '~/locales/ar.json'
+import he from '~/locales/he.json'
 
 /**
  * Exported so non-component code (Pinia options-API stores, plain utility
@@ -16,7 +18,7 @@ export const i18n = createI18n({
   legacy: false,
   locale: 'en',
   fallbackLocale: 'en',
-  messages: { en, ja, ko, nl, fr, bg, es },
+  messages: { en, ja, ko, nl, fr, bg, es, ar, he },
   missingWarn: true,
   fallbackWarn: false,
 })
