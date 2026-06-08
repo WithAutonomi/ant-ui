@@ -107,6 +107,23 @@
         </div>
 
         <div v-else class="space-y-3">
+          <!-- Wrong-network banner: the connected wallet is on a different
+               chain than the one we read balances from / pay on, so our figure
+               below disagrees with the wallet's own balance (GH #85 / V2-474). -->
+          <div
+            v-if="walletStore.wrongNetwork"
+            class="flex items-center justify-between gap-3 rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2"
+          >
+            <span class="text-xs text-amber-400">
+              {{ $t('wallet.wrong_network_warning', { network: activeNetworkLabel }) }}
+            </span>
+            <button
+              class="shrink-0 rounded-md bg-amber-500 px-2.5 py-1 text-xs font-medium text-autonomi-dark hover:opacity-90"
+              @click="switchNetwork"
+            >
+              {{ $t('wallet.switch_network_button') }}
+            </button>
+          </div>
           <div class="flex items-center justify-between text-sm">
             <span class="text-autonomi-muted">{{ $t('wallet.address_label') }}</span>
             <span class="font-mono text-xs">{{ walletStore.paymentAddress }}</span>
@@ -151,6 +168,7 @@ import { truncateAddress } from '~/utils/formatters'
 import { isValidEthAddress } from '~/utils/validators'
 import { useSettingsStore } from '~/stores/settings'
 import { useToastStore } from '~/stores/toasts'
+import { getActiveChainId } from '~/utils/wallet-config'
 
 const { t } = useI18n()
 const walletStore = useWalletStore()
@@ -172,6 +190,23 @@ async function refreshBalances() {
   if ($appkitReady) {
     const { refreshBalances: refresh } = await import('~/composables/useWallet')
     await refresh()
+  }
+}
+
+// Short, untranslated proper-noun label for the chain we require — used in the
+// wrong-network banner. Network names aren't localized.
+const activeNetworkLabel = computed(() =>
+  getActiveChainId() === arbitrumSepolia.id ? 'Arbitrum Sepolia' : 'Arbitrum One',
+)
+
+async function switchNetwork() {
+  const { ensureActiveChain } = await import('~/composables/useWallet')
+  const ok = await ensureActiveChain()
+  walletStore.wrongNetwork = !ok
+  if (ok) {
+    await refreshBalances()
+  } else {
+    toastStore.add(t('wallet.toast.switch_network_failed', { network: activeNetworkLabel.value }), 'error')
   }
 }
 

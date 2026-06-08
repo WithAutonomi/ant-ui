@@ -1,4 +1,4 @@
-import { getBalance, readContract } from '@wagmi/core'
+import { getBalance, readContract, getAccount, switchChain } from '@wagmi/core'
 import { formatEther, formatUnits, erc20Abi } from 'viem'
 import { useWalletStore } from '~/stores/wallet'
 import { useSettingsStore } from '~/stores/settings'
@@ -11,6 +11,45 @@ import { getTokenAddress, getUsdcAddress, getActiveChainId, USDC_DECIMALS } from
 // briefly nulled walletStore.connected/balances — visible in the UI as a
 // "wallet disconnected" flicker on Refresh Balances.
 let syncStarted = false
+
+/**
+ * Make sure the connected AppKit/WalletConnect wallet is on the chain we read
+ * balances from and pay on (`getActiveChainId()` — Arbitrum One on mainnet, or
+ * the manifest's chain on devnet). Mirrors `ensureActiveChain` in
+ * `utils/payment.ts`, but runs at *connect* time rather than only at payment
+ * time — that gap was the root cause of GH #85 / V2-474, where our balance
+ * panel (pinned to Arbitrum One) disagreed with the AppKit account modal
+ * (which shows the wallet's actually-connected chain).
+ *
+ * Returns `true` if the wallet is on the target chain (already, or after a
+ * successful switch), `false` if a mismatch persists (wallet declined the
+ * `wallet_switchEthereumChain` request, or the target chain isn't one AppKit
+ * knows about). Never throws — a `false` return drives the "wrong network"
+ * banner instead of breaking the connect flow.
+ *
+ * The direct-key devnet wallet always sits on the manifest's chain, so it's
+ * skipped via the same `_devnetWalletKeySet` guard the watcher uses.
+ */
+export async function ensureActiveChain(): Promise<boolean> {
+  const { $appkitReady, $wagmiAdapter } = useNuxtApp()
+  if (!$appkitReady || !$wagmiAdapter?.wagmiConfig) return true
+
+  const settingsStore = useSettingsStore()
+  if (settingsStore._devnetWalletKeySet) return true
+
+  const config = $wagmiAdapter.wagmiConfig
+  const target = getActiveChainId()
+  const account = getAccount(config)
+  if (account.chainId === target) return true
+
+  try {
+    await switchChain(config, { chainId: target })
+    return true
+  } catch (err) {
+    console.warn('Wallet is on the wrong network; switch was not completed:', err)
+    return false
+  }
+}
 
 /**
  * Fetch wallet balances and update the store. Safe to call repeatedly from
@@ -103,17 +142,22 @@ async function syncFromAppKit() {
 
   watch(
     [isConnected, address],
-    ([connected, addr]) => {
+    async ([connected, addr]) => {
       if (settingsStore._devnetWalletKeySet) return
       walletStore.connected = !!connected
       walletStore.paymentAddress = addr ?? null
       if (connected && addr) {
+        // Move the wallet onto our target chain before reading balances, so
+        // our panel and the AppKit modal agree (GH #85 / V2-474). If the
+        // switch doesn't complete, flag it for the "wrong network" banner.
+        walletStore.wrongNetwork = !(await ensureActiveChain())
         refreshBalances()
       } else {
         walletStore.balance = null
         walletStore.ethBalance = null
         walletStore.antBalance = null
         walletStore.usdcBalance = null
+        walletStore.wrongNetwork = false
       }
     },
     { immediate: true },

@@ -401,12 +401,15 @@
     "usdc_balance_label": "USDC Balance",
     "refresh_balances": "Refresh Balances",
     "disconnect": "Disconnect",
+    "wrong_network_warning": "Your wallet is on a different network. Switch to {network} to see your correct balance and pay for uploads.",
+    "switch_network_button": "Switch network",
     "toast": {
       "import_key_in_settings": "Import a private key in Settings > Advanced",
       "invalid_address": "Invalid address: must be 0x + 40 hex characters",
       "earnings_saved": "Earnings address saved",
       "earnings_set_to_payment": "Earnings address set to payment wallet",
-      "wallet_disconnected": "Wallet disconnected"
+      "wallet_disconnected": "Wallet disconnected",
+      "switch_network_failed": "Couldn't switch your wallet to {network}. Change the network in your wallet, then refresh."
     }
   },
   "updater": {
