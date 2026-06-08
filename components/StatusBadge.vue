@@ -1,16 +1,18 @@
 <template>
   <!-- Non-error labels render at their natural width (whitespace-nowrap so
        they never break to two lines). Error labels — which can be a wall of
-       viem stacktrace — keep `max-w-xs truncate` so they don't blow out the
-       table. The full error text is always available via the title tooltip. -->
+       viem stacktrace — wrap onto multiple lines (whitespace-normal + break
+       so long, unspaced strings still break) and stay capped at max-w-xs so
+       they don't blow out the table width. align-top keeps the dot pinned to
+       the first line. The full error text is also available via the tooltip. -->
   <span
-    class="inline-flex items-center gap-1 align-middle text-xs font-medium"
-    :class="[colorClass, isError ? 'max-w-xs' : 'whitespace-nowrap']"
+    class="inline-flex gap-1 text-xs font-medium"
+    :class="[colorClass, isError ? 'max-w-xs items-start align-top' : 'items-center align-middle whitespace-nowrap']"
     role="status"
     :title="label"
   >
     <span aria-hidden="true" class="shrink-0">{{ dot }}</span>
-    <span :class="isError ? 'truncate' : ''">{{ label }}</span>
+    <span :class="isError ? 'whitespace-normal break-words' : ''">{{ label }}</span>
   </span>
 </template>
 
