@@ -804,8 +804,8 @@ dependencies = [
 
 [[package]]
 name = "ant-core"
-version = "0.2.6"
-source = "git+https://github.com/WithAutonomi/ant-client?tag=ant-core-v0.2.6#eeba52b997415164421999287d54fce6beae3bd3"
+version = "0.2.7"
+source = "git+https://github.com/WithAutonomi/ant-client?tag=ant-core-v0.2.7#00da3ab7dfe1366c377043f5294f40c6a764c952"
 dependencies = [
  "ant-protocol",
  "async-stream",
@@ -884,9 +884,9 @@ dependencies = [
 
 [[package]]
 name = "ant-protocol"
-version = "2.1.1"
+version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4d0ba3f671c08a1d52291b601ec35a7353f4f4e10f221b5f0ee372d154636dd"
+checksum = "9e950d12c9f6d08d0ea560573729d93f15e105d53b669defa682f5e6f92da4b1"
 dependencies = [
  "blake3",
  "bytes",
@@ -6686,9 +6686,9 @@ dependencies = [
 
 [[package]]
 name = "saorsa-core"
-version = "0.24.4"
+version = "0.24.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c1267928da1bcc91748c314f95f7952bc01c0359a4ac70a0b111b0386898934"
+checksum = "3c0f8952fc5a4d37eb0bca7de0740830f40347f9da663effde3ddd6b68bcd2fb"
 dependencies = [
  "anyhow",
  "async-trait",
