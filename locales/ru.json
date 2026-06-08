@@ -9,22 +9,22 @@
     },
     "indelible": {
       "title": "Indelible Enterprise",
-      "subtitle_connected": "Подключено к управляемому хранилищу",
-      "subtitle_setup": "Подключитесь к самостоятельно размещённому шлюзу Indelible для управляемого хранилища",
+      "subtitle_connected": "Подключено к шлюзу управляемого хранилища",
+      "subtitle_setup": "Подключитесь к собственному шлюзу Indelible управляемого хранилища",
       "connected_badge": "Подключено",
       "server_label": "Сервер",
       "signed_in_as": "Вход выполнен как",
       "disconnect": "Отключиться",
       "server_url_label": "URL сервера",
       "server_url_placeholder": "https://files.acme.com",
-      "api_key_label": "Ключ API",
-      "api_key_placeholder": "Ваш токен API",
+      "api_key_label": "API-токен",
+      "api_key_placeholder": "Ваш API-токен",
       "test_connect": "Проверить и подключить",
       "testing": "Проверка…",
       "configure": "Настроить подключение"
     },
     "storage": {
-      "title": "Каталог хранения",
+      "title": "Каталог хранилища",
       "description": "Где хранятся данные узла на диске",
       "default": "По умолчанию",
       "browse": "Обзор",
@@ -32,7 +32,7 @@
     },
     "downloads": {
       "title": "Каталог загрузок",
-      "description": "Куда сохраняются загруженные файлы",
+      "description": "Куда сохраняются скаченные файлы",
       "not_set": "Не задан",
       "browse": "Обзор"
     },
@@ -59,7 +59,7 @@
     "concurrency": {
       "title": "Параллельность загрузки",
       "description_1": "Управляет тем, сколько котировок/загрузок могут выполняться одновременно.",
-      "description_2": "Обратите внимание, что это сильно влияет на производительность."
+      "description_2": "Обратите внимание: это значительно влияет на производительность."
     },
     "prerelease": {
       "title": "Предварительные сборки",
@@ -68,7 +68,7 @@
       "restart_now": "Перезапустить сейчас"
     },
     "direct_wallet": {
-      "title": "Прямой кошелёк",
+      "title": "Импорт кошелька",
       "description": "Подключение с приватным ключом (обходит WalletConnect)",
       "connected_badge": "Подключено",
       "address_label": "Адрес",
@@ -80,7 +80,7 @@
       "rpc_url_optional": "(необязательно)",
       "rpc_url_placeholder": "По умолчанию публичный RPC для выбранной сети",
       "private_key_label": "Приватный ключ",
-      "private_key_placeholder": "0x... или сырой hex",
+      "private_key_placeholder": "0x... или hex‑формат",
       "connect": "Подключить",
       "import_button": "Импортировать приватный ключ"
     },
@@ -120,7 +120,7 @@
       "days_ago": "{n} дн назад"
     },
     "picker": {
-      "storage_title": "Выберите каталог хранения",
+      "storage_title": "Выберите каталог хранилища",
       "downloads_title": "Выберите каталог загрузок"
     },
     "error": {
@@ -134,21 +134,21 @@
       "on_latest_version": "У вас последняя версия (v{version})",
       "daemon_restarted": "Демон перезапущен",
       "daemon_restart_failed": "Не удалось перезапустить демон: {error}",
-      "storage_dir_updated": "Каталог хранения обновлён",
-      "storage_dir_verified": "Каталог хранения проверен",
-      "storage_dir_unwritable": "Невозможно использовать эту папку для хранения узлов",
+      "storage_dir_updated": "Каталог хранилища обновлён",
+      "storage_dir_verified": "Каталог хранилища проверен",
+      "storage_dir_unwritable": "Невозможно использовать эту папку для хранения данных узла",
       "select_directory_failed": "Не удалось выбрать каталог",
       "downloads_dir_updated": "Каталог загрузок обновлён",
       "earnings_updated": "Адрес для вознаграждений обновлён",
       "daemon_url_updated": "URL демона обновлён",
-      "diagnostics_copied": "Диагностика скопирована в буфер обмена",
+      "diagnostics_copied": "Диагностические данные скопированы в буфер обмена",
       "diagnostics_copy_failed": "Не удалось скопировать в буфер обмена",
       "log_cleared": "Журнал очищен",
       "indelible_connected": "Подключено к Indelible",
       "indelible_disconnected": "Отключено от Indelible",
       "wallet_connected": "Кошелёк подключён: {address}",
       "wallet_disconnected": "Кошелёк отключён",
-      "wallet_attach_failed": "Не удалось присоединить кошелёк (сторона Rust): {error}"
+      "wallet_attach_failed": "Не удалось подключить кошелёк (на уровне Rust): {error}"
     }
   },
   "nav": {
@@ -179,7 +179,7 @@
     "cancel": "Отмена",
     "confirm": "Подтвердить",
     "close": "Закрыть",
-    "download": "Загрузить",
+    "download": "Скачать",
     "start": "Запустить",
     "stop": "Остановить",
     "remove": "Удалить",
@@ -246,12 +246,12 @@
     }
   },
   "files": {
-    "upload_button": "Загрузить файл(ы)",
+    "upload_button": "Загрузить файл(ы) в сеть",
     "estimate_button": "Оценить стоимость",
     "download_by_address": "Скачать по адресу",
     "download_by_datamap": "Скачать по Datamap",
-    "uploads_heading": "Загрузки",
-    "downloads_heading": "Скачивания",
+    "uploads_heading": "Загрузки в сеть",
+    "downloads_heading": "Скачивания из сети",
     "clear": "Очистить",
     "drop_files": "Перетащите файлы для загрузки",
     "uploads_empty_title": "Загрузок пока нет",
@@ -273,7 +273,7 @@
       "gas_suffix": "+ {gas} газа",
       "public_badge": "Публичный",
       "retry": "↻ Повторить",
-      "public_tooltip": "Публичная загрузка — нажмите, чтобы скопировать общий сетевой адрес",
+      "public_tooltip": "Публичная загрузка — нажмите, чтобы скопировать общедоступный сетевой адрес",
       "reveal_datamap_tooltip": "Показать файл datamap в Finder/Explorer",
       "copy_datamap_tooltip": "Скопировать путь к файлу datamap",
       "copy_address_tooltip": "Скопировать сетевой адрес",
@@ -282,23 +282,23 @@
     },
     "stage": {
       "encrypting": "Шифрование…",
-      "quoting_pct": "Котировка · {pct}%",
-      "quoting_indeterminate": "Котировка…",
-      "storing_pct": "Сохранение · {pct}%",
-      "storing_indeterminate": "Сохранение…",
-      "resolving_pct": "Разрешение datamap · {pct}%",
-      "resolving_indeterminate": "Разрешение datamap…",
-      "downloading_pct": "Скачивание · {pct}%",
+      "quoting_pct": "Получение стоимости · {pct}%",
+      "quoting_indeterminate": "Получение стоимости",
+      "storing_pct": "Загрузка в сеть · {pct}%",
+      "storing_indeterminate": "Загрузка в сеть…",
+      "resolving_pct": "Обработка DataMap… · {pct}%",
+      "resolving_indeterminate": "Обработка DataMap…",
+      "downloading_pct": "Скачивание… · {pct}%",
       "downloading_indeterminate": "Скачивание…"
     },
     "picker": {
-      "upload_title": "Выберите файлы для загрузки",
+      "upload_title": "Выберите файлы для загрузки в сеть",
       "datamap_title": "Выберите файл datamap для скачивания",
       "estimate_title": "Выберите файлы для оценки стоимости",
       "datamap_filter": "Datamap"
     },
     "toast": {
-      "upload_requires_wallet": "Для загрузки требуется кошелёк",
+      "upload_requires_wallet": "Для загрузки в сеть требуется кошелёк",
       "download_requires_network": "Для скачивания требуется подключение к сети",
       "open_folder_failed": "Не удалось открыть папку",
       "address_copied": "Адрес скопирован в буфер обмена",
@@ -311,7 +311,7 @@
       "payment_failed": "Сбой оплаты: {error}",
       "download_complete": "Скачивание завершено: {name}",
       "download_failed": "Сбой скачивания: {name} — {error}",
-      "datamap_missing": "Невозможно скачать: файл datamap отсутствует или не читается",
+      "datamap_missing": "Невозможно скачать: файл datamap отсутствует или нечитаем",
       "datamap_read_failed": "Не удалось прочитать datamap: {error}"
     },
     "error": {
@@ -340,18 +340,18 @@
     "datamap_picker": {
       "description": "Выберите предыдущую загрузку для повторного скачивания или найдите файл datamap, полученный из другого источника.",
       "empty": "Нет предыдущих загрузок с сохранённым datamap.",
-      "browse_button": "Найти файл datamap…"
+      "browse_button": "Выбрать файл datamap…"
     },
     "cost_estimate": {
       "title": "Оценка стоимости загрузки",
       "loading": "Оценка стоимости…",
       "no_files": "Файлы не выбраны",
-      "footnote": "Стоимость запрошена из сети Autonomi. Комиссии за газ (ETH) добавляются к стоимости хранения."
+      "footnote": "Стоимость запрошена у сети Autonomi. Комиссия за газ (ETH) будет добавлена к стоимости хранения."
     },
     "upload_confirm": {
       "title": "Подтвердите загрузку",
       "info_banner": "Можно закрыть это окно и вернуться, когда придёт котировка. Загрузка остаётся в ожидании, пока вы её не одобрите или не отмените.",
-      "already_stored_badge": "Уже сохранён",
+      "already_stored_badge": "Уже загружен в сеть",
       "payment_label": "Оплата",
       "payment_mixed": "Смешанная",
       "payment_mixed_detail": "{regular} обычных, {merkle} merkle — оплата за файл.",
@@ -360,17 +360,17 @@
       "payment_merkle_detail": "Одна транзакция для {count} фрагментов — меньше газа.",
       "payment_regular_detail_one": "Пакетная оплата за 1 фрагмент.",
       "payment_regular_detail_many": "Пакетная оплата за {count} фрагментов.",
-      "free_title": "Уже сохранён в сети — бесплатно",
-      "free_detail": "Все фрагменты уже есть. Ни ANT, ни газ потрачены не будут.",
+      "free_title": "Уже загружен в сеть — бесплатно",
+      "free_detail": "Все фрагменты уже загружены в сеть. Ни ANT, ни газ потрачены не будут.",
       "cost_label": "Стоимость хранения в сети",
-      "gas_label": "Оценка газа",
+      "gas_label": "Оценка размера комиссии за транзакцию",
       "some_already_stored": "Часть файлов уже сохранена — за эту часть платить не нужно.",
       "visibility_label": "Видимость",
-      "visibility_private": "Приватная",
-      "visibility_private_desc": "Зашифрован и доступен только с вашей картой данных. Только вы можете получить файл.",
-      "visibility_public": "Публичная",
-      "visibility_public_desc": "Карта данных публикуется в сети. Поделитесь одним адресом, чтобы любой мог получить файл.",
-      "regular_footnote": "Оценено по одной сетевой котировке — итоговая стоимость может немного отличаться. Комиссии за газ добавляются сверху.",
+      "visibility_private": "Приватный",
+      "visibility_private_desc": "Зашифрован и доступен только с вашим файлом DataMap. Только вы можете скачать файл.",
+      "visibility_public": "Публичный",
+      "visibility_public_desc": "Datamap опубликован в сети. Поделитесь адресом, чтобы любой мог скачать файл.",
+      "regular_footnote": "Расчёт основан на одной котировки из сети. Итоговая стоимость может немного отличаться. Комиссия за газ будет добавлена к стоимости хранения.",
       "cancel_upload": "Отменить загрузку",
       "ready_count": "Готово: {ready} из {total}",
       "approve_button_one": "Одобрить загрузку",
@@ -413,15 +413,15 @@
   "updater": {
     "dialog": {
       "title": "Доступно обновление",
-      "version_ready": "v{version} готово к установке",
+      "version_ready": "v{version} готова к установке",
       "pre_release_badge": "Предварительная",
       "download_size": "Размер загрузки: {size}",
       "release_notes": "Примечания к выпуску",
       "no_release_notes": "Нет примечаний к выпуску для этой версии.",
-      "downloading": "Загрузка…",
-      "download_complete": "Загрузка успешна, приложение скоро перезапустится",
+      "downloading": "Скачивание…",
+      "download_complete": "Скачивание успешно, приложение скоро перезапустится",
       "auto_restart_hint": "Приложение перезапустится автоматически по завершении.",
-      "cancel_download": "Отменить загрузку",
+      "cancel_download": "Отменить скачивание",
       "installing_tooltip": "Установка — подождите",
       "not_now": "Не сейчас",
       "update_restart": "Обновить и перезапустить"
@@ -450,10 +450,10 @@
     },
     "file": {
       "pending": "Ожидание",
-      "quoting": "Котировка",
+      "quoting": "Получение стоимости",
       "encrypting": "Шифрование…",
       "resolving_datamap": "Разрешение datamap",
-      "queued_quoting": "В очереди: котировка",
+      "queued_quoting": "В очереди: получение стоимости",
       "queued_uploading": "В очереди: загрузка",
       "connecting_to_network": "Подключение к сети…",
       "obtaining_quote": "Получение котировки…",
