@@ -136,9 +136,7 @@ fn collect_sources(history: &UploadHistory, dirs: &[PathBuf]) -> Vec<Source> {
         };
         for de in rd.filter_map(|d| d.ok()) {
             let path = de.path();
-            if !path.is_file()
-                || path.extension().and_then(|s| s.to_str()) != Some("datamap")
-            {
+            if !path.is_file() || path.extension().and_then(|s| s.to_str()) != Some("datamap") {
                 continue;
             }
             if included.insert(path.clone()) {
@@ -492,12 +490,19 @@ mod tests {
         assert_eq!(imp.imported, 2);
         assert_eq!(imp.skipped_duplicates, 0);
         assert_eq!(new_entries.len(), 2);
-        assert_eq!(std::fs::read(target.join("a.txt.datamap")).unwrap(), b"alpha");
-        assert_eq!(std::fs::read(target.join("b.txt.datamap")).unwrap(), b"bravo");
+        assert_eq!(
+            std::fs::read(target.join("a.txt.datamap")).unwrap(),
+            b"alpha"
+        );
+        assert_eq!(
+            std::fs::read(target.join("b.txt.datamap")).unwrap(),
+            b"bravo"
+        );
         // History rows point at the extracted files.
-        assert!(new_entries
-            .iter()
-            .all(|e| e.data_map_file.as_deref().is_some_and(|p| p.ends_with(".datamap"))));
+        assert!(new_entries.iter().all(|e| e
+            .data_map_file
+            .as_deref()
+            .is_some_and(|p| p.ends_with(".datamap"))));
     }
 
     #[test]
@@ -559,8 +564,16 @@ mod tests {
         std::fs::write(&known, b"k").unwrap();
         std::fs::write(&orphan, b"o").unwrap();
         let sources = vec![
-            Source { path: known.clone(), entry: Some(entry("known.txt", "0xkkk", &known)), orphan: false },
-            Source { path: orphan.clone(), entry: None, orphan: true },
+            Source {
+                path: known.clone(),
+                entry: Some(entry("known.txt", "0xkkk", &known)),
+                orphan: false,
+            },
+            Source {
+                path: orphan.clone(),
+                entry: None,
+                orphan: true,
+            },
         ];
         let zip = temp_dir("zip").join("backup.zip");
 
