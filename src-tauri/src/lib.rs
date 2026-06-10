@@ -1,5 +1,6 @@
 mod autonomi_ops;
 mod config;
+mod datamap_backup;
 mod updater_channel;
 
 use autonomi_ops::AutonomiState;
@@ -742,6 +743,16 @@ fn save_upload_history(entries: Vec<UploadHistoryEntry>) -> Result<(), String> {
     history.save().map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn export_datamaps(dest_zip: String) -> Result<datamap_backup::ExportSummary, String> {
+    datamap_backup::export_datamaps(&dest_zip)
+}
+
+#[tauri::command]
+fn import_datamaps(src_zip: String) -> Result<datamap_backup::ImportSummary, String> {
+    datamap_backup::import_datamaps(&src_zip)
+}
+
 pub fn run() {
     // WebKitGTK's DMA-BUF renderer (default since 2.42) trips over recent Mesa
     // and proprietary NVIDIA drivers, surfacing as "Could not create default
@@ -801,6 +812,8 @@ pub fn run() {
             read_file_bytes,
             load_upload_history,
             save_upload_history,
+            export_datamaps,
+            import_datamaps,
             discover_daemon_url,
             ensure_daemon_running,
             restart_daemon,
