@@ -100,6 +100,17 @@
       "confirm_one": "Clear 1 upload entry from history?\n\nThis removes the local row + persisted record. The DataMaps on disk and the chunks on the network are unaffected.",
       "confirm_many": "Clear {count} upload entries from history?\n\nThis removes the local row + persisted record. The DataMaps on disk and the chunks on the network are unaffected."
     },
+    "datamap_backup": {
+      "title": "Datamap backup",
+      "description": "Datamaps are the only key to re-download your uploaded files. They live only on this device — back them up before reinstalling, formatting, or moving to a new computer, or your uploads can't be recovered.",
+      "security_note": "Anyone with this backup can access your files. Store it somewhere secure.",
+      "count_one": "{count} datamap",
+      "count_many": "{count} datamaps",
+      "export_button": "Export…",
+      "import_button": "Import…",
+      "export_title": "Export datamaps",
+      "import_title": "Import datamaps"
+    },
     "software": {
       "title": "Software",
       "app_version_label": "App version",
@@ -128,6 +139,10 @@
     },
     "toast": {
       "upload_history_cleared": "Upload history cleared",
+      "datamaps_exported": "Exported {count} datamaps",
+      "datamaps_export_failed": "Export failed: {error}",
+      "datamaps_imported": "Imported {imported} datamaps ({skipped} already present)",
+      "datamaps_import_failed": "Import failed: {error}",
       "update_check_failed": "Update check failed",
       "update_available": "Update available: v{version}",
       "on_latest_version": "You're on the latest version (v{version})",

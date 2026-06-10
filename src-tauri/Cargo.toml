@@ -30,6 +30,7 @@ ant-core = { git = "https://github.com/WithAutonomi/ant-client", tag = "ant-core
 evmlib = "0.8"
 hex = "0.4"
 sha2 = "0.10"
+zip = "2"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

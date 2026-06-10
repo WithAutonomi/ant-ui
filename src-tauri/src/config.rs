@@ -180,7 +180,7 @@ pub fn datamap_dir() -> PathBuf {
 /// `.datamap` file. After the first existing-install write the rule
 /// continues to return `config_path()` because the legacy dir still has
 /// the original `.datamap` files alongside the new one.
-fn resolve_datamap_output_dir() -> PathBuf {
+pub(crate) fn resolve_datamap_output_dir() -> PathBuf {
     let legacy = config_path();
     let has_legacy_datamaps = legacy
         .read_dir()

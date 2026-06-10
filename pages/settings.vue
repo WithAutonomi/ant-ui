@@ -490,6 +490,38 @@
       </button>
     </div>
 
+    <!-- Datamap backup (V2-500) — datamaps are the only local key to
+         re-download private uploads, so export/import is a data-safety
+         feature and lives in the main section, not behind Advanced. -->
+    <div class="rounded-lg border border-autonomi-border p-4">
+      <h3 class="text-sm font-medium">{{ $t('settings.datamap_backup.title') }}</h3>
+      <p class="mt-0.5 text-xs text-autonomi-muted">{{ $t('settings.datamap_backup.description') }}</p>
+      <p class="mt-1 text-xs text-autonomi-warning">{{ $t('settings.datamap_backup.security_note') }}</p>
+      <div class="mt-3 flex items-center justify-between gap-3">
+        <p class="text-xs text-autonomi-muted">
+          {{ datamapCount === 1
+            ? $t('settings.datamap_backup.count_one', { count: datamapCount })
+            : $t('settings.datamap_backup.count_many', { count: datamapCount }) }}
+        </p>
+        <div class="flex shrink-0 gap-2">
+          <button
+            :disabled="datamapCount === 0 || datamapBusy"
+            class="rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-text disabled:opacity-50 disabled:hover:text-autonomi-muted"
+            @click="exportDatamaps"
+          >
+            {{ $t('settings.datamap_backup.export_button') }}
+          </button>
+          <button
+            :disabled="datamapBusy"
+            class="rounded-md border border-autonomi-border px-2.5 py-1 text-xs text-autonomi-muted hover:text-autonomi-text disabled:opacity-50"
+            @click="importDatamaps"
+          >
+            {{ $t('settings.datamap_backup.import_button') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Software -->
     <div class="rounded-lg border border-autonomi-border p-4">
       <div class="flex items-start justify-between gap-3">
@@ -534,7 +566,7 @@
 
 <script setup lang="ts">
 import { invoke } from '@tauri-apps/api/core'
-import { open } from '@tauri-apps/plugin-dialog'
+import { open, save } from '@tauri-apps/plugin-dialog'
 import { openUrl as tauriOpenUrl } from '@tauri-apps/plugin-opener'
 import { arbitrum, arbitrumSepolia } from 'viem/chains'
 import { setDevnetWalletKey, UPLOAD_CONCURRENCY_MIN, UPLOAD_CONCURRENCY_MAX } from '~/stores/settings'
@@ -601,6 +633,67 @@ async function confirmClearUploadHistory() {
   if (!ok) return
   filesStore.clearUploadHistory()
   toasts.add(t('settings.toast.upload_history_cleared'), 'info')
+}
+
+// Datamap backup (V2-500). Count reflects persisted uploads that carry a
+// datamap; the export command counts authoritatively (and sweeps for orphan
+// .datamap files) on the Rust side.
+const datamapBusy = ref(false)
+const datamapCount = computed(() =>
+  filesStore.files.filter(f => f.kind === 'upload' && f.data_map_file).length,
+)
+
+async function exportDatamaps() {
+  if (datamapCount.value === 0 || datamapBusy.value) return
+  datamapBusy.value = true
+  try {
+    const date = new Date().toISOString().slice(0, 10)
+    const dest = await save({
+      title: t('settings.datamap_backup.export_title'),
+      defaultPath: `autonomi-datamaps-${date}.zip`,
+      filters: [{ name: 'Zip', extensions: ['zip'] }],
+    })
+    if (!dest) return
+    const summary = await invoke<{ count: number; orphan_count: number; bytes: number }>(
+      'export_datamaps',
+      { destZip: dest },
+    )
+    toasts.add(t('settings.toast.datamaps_exported', { count: summary.count }), 'success')
+  } catch (e: any) {
+    toasts.add(t('settings.toast.datamaps_export_failed', { error: e?.message ?? e }), 'error')
+  } finally {
+    datamapBusy.value = false
+  }
+}
+
+async function importDatamaps() {
+  if (datamapBusy.value) return
+  datamapBusy.value = true
+  try {
+    const selected = await open({
+      title: t('settings.datamap_backup.import_title'),
+      multiple: false,
+      directory: false,
+      filters: [{ name: 'Zip', extensions: ['zip'] }],
+    })
+    if (!selected) return
+    const summary = await invoke<{ imported: number; skipped_duplicates: number }>(
+      'import_datamaps',
+      { srcZip: selected as string },
+    )
+    await filesStore.loadHistory()
+    toasts.add(
+      t('settings.toast.datamaps_imported', {
+        imported: summary.imported,
+        skipped: summary.skipped_duplicates,
+      }),
+      'success',
+    )
+  } catch (e: any) {
+    toasts.add(t('settings.toast.datamaps_import_failed', { error: e?.message ?? e }), 'error')
+  } finally {
+    datamapBusy.value = false
+  }
 }
 
 // Re-compute "Last checked X ago" every 30s so the label stays fresh while
