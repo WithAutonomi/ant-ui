@@ -189,6 +189,13 @@ export const useFilesStore = defineStore('files', {
      *  to a numeric parse; the external-signer path uses an opaque `quote-…`
      *  id assigned by `getUploadQuote`, which we register here. */
     _transferIdToRowId: {} as Record<string, number>,
+    /** Set by the deep-link handler when an `autonomi://<address>` URL is
+     *  opened. The Files page watches this, opens the Download dialog prefilled
+     *  with the address, and clears it. Null when there's nothing pending. */
+    pendingDownloadAddress: null as string | null,
+    /** Optional filename from the deep link's `?name=`, paired with
+     *  `pendingDownloadAddress`. Null/empty when the link carried no name. */
+    pendingDownloadName: null as string | null,
   }),
 
   getters: {

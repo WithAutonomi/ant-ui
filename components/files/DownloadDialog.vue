@@ -15,7 +15,7 @@
             v-model="address"
             type="text"
             :placeholder="$t('files.download_dialog.address_placeholder')"
-            class="w-full rounded-md border border-autonomi-border bg-autonomi-surface px-3 py-2 font-mono text-sm text-autonomi-text focus:border-autonomi-blue focus:outline-none"
+            class="w-full rounded-md border border-autonomi-border bg-autonomi-surface px-3 py-2 font-mono text-sm text-autonomi-text placeholder-autonomi-muted placeholder:opacity-70 focus:border-autonomi-blue focus:outline-none"
             @keyup.enter="confirm"
             @keyup.escape="$emit('close')"
           />
@@ -28,7 +28,7 @@
             type="text"
             :placeholder="$t('files.download_dialog.filename_placeholder')"
             :class="[
-              'w-full rounded-md border bg-autonomi-surface px-3 py-2 text-sm text-autonomi-text focus:outline-none',
+              'w-full rounded-md border bg-autonomi-surface px-3 py-2 text-sm text-autonomi-text placeholder-autonomi-muted placeholder:opacity-70 focus:outline-none',
               filenameError ? 'border-red-500 focus:border-red-500' : 'border-autonomi-border focus:border-autonomi-blue',
             ]"
             @input="onFilenameInput"
@@ -61,7 +61,14 @@
 import { useFilesStore } from '~/stores/files'
 import { filenameError as checkFilename } from '~/utils/validators'
 
-const props = defineProps<{ open: boolean }>()
+const props = defineProps<{
+  open: boolean
+  /** When the dialog is opened via a deep link, the address arrives prefilled.
+   *  Empty/undefined for the manual "Download by address" button. */
+  prefillAddress?: string
+  /** Optional filename prefill from the deep link's `?name=`. */
+  prefillFilename?: string
+}>()
 const emit = defineEmits<{
   close: []
   download: [address: string, filename: string]
@@ -92,14 +99,24 @@ const matchedEntry = computed(() => {
   return filesStore.findUploadByAddress(addr)
 })
 
-watch(() => props.open, (val) => {
-  if (val) {
-    address.value = ''
-    filename.value = ''
-    filenameDirty.value = false
+// `immediate` so the prefill applies even when the dialog mounts already-open
+// (deep-link first-attempt: the Files page navigates in with the dialog open
+// from the start, so there's no false→true transition to catch). Also watch
+// `prefillAddress` so a deep link arriving while the dialog is already open
+// refreshes the fields.
+watch(
+  [() => props.open, () => props.prefillAddress],
+  ([val]) => {
+    if (!val) return
+    address.value = props.prefillAddress ?? ''
+    filename.value = props.prefillFilename ?? ''
+    // Treat a deep-link-provided name as user-set so the history-match
+    // auto-prefill doesn't clobber it.
+    filenameDirty.value = !!props.prefillFilename
     nextTick(() => inputEl.value?.focus())
-  }
-})
+  },
+  { immediate: true },
+)
 
 watch(matchedEntry, (match) => {
   if (!match) return

@@ -2,6 +2,41 @@ export function isValidEthAddress(addr: string): boolean {
   return /^0x[0-9a-fA-F]{40}$/.test(addr)
 }
 
+/** A public Autonomi data address: a 32-byte (64 hex char) value, optionally
+ *  `0x`-prefixed. Stricter than the download dialog's loose `{8,}` check —
+ *  used to validate untrusted input arriving via the `autonomi://` deep link
+ *  before we act on it. */
+export function isValidPublicAddress(addr: string): boolean {
+  return /^(0x)?[0-9a-fA-F]{64}$/.test(addr.trim())
+}
+
+export interface AutonomiLink {
+  address: string
+  /** Optional suggested filename from `?name=` — unvalidated; the download
+   *  dialog runs it through `filenameError` and blocks an unsafe name. */
+  name?: string
+}
+
+/** Parse an `autonomi://<address>` deep link into its public address (and an
+ *  optional `?name=` filename), or null if it isn't a well-formed autonomi URL
+ *  with a valid address. Tolerates an optional `//`, a trailing slash, and any
+ *  query/fragment. Example: `autonomi://<64-hex>?name=book.epub`. */
+export function parseAutonomiDeepLink(url: string): AutonomiLink | null {
+  const trimmed = url.trim()
+  const m = trimmed.match(/^autonomi:(?:\/\/)?([^/?#]+)/i)
+  if (!m) return null
+  const address = m[1]
+  if (!isValidPublicAddress(address)) return null
+
+  let name: string | undefined
+  const q = trimmed.indexOf('?')
+  if (q !== -1) {
+    const raw = new URLSearchParams(trimmed.slice(q + 1)).get('name')?.trim()
+    if (raw) name = raw
+  }
+  return { address, name }
+}
+
 // Windows-reserved set is the strict superset across platforms — rejecting it
 // everywhere keeps the same filename portable to any host. Forward/backslash
 // would also be path-traversal; null + control chars are never valid.

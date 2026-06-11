@@ -20,7 +20,7 @@
       <div class="flex items-center gap-2">
         <button
           class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
-          @click="showDownloadDialog = true"
+          @click="openDownloadByAddress"
         >
           {{ $t('files.download_by_address') }}
         </button>
@@ -302,7 +302,9 @@
     <!-- Dialogs -->
     <FilesDownloadDialog
       :open="showDownloadDialog"
-      @close="showDownloadDialog = false"
+      :prefill-address="downloadPrefillAddress"
+      :prefill-filename="downloadPrefillFilename"
+      @close="showDownloadDialog = false; downloadPrefillAddress = ''; downloadPrefillFilename = ''"
       @download="handleDownload"
     />
 
@@ -840,6 +842,34 @@ function closeUploadDialog() {
 // ── Download flow ──
 
 const showDownloadDialog = ref(false)
+/** Address to prefill the Download dialog with — set when opened via an
+ *  `autonomi://` deep link, empty for the manual button. */
+const downloadPrefillAddress = ref('')
+const downloadPrefillFilename = ref('')
+
+/** Manual "Download by address" — always opens a blank dialog. */
+function openDownloadByAddress() {
+  downloadPrefillAddress.value = ''
+  downloadPrefillFilename.value = ''
+  showDownloadDialog.value = true
+}
+
+// Deep link (autonomi://<address>?name=…): the handler stashes the parsed
+// address (+ optional name) on the store; open the Download dialog prefilled,
+// then clear the signal. `immediate` so an address set before this page mounted
+// (cold start) is caught.
+watch(
+  () => filesStore.pendingDownloadAddress,
+  (addr) => {
+    if (!addr) return
+    downloadPrefillAddress.value = addr
+    downloadPrefillFilename.value = filesStore.pendingDownloadName ?? ''
+    showDownloadDialog.value = true
+    filesStore.pendingDownloadAddress = null
+    filesStore.pendingDownloadName = null
+  },
+  { immediate: true },
+)
 
 /**
  * Resolve once the embedded ant-core client is connected, or returns false
