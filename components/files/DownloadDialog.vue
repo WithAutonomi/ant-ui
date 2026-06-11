@@ -15,7 +15,7 @@
             v-model="address"
             type="text"
             :placeholder="$t('files.download_dialog.address_placeholder')"
-            class="w-full rounded-md border border-autonomi-border bg-autonomi-surface px-3 py-2 font-mono text-sm text-autonomi-text focus:border-autonomi-blue focus:outline-none"
+            class="w-full rounded-md border border-autonomi-border bg-autonomi-surface px-3 py-2 font-mono text-sm text-autonomi-text placeholder-autonomi-muted placeholder:opacity-70 focus:border-autonomi-blue focus:outline-none"
             @keyup.enter="confirm"
             @keyup.escape="$emit('close')"
           />
@@ -28,7 +28,7 @@
             type="text"
             :placeholder="$t('files.download_dialog.filename_placeholder')"
             :class="[
-              'w-full rounded-md border bg-autonomi-surface px-3 py-2 text-sm text-autonomi-text focus:outline-none',
+              'w-full rounded-md border bg-autonomi-surface px-3 py-2 text-sm text-autonomi-text placeholder-autonomi-muted placeholder:opacity-70 focus:outline-none',
               filenameError ? 'border-red-500 focus:border-red-500' : 'border-autonomi-border focus:border-autonomi-blue',
             ]"
             @input="onFilenameInput"
