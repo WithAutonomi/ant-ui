@@ -193,6 +193,9 @@ export const useFilesStore = defineStore('files', {
      *  opened. The Files page watches this, opens the Download dialog prefilled
      *  with the address, and clears it. Null when there's nothing pending. */
     pendingDownloadAddress: null as string | null,
+    /** Optional filename from the deep link's `?name=`, paired with
+     *  `pendingDownloadAddress`. Null/empty when the link carried no name. */
+    pendingDownloadName: null as string | null,
   }),
 
   getters: {

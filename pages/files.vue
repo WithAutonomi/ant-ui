@@ -303,7 +303,8 @@
     <FilesDownloadDialog
       :open="showDownloadDialog"
       :prefill-address="downloadPrefillAddress"
-      @close="showDownloadDialog = false; downloadPrefillAddress = ''"
+      :prefill-filename="downloadPrefillFilename"
+      @close="showDownloadDialog = false; downloadPrefillAddress = ''; downloadPrefillFilename = ''"
       @download="handleDownload"
     />
 
@@ -844,23 +845,28 @@ const showDownloadDialog = ref(false)
 /** Address to prefill the Download dialog with — set when opened via an
  *  `autonomi://` deep link, empty for the manual button. */
 const downloadPrefillAddress = ref('')
+const downloadPrefillFilename = ref('')
 
 /** Manual "Download by address" — always opens a blank dialog. */
 function openDownloadByAddress() {
   downloadPrefillAddress.value = ''
+  downloadPrefillFilename.value = ''
   showDownloadDialog.value = true
 }
 
-// Deep link (autonomi://<address>): the handler stashes the parsed address on
-// the store; open the Download dialog prefilled with it, then clear the signal.
-// `immediate` so an address set before this page mounted (cold start) is caught.
+// Deep link (autonomi://<address>?name=…): the handler stashes the parsed
+// address (+ optional name) on the store; open the Download dialog prefilled,
+// then clear the signal. `immediate` so an address set before this page mounted
+// (cold start) is caught.
 watch(
   () => filesStore.pendingDownloadAddress,
   (addr) => {
     if (!addr) return
     downloadPrefillAddress.value = addr
+    downloadPrefillFilename.value = filesStore.pendingDownloadName ?? ''
     showDownloadDialog.value = true
     filesStore.pendingDownloadAddress = null
+    filesStore.pendingDownloadName = null
   },
   { immediate: true },
 )

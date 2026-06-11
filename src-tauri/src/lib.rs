@@ -814,10 +814,26 @@ pub fn run() {
     // focuses the existing window instead of letting the OS spawn a duplicate.
     #[cfg(any(target_os = "windows", target_os = "linux"))]
     {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.unminimize();
                 let _ = w.set_focus();
+            }
+            // Forward any autonomi:// URL the second instance was launched with.
+            // Done explicitly (not only via the deep-link feature) so warm-start
+            // works reliably on Windows/Linux regardless of feature forwarding.
+            let urls: Vec<String> = argv
+                .iter()
+                .filter(|a| a.starts_with("autonomi:"))
+                .cloned()
+                .collect();
+            if !urls.is_empty() {
+                if let Some(state) = app.try_state::<DeepLinkState>() {
+                    if let Ok(mut g) = state.0.lock() {
+                        g.extend(urls.iter().cloned());
+                    }
+                }
+                let _ = app.emit("deep-link", urls);
             }
         }));
     }
