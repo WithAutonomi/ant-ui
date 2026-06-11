@@ -61,7 +61,12 @@
 import { useFilesStore } from '~/stores/files'
 import { filenameError as checkFilename } from '~/utils/validators'
 
-const props = defineProps<{ open: boolean }>()
+const props = defineProps<{
+  open: boolean
+  /** When the dialog is opened via a deep link, the address arrives prefilled.
+   *  Empty/undefined for the manual "Download by address" button. */
+  prefillAddress?: string
+}>()
 const emit = defineEmits<{
   close: []
   download: [address: string, filename: string]
@@ -94,7 +99,7 @@ const matchedEntry = computed(() => {
 
 watch(() => props.open, (val) => {
   if (val) {
-    address.value = ''
+    address.value = props.prefillAddress ?? ''
     filename.value = ''
     filenameDirty.value = false
     nextTick(() => inputEl.value?.focus())

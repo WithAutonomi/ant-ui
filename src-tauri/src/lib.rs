@@ -7,6 +7,7 @@ use autonomi_ops::AutonomiState;
 use config::{AppConfig, FileMetaResult, UploadHistory, UploadHistoryEntry};
 use std::path::PathBuf;
 use std::sync::Arc;
+use tauri::{Emitter, Manager};
 use tokio::sync::{watch, RwLock};
 
 // ── SSE proxy state ──
@@ -743,6 +744,23 @@ fn save_upload_history(entries: Vec<UploadHistoryEntry>) -> Result<(), String> {
     history.save().map_err(|e| e.to_string())
 }
 
+/// Holds `autonomi://` deep-link URLs captured at cold start, before the
+/// frontend is mounted and listening. Drained once via `take_pending_deep_links`.
+/// Live (warm) opens are delivered through the "deep-link" event instead; the
+/// frontend dedupes the brief overlap.
+#[derive(Default)]
+struct DeepLinkState(std::sync::Mutex<Vec<String>>);
+
+/// Drain any deep-link URLs the app was launched with. Returns and clears them.
+#[tauri::command]
+fn take_pending_deep_links(state: tauri::State<DeepLinkState>) -> Vec<String> {
+    state
+        .0
+        .lock()
+        .map(|mut g| std::mem::take(&mut *g))
+        .unwrap_or_default()
+}
+
 #[tauri::command]
 fn export_datamaps(dest_zip: String) -> Result<datamap_backup::ExportSummary, String> {
     datamap_backup::export_datamaps(&dest_zip)
@@ -786,7 +804,26 @@ pub fn run() {
         .with_writer(std::io::stderr)
         .try_init();
 
-    tauri::Builder::default()
+    // `mut` is used only under the Windows/Linux single-instance cfg below.
+    #[allow(unused_mut)]
+    let mut builder = tauri::Builder::default();
+
+    // Single-instance MUST be registered first. On Windows/Linux it forwards a
+    // deep link opened while the app is already running into this instance
+    // (the `deep-link` feature triggers the deep-link plugin's on_open_url) and
+    // focuses the existing window instead of letting the OS spawn a duplicate.
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
+    {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.unminimize();
+                let _ = w.set_focus();
+            }
+        }));
+    }
+
+    builder
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
@@ -795,6 +832,43 @@ pub fn run() {
         .manage(AutonomiState::new())
         .manage(Arc::new(SseState::new()))
         .manage(updater_channel::UpdaterChannelState::new())
+        .manage(DeepLinkState::default())
+        .setup(|app| {
+            use tauri_plugin_deep_link::DeepLinkExt;
+
+            // Runtime registration so `autonomi://` resolves to this build on
+            // Windows/Linux without a full install (needed for `tauri dev`).
+            // macOS registers via the bundled Info.plist instead.
+            #[cfg(any(target_os = "windows", target_os = "linux"))]
+            {
+                let _ = app.deep_link().register_all();
+            }
+
+            // Cold start: capture the launch URL(s) so the frontend can drain
+            // them once mounted — the on_open_url event below may fire before
+            // any JS listener exists.
+            if let Ok(Some(urls)) = app.deep_link().get_current() {
+                if let Some(state) = app.try_state::<DeepLinkState>() {
+                    if let Ok(mut g) = state.0.lock() {
+                        g.extend(urls.iter().map(|u| u.to_string()));
+                    }
+                }
+            }
+
+            // Warm/live opens: forward to the frontend (and stash in pending so
+            // a cold-start delivery via this path isn't lost before mount).
+            let handle = app.handle().clone();
+            app.deep_link().on_open_url(move |event| {
+                let urls: Vec<String> = event.urls().iter().map(|u| u.to_string()).collect();
+                if let Some(state) = handle.try_state::<DeepLinkState>() {
+                    if let Ok(mut g) = state.0.lock() {
+                        g.extend(urls.iter().cloned());
+                    }
+                }
+                let _ = handle.emit("deep-link", urls);
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             load_config,
             save_config,
@@ -814,6 +888,7 @@ pub fn run() {
             save_upload_history,
             export_datamaps,
             import_datamaps,
+            take_pending_deep_links,
             discover_daemon_url,
             ensure_daemon_running,
             restart_daemon,
