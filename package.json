@@ -1,6 +1,6 @@
 {
   "name": "ant-gui",
-  "version": "0.8.2-rc.4",
+  "version": "0.8.2",
   "private": true,
   "type": "module",
   "engines": {
