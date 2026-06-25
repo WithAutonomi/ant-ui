@@ -734,12 +734,23 @@ fn get_drive_space(path: Option<String>) -> Result<DriveSpace, String> {
         let mut total: u64 = 0;
         let mut total_free: u64 = 0;
         let ok = unsafe {
-            GetDiskFreeSpaceExW(wide.as_ptr(), &mut free_to_caller, &mut total, &mut total_free)
+            GetDiskFreeSpaceExW(
+                wide.as_ptr(),
+                &mut free_to_caller,
+                &mut total,
+                &mut total_free,
+            )
         };
         if ok == 0 {
-            return Err(format!("GetDiskFreeSpaceExW failed for {}", probe.display()));
+            return Err(format!(
+                "GetDiskFreeSpaceExW failed for {}",
+                probe.display()
+            ));
         }
-        Ok(DriveSpace { total, available: free_to_caller })
+        Ok(DriveSpace {
+            total,
+            available: free_to_caller,
+        })
     }
 
     #[cfg(not(any(unix, windows)))]
