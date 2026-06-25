@@ -235,7 +235,7 @@
     },
     "disk_bar": {
       "used": "Node storage",
-      "recommended_min": "Recommended min",
+      "recommended_min": "Recommended minimum storage space",
       "drive": "Drive free",
       "aria": "Node storage {used} of {total} total drive capacity; recommended minimum {min}"
     },
