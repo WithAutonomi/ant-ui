@@ -233,10 +233,17 @@
       "rewards_address": "Rewards Address",
       "status_aria": "Status: {status}"
     },
+    "disk_bar": {
+      "used": "Node storage",
+      "recommended_min": "Recommended min",
+      "drive": "Drive free",
+      "aria": "Node storage {used} of {total} total drive capacity; recommended minimum {min}"
+    },
     "add_dialog": {
       "title": "Add Nodes",
       "number_label": "Number of nodes",
       "range_hint": "Between 1 and 50",
+      "min_size_info": "Each node needs at least 20 GB of free disk space. Nodes that drop below this minimum are treated as full and risk being shunned by the network — taking them offline and losing rewards. This minimum will likely change over time as the network grows, so allow extra headroom.",
       "no_earnings_warning": "No earnings address configured. Set one in the Wallet page before adding nodes.",
       "submit_one": "Add 1 Node",
       "submit_many": "Add {count} Nodes"

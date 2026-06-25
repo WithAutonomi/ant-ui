@@ -23,6 +23,12 @@
           <p class="mt-1 text-xs text-autonomi-muted">{{ $t('nodes.add_dialog.range_hint') }}</p>
         </div>
 
+        <div class="mb-4 rounded-md border border-autonomi-blue/30 bg-autonomi-blue/5 p-3">
+          <p class="text-xs text-autonomi-muted">
+            {{ $t('nodes.add_dialog.min_size_info') }}
+          </p>
+        </div>
+
         <div v-if="!earningsSet" class="mb-4 rounded-md border border-autonomi-warning/30 bg-yellow-950/30 p-3">
           <p class="text-xs text-autonomi-warning">
             {{ $t('nodes.add_dialog.no_earnings_warning') }}

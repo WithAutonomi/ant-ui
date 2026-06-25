@@ -677,6 +677,78 @@ fn get_disk_usage(path: String) -> Result<u64, String> {
     }
 }
 
+#[derive(serde::Serialize)]
+struct DriveSpace {
+    /// Total capacity of the volume in bytes.
+    total: u64,
+    /// Bytes currently free/available to the caller on that volume.
+    available: u64,
+}
+
+/// Report total and available bytes on the volume that holds `path` (or the
+/// default node data directory when `path` is `None`/empty).
+///
+/// Used by the node page's disk-usage bar to render drive capacity alongside
+/// node storage and the recommended-minimum threshold. The storage dir may not
+/// exist yet (no nodes added), so we walk up to the nearest existing ancestor
+/// before querying — `statvfs` / `GetDiskFreeSpaceExW` need a real path.
+#[tauri::command]
+fn get_drive_space(path: Option<String>) -> Result<DriveSpace, String> {
+    let target = match path {
+        Some(p) if !p.trim().is_empty() => std::path::PathBuf::from(p),
+        _ => ant_core::config::data_dir().map_err(|e| format!("{e}"))?,
+    };
+
+    let mut probe = target.as_path();
+    while !probe.exists() {
+        match probe.parent() {
+            Some(parent) => probe = parent,
+            None => break,
+        }
+    }
+
+    #[cfg(unix)]
+    {
+        use std::ffi::CString;
+        use std::os::unix::ffi::OsStrExt;
+        let c = CString::new(probe.as_os_str().as_bytes()).map_err(|e| format!("{e}"))?;
+        let mut stat: libc::statvfs = unsafe { std::mem::zeroed() };
+        let rc = unsafe { libc::statvfs(c.as_ptr(), &mut stat) };
+        if rc != 0 {
+            return Err(format!("statvfs failed for {}", probe.display()));
+        }
+        let frsize = stat.f_frsize as u64;
+        Ok(DriveSpace {
+            total: stat.f_blocks as u64 * frsize,
+            available: stat.f_bavail as u64 * frsize,
+        })
+    }
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::ffi::OsStrExt;
+        use windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
+        let mut wide: Vec<u16> = probe.as_os_str().encode_wide().collect();
+        wide.push(0);
+        let mut free_to_caller: u64 = 0;
+        let mut total: u64 = 0;
+        let mut total_free: u64 = 0;
+        let ok = unsafe {
+            GetDiskFreeSpaceExW(wide.as_ptr(), &mut free_to_caller, &mut total, &mut total_free)
+        };
+        if ok == 0 {
+            return Err(format!("GetDiskFreeSpaceExW failed for {}", probe.display()));
+        }
+        Ok(DriveSpace { total, available: free_to_caller })
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    {
+        let _ = probe;
+        Err("Drive space query unsupported on this platform".to_string())
+    }
+}
+
 #[tauri::command]
 fn get_file_sizes(paths: Vec<String>) -> Result<Vec<FileMetaResult>, String> {
     config::get_file_metas(&paths)
@@ -895,6 +967,7 @@ pub fn run() {
             get_file_sizes,
             get_file_size,
             get_disk_usage,
+            get_drive_space,
             get_dir_size,
             get_node_data_dir,
             get_default_download_dir,
