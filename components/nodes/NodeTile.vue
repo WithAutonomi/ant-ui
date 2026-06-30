@@ -45,6 +45,20 @@
         <p class="text-sm font-mono text-autonomi-text">{{ node.storage_bytes != null ? formatBytes(node.storage_bytes) : '-' }}</p>
       </div>
     </div>
+
+    <!-- Evicted: explain what happened and offer to dismiss it from the list -->
+    <div v-if="node.status === 'evicted'" class="mt-3 border-t border-autonomi-border pt-2">
+      <p v-if="node.eviction" class="text-[10px] leading-snug text-autonomi-muted">
+        {{ node.eviction.reason }}
+      </p>
+      <button
+        type="button"
+        class="mt-2 rounded-md border border-autonomi-border px-2 py-1 text-[11px] text-autonomi-text transition-colors hover:border-autonomi-error hover:text-autonomi-error"
+        @click.stop="$emit('dismiss', node.id)"
+      >
+        Dismiss
+      </button>
+    </div>
   </div>
 </template>
 
@@ -59,6 +73,7 @@ const props = defineProps<{
 
 defineEmits<{
   select: [id: number]
+  dismiss: [id: number]
 }>()
 
 const statusColors: Record<string, { dot: string; bg: string }> = {
@@ -70,6 +85,8 @@ const statusColors: Record<string, { dot: string; bg: string }> = {
   stopped:  { dot: 'border-2 border-autonomi-muted bg-transparent', bg: '' },
   // Auto-upgrade in progress: node is still running old binary until it exits.
   upgrade_scheduled: { dot: 'bg-autonomi-blue', bg: 'bg-autonomi-blue' },
+  // Daemon deleted this node's data dir to reclaim disk space.
+  evicted:  { dot: 'bg-autonomi-error', bg: 'bg-autonomi-error' },
 }
 
 const dotClass = computed(() => statusColors[props.node.status]?.dot ?? 'bg-autonomi-muted')

@@ -206,6 +206,7 @@
     "running_count": "{count} running",
     "stopped_count": "{count} stopped",
     "errored_count": "{count} errored",
+    "evicted_count": "{count} evicted",
     "filter_placeholder": "Filter...",
     "filter_aria_label": "Filter nodes",
     "starting_daemon": "Starting node daemon…",
@@ -473,7 +474,8 @@
       "stopping": "Stopping",
       "adding": "Adding…",
       "errored": "Error",
-      "upgrade_scheduled": "Upgrading"
+      "upgrade_scheduled": "Upgrading",
+      "evicted": "Evicted"
     },
     "file": {
       "pending": "Pending",

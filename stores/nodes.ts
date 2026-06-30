@@ -3,7 +3,7 @@ import { useToastStore } from './toasts'
 import { useSettingsStore } from './settings'
 import { invoke } from '@tauri-apps/api/core'
 import { daemonApi, connectSSE, disconnectSSE, type NodeEvent } from '~/utils/daemon-api'
-import type { NodeStatusSummary, ApiNodeStatus, DaemonStatus } from '~/utils/daemon-api'
+import type { NodeStatusSummary, ApiNodeStatus, DaemonStatus, FleetHealth, EvictionRecord } from '~/utils/daemon-api'
 import { POLL_INTERVAL, DETAIL_POLL_INTERVAL, MIN_NODE_SIZE_BYTES } from '~/utils/constants'
 import type { UnlistenFn } from '@tauri-apps/api/event'
 import { i18n } from '~/plugins/i18n.client'
@@ -24,6 +24,8 @@ export interface NodeInfo {
   /** Version the supervisor detected on disk but hasn't booted yet. Populated
    *  during the `upgrade_scheduled` window, cleared on `node_upgraded`. */
   pending_version?: string
+  /** Set when `status === 'evicted'`: why/when the node was evicted, for display. */
+  eviction?: EvictionRecord
   // Fields from NodeConfig (available when daemon provides full info)
   rewards_address?: string
   data_dir?: string
@@ -46,6 +48,7 @@ function summaryToNodeInfo(s: NodeStatusSummary): NodeInfo {
     pid: s.pid,
     uptime_secs: s.uptime_secs,
     pending_version: s.pending_version,
+    eviction: s.eviction,
   }
 }
 
@@ -61,6 +64,8 @@ export const useNodesStore = defineStore('nodes', {
     restarting: false,
     daemonConnected: false,
     daemonStatus: null as DaemonStatus | null,
+    /** Latest fleet health snapshot (disk pressure + next eviction candidate). */
+    fleetHealth: null as FleetHealth | null,
     _pollTimer: null as ReturnType<typeof setInterval> | null,
     _detailPollTimer: null as ReturnType<typeof setInterval> | null,
     _sseDisconnect: null as (() => void) | null,
@@ -77,6 +82,9 @@ export const useNodesStore = defineStore('nodes', {
     running: (state) => state.nodes.filter(n => n.status === 'running').length,
     stopped: (state) => state.nodes.filter(n => n.status === 'stopped').length,
     errored: (state) => state.nodes.filter(n => n.status === 'errored').length,
+    evicted: (state) => state.nodes.filter(n => n.status === 'evicted').length,
+    /** Overall fleet health level, defaulting to green when unknown. */
+    healthLevel: (state) => state.fleetHealth?.overall ?? 'green',
     total: (state) => state.nodes.length,
     totalPeers: (state) => state.nodes.reduce((sum, n) => sum + (n.peer_count ?? 0), 0),
     totalStorage: (state) => state.nodes.reduce((sum, n) => sum + (n.storage_bytes ?? 0), 0),
@@ -165,6 +173,8 @@ export const useNodesStore = defineStore('nodes', {
           }
         })
         this.daemonConnected = true
+        // Refresh fleet health alongside node status (fire-and-forget).
+        this.fetchHealth()
       } catch {
         // Don't demote to "disconnected" during a known restart — the new
         // daemon is seconds away and the UI renders a `restarting` panel in
@@ -176,6 +186,23 @@ export const useNodesStore = defineStore('nodes', {
       } finally {
         this.loading = false
       }
+    },
+
+    /** Fetch the fleet health snapshot. Best-effort: failures leave the previous value. */
+    async fetchHealth() {
+      try {
+        this.fleetHealth = await daemonApi.health()
+      } catch {
+        // Ignore — health is advisory and the next poll will retry.
+      }
+    },
+
+    /** Dismiss an evicted node, removing it from the registry/list. */
+    async dismissNode(id: number) {
+      await daemonApi.removeNode(id)
+      this.nodes = this.nodes.filter(n => n.id !== id)
+      // Refresh so counts and health reflect the removal immediately.
+      await this.fetchNodes()
     },
 
     /** Trigger a daemon restart from the UI. Covers the connect-flicker that
@@ -397,6 +424,28 @@ export const useNodesStore = defineStore('nodes', {
             node.pending_version = undefined
             if (node.status === 'upgrade_scheduled') node.status = 'running'
           }
+          break
+        case 'node_evicted':
+          // The daemon stopped the node and deleted its data directory. Reflect the terminal
+          // state and attach the reason; the data also persists via the node's config.
+          if (node) {
+            node.status = 'evicted'
+            node.pid = undefined
+            node.uptime_secs = undefined
+            if (event.reason) {
+              node.eviction = {
+                reason: event.reason,
+                evicted_at: Math.floor(Date.now() / 1000),
+                reclaimed_bytes: event.reclaimed_bytes ?? 0,
+              }
+            }
+          }
+          // Pull a fresh health snapshot so the indicator updates promptly.
+          this.fetchHealth()
+          break
+        case 'fleet_health_changed':
+          // Overall level moved; refresh the full snapshot for the detail lines/candidate.
+          this.fetchHealth()
           break
       }
     },

@@ -26,11 +26,15 @@
 
       <div class="flex-1" />
 
+      <!-- Always-visible fleet health indicator -->
+      <FleetHealthIndicator v-if="nodesStore.daemonConnected" />
+
       <!-- Summary stats -->
       <div class="flex items-center gap-4 text-xs text-autonomi-muted">
         <span><span class="text-autonomi-success">●</span> {{ $t('nodes.running_count', { count: nodesStore.running }) }}</span>
         <span v-if="nodesStore.stopped > 0"><span class="text-autonomi-muted">○</span> {{ $t('nodes.stopped_count', { count: nodesStore.stopped }) }}</span>
         <span v-if="nodesStore.errored > 0"><span class="text-autonomi-error">●</span> {{ $t('nodes.errored_count', { count: nodesStore.errored }) }}</span>
+        <span v-if="nodesStore.evicted > 0"><span class="text-autonomi-error">●</span> {{ $t('nodes.evicted_count', { count: nodesStore.evicted }) }}</span>
       </div>
 
       <input
@@ -92,6 +96,7 @@
         :node="node"
         :selected="selectedId === node.id"
         @select="toggleSelect"
+        @dismiss="dismissNode"
       />
     </div>
 
@@ -184,6 +189,11 @@ const selectedNode = computed(() => {
 
 function toggleSelect(id: number) {
   selectedId.value = selectedId.value === id ? null : id
+}
+
+function dismissNode(id: number) {
+  nodesStore.dismissNode(id)
+  if (selectedId.value === id) selectedId.value = null
 }
 
 function confirmRemove(id: number) {
