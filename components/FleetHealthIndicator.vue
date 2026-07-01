@@ -1,12 +1,11 @@
 <template>
   <div
-    class="flex items-center gap-1.5 text-xs"
+    class="flex items-center gap-1.5 whitespace-nowrap text-xs"
     :class="textClass"
     :title="detail"
   >
     <span :class="dotClass">●</span>
     <span>{{ label }}</span>
-    <span v-if="candidateNote" class="text-autonomi-muted">— {{ candidateNote }}</span>
   </div>
 </template>
 
@@ -18,11 +17,26 @@ const nodesStore = useNodesStore()
 
 const level = computed(() => nodesStore.healthLevel)
 
+// First non-green check carries the actionable detail; the full sentence is on the tooltip.
+const activeCheck = computed(() =>
+  nodesStore.fleetHealth?.checks.find(c => c.level !== 'green') ?? null,
+)
+
+// A self-explanatory one-liner: says what's happening and, where useful, what to do. The severity
+// colour is carried by the dot, so the text focuses on meaning rather than repeating the level.
 const label = computed(() => {
+  const candidate = activeCheck.value?.candidate
   switch (level.value) {
-    case 'warning': return 'Disk filling'
-    case 'critical': return 'Disk critical'
-    default: return 'Healthy'
+    case 'warning':
+      return candidate
+        ? `Low disk — node ${candidate.node_id} will be evicted soon`
+        : 'Low disk — free up space soon'
+    case 'critical':
+      return candidate
+        ? `Disk critical — evicting node ${candidate.node_id}`
+        : 'Disk critical — free space now'
+    default:
+      return 'Disk healthy'
   }
 })
 
@@ -38,17 +52,5 @@ const textClass = computed(() =>
   level.value === 'green' ? 'text-autonomi-muted' : 'text-autonomi-text',
 )
 
-// First non-green check carries the actionable detail (full summary on hover).
-const activeCheck = computed(() =>
-  nodesStore.fleetHealth?.checks.find(c => c.level !== 'green') ?? null,
-)
-
 const detail = computed(() => activeCheck.value?.summary ?? 'All nodes have ample disk space.')
-
-// A short inline note naming the node that would be evicted next, when one is known.
-const candidateNote = computed(() => {
-  const candidate = activeCheck.value?.candidate
-  if (!candidate) return ''
-  return `node ${candidate.node_id} next`
-})
 </script>
