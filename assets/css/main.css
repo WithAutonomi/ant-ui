@@ -12,6 +12,15 @@
  */
 :root {
   color-scheme: dark;
+
+  /*
+   * Disk-usage bar: recommended-minimum segment. A dithered "shaded block"
+   * that must stay close to the background so it reads as a subtle threshold
+   * zone, not an alert. Base sits just above the surface; cells are a faint,
+   * low-saturation purple lean for identity. Light overrides below.
+   */
+  --disk-min-base: #1d2033;
+  --disk-min-cell: #322d4d;
 }
 
 /*
@@ -28,4 +37,6 @@
   --autonomi-border: #CBD5E1;
   --autonomi-text: #0F172A;
   --autonomi-muted: #64748B;
+  --disk-min-base: #F1EEF7;
+  --disk-min-cell: #DAD2EC;
 }

@@ -49,13 +49,14 @@ import { formatBytes } from '~/utils/formatters'
 const nodesStore = useNodesStore()
 
 // Recommended-minimum segment rendered as a TUI-style shaded block (▒): a
-// muted, low-saturation purple base with a fine checkerboard dither of lighter
-// cells, so it reads as a partially-filled threshold zone rather than an alert.
+// fine checkerboard dither that reads as a partially-filled threshold zone
+// rather than an alert. Colours are theme-aware (see --disk-min-* in
+// assets/css/main.css) and deliberately kept close to the background.
 const DITHER = {
-  backgroundColor: '#4f4767',
+  backgroundColor: 'var(--disk-min-base)',
   backgroundImage:
-    'linear-gradient(45deg, #9085ad 25%, transparent 25%, transparent 75%, #9085ad 75%), ' +
-    'linear-gradient(45deg, #9085ad 25%, transparent 25%, transparent 75%, #9085ad 75%)',
+    'linear-gradient(45deg, var(--disk-min-cell) 25%, transparent 25%, transparent 75%, var(--disk-min-cell) 75%), ' +
+    'linear-gradient(45deg, var(--disk-min-cell) 25%, transparent 25%, transparent 75%, var(--disk-min-cell) 75%)',
   backgroundSize: '4px 4px',
   backgroundPosition: '0 0, 2px 2px',
 }
