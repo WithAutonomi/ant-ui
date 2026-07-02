@@ -2,11 +2,6 @@
   <div class="mb-4">
     <!-- Legend -->
     <div class="mb-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-      <span v-if="otherPct > 0" class="flex items-center gap-1.5">
-        <span class="h-2 w-2 rounded-sm bg-autonomi-muted/25" />
-        <span class="text-autonomi-muted">{{ $t('nodes.disk_bar.other') }}</span>
-        <span class="text-autonomi-text">{{ formatBytes(otherW) }}</span>
-      </span>
       <span class="flex items-center gap-1.5">
         <span class="h-2 w-2 rounded-sm bg-autonomi-blue" />
         <span class="text-autonomi-muted">{{ $t('nodes.disk_bar.used') }}</span>
@@ -21,10 +16,15 @@
         <span class="text-autonomi-muted underline decoration-dotted underline-offset-2">{{ $t('nodes.disk_bar.recommended_min') }}</span>
         <span class="text-autonomi-text">{{ formatBytes(min) }}</span>
       </span>
+      <span v-if="otherPct > 0" class="flex items-center gap-1.5">
+        <span class="h-2 w-2 rounded-sm bg-autonomi-muted/25" />
+        <span class="text-autonomi-muted">{{ $t('nodes.disk_bar.other') }}</span>
+        <span class="text-autonomi-text">{{ formatBytes(otherW) }}</span>
+      </span>
       <span class="flex items-center gap-1.5">
         <span class="h-2 w-2 rounded-sm border border-autonomi-border bg-autonomi-surface" />
         <span class="text-autonomi-muted">{{ $t('nodes.disk_bar.drive') }}</span>
-        <span class="text-autonomi-text">{{ formatBytes(available) }} / {{ formatBytes(total) }}</span>
+        <span class="text-autonomi-text">{{ formatBytes(driveUsed) }} / {{ formatBytes(total) }} ({{ formatBytes(available) }} {{ $t('nodes.disk_bar.free') }})</span>
       </span>
     </div>
 
@@ -71,6 +71,8 @@ const used = computed(() => nodesStore.totalStorage)
 const min = computed(() => nodesStore.recommendedMinStorage)
 const total = computed(() => nodesStore.driveTotalBytes)
 const available = computed(() => nodesStore.driveAvailableBytes)
+// Total drive space in use (node + non-node), for the "used / total (free)" label.
+const driveUsed = computed(() => Math.max(0, total.value - available.value))
 
 // Segment widths in bytes. The bar must be truthful about capacity: the track
 // is total drive space, so anything not painted reads as free — which would
