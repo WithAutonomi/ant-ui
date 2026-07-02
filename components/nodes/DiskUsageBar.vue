@@ -2,6 +2,11 @@
   <div class="mb-4">
     <!-- Legend -->
     <div class="mb-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+      <span v-if="otherPct > 0" class="flex items-center gap-1.5">
+        <span class="h-2 w-2 rounded-sm bg-autonomi-muted/25" />
+        <span class="text-autonomi-muted">{{ $t('nodes.disk_bar.other') }}</span>
+        <span class="text-autonomi-text">{{ formatBytes(otherW) }}</span>
+      </span>
       <span class="flex items-center gap-1.5">
         <span class="h-2 w-2 rounded-sm bg-autonomi-blue" />
         <span class="text-autonomi-muted">{{ $t('nodes.disk_bar.used') }}</span>
@@ -15,11 +20,6 @@
         <span class="h-2 w-2 rounded-sm" :style="DITHER" />
         <span class="text-autonomi-muted underline decoration-dotted underline-offset-2">{{ $t('nodes.disk_bar.recommended_min') }}</span>
         <span class="text-autonomi-text">{{ formatBytes(min) }}</span>
-      </span>
-      <span v-if="otherPct > 0" class="flex items-center gap-1.5">
-        <span class="h-2 w-2 rounded-sm bg-autonomi-muted/25" />
-        <span class="text-autonomi-muted">{{ $t('nodes.disk_bar.other') }}</span>
-        <span class="text-autonomi-text">{{ formatBytes(otherW) }}</span>
       </span>
       <span class="flex items-center gap-1.5">
         <span class="h-2 w-2 rounded-sm border border-autonomi-border bg-autonomi-surface" />
@@ -36,8 +36,8 @@
       role="img"
       :aria-label="$t('nodes.disk_bar.aria', { used: formatBytes(used), total: formatBytes(total), min: formatBytes(min) })"
     >
-      <div class="h-full bg-autonomi-blue" :style="{ width: `${usedPct}%` }" />
       <div v-if="otherPct > 0" class="h-full bg-autonomi-muted/25" :style="{ width: `${otherPct}%` }" />
+      <div class="h-full bg-autonomi-blue" :style="{ width: `${usedPct}%` }" />
       <div
         v-if="showMin"
         class="h-full cursor-help"
