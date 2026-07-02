@@ -15,12 +15,12 @@
 
   /*
    * Disk-usage bar: recommended-minimum segment. A dithered "shaded block"
-   * that must stay close to the background so it reads as a subtle threshold
-   * zone, not an alert. Base sits just above the surface; cells are a faint,
-   * low-saturation purple lean for identity. Light overrides below.
+   * A dithered "shaded block" threshold zone. Base is a dark maroon that sits
+   * near the background; cells are a deeper red for identity. Light overrides
+   * below.
    */
-  --disk-min-base: #1d2033;
-  --disk-min-cell: #322d4d;
+  --disk-min-base: #1f1216;
+  --disk-min-cell: #5a1c28;
 }
 
 /*
@@ -37,6 +37,6 @@
   --autonomi-border: #CBD5E1;
   --autonomi-text: #0F172A;
   --autonomi-muted: #64748B;
-  --disk-min-base: #F1EEF7;
-  --disk-min-cell: #DAD2EC;
+  --disk-min-base: #F7EBED;
+  --disk-min-cell: #DCA6AE;
 }
