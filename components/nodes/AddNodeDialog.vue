@@ -35,6 +35,16 @@
           </p>
         </div>
 
+        <div v-if="belowMinimum" class="mb-4 rounded-md border border-autonomi-warning/30 bg-yellow-950/30 p-3">
+          <p class="text-xs text-autonomi-warning">
+            {{ $t('nodes.add_dialog.below_minimum_warning', {
+              available: formatBytes(availableBytes),
+              required: formatBytes(requiredBytes),
+              count,
+            }) }}
+          </p>
+        </div>
+
         <div class="flex justify-end gap-2">
           <button
             class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
@@ -58,6 +68,8 @@
 <script setup lang="ts">
 import { useNodesStore } from '~/stores/nodes'
 import { useWalletStore } from '~/stores/wallet'
+import { MIN_NODE_SIZE_BYTES } from '~/utils/constants'
+import { formatBytes } from '~/utils/formatters'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
@@ -70,10 +82,22 @@ const count = ref(1)
 const earningsSet = computed(() => !!walletStore.earningsAddress)
 const valid = computed(() => count.value >= 1 && count.value <= 50)
 
+// Warn (but don't block) when the drive doesn't have enough free space for the
+// nodes being added to each meet the recommended minimum — starting them below
+// it risks the network shunning them for being full.
+const availableBytes = computed(() => nodesStore.driveAvailableBytes)
+const requiredBytes = computed(() => Math.max(count.value, 0) * MIN_NODE_SIZE_BYTES)
+const belowMinimum = computed(
+  () => availableBytes.value > 0 && requiredBytes.value > 0 && availableBytes.value < requiredBytes.value,
+)
+
 watch(() => props.open, (val) => {
   if (val) {
     count.value = 1
     nextTick(() => inputEl.value?.focus())
+    // Refresh capacity so the warning reflects current free space, not a stale
+    // value from the last slow poll (or 0 before the first fetch).
+    nodesStore.refreshDriveSpace()
   }
 })
 
