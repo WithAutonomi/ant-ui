@@ -87,8 +87,13 @@ const valid = computed(() => count.value >= 1 && count.value <= 50)
 // it risks the network shunning them for being full.
 const availableBytes = computed(() => nodesStore.driveAvailableBytes)
 const requiredBytes = computed(() => Math.max(count.value, 0) * MIN_NODE_SIZE_BYTES)
+// driveTotalBytes stays 0 until the first successful get_drive_space fetch, so
+// use it as the "capacity known" signal. Gating on availableBytes > 0 would
+// hide the warning on a completely full drive (available === 0) — exactly the
+// case where it matters most.
+const driveKnown = computed(() => nodesStore.driveTotalBytes > 0)
 const belowMinimum = computed(
-  () => availableBytes.value > 0 && requiredBytes.value > 0 && availableBytes.value < requiredBytes.value,
+  () => driveKnown.value && requiredBytes.value > 0 && availableBytes.value < requiredBytes.value,
 )
 
 watch(() => props.open, (val) => {
