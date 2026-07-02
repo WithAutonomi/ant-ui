@@ -4,7 +4,7 @@ import { useSettingsStore } from './settings'
 import { invoke } from '@tauri-apps/api/core'
 import { daemonApi, connectSSE, disconnectSSE, type NodeEvent } from '~/utils/daemon-api'
 import type { NodeStatusSummary, ApiNodeStatus, DaemonStatus } from '~/utils/daemon-api'
-import { POLL_INTERVAL, DETAIL_POLL_INTERVAL } from '~/utils/constants'
+import { POLL_INTERVAL, DETAIL_POLL_INTERVAL, MIN_NODE_SIZE_BYTES } from '~/utils/constants'
 import type { UnlistenFn } from '@tauri-apps/api/event'
 import { i18n } from '~/plugins/i18n.client'
 
@@ -67,6 +67,10 @@ export const useNodesStore = defineStore('nodes', {
     _sseUnlisten: null as UnlistenFn | null,
     _sseWindowHandler: null as ((e: Event) => void) | null,
     _reconnectTimer: null as ReturnType<typeof setTimeout> | null,
+    /** Total / available capacity of the volume holding node storage. Populated
+     *  by `refreshDriveSpace`; 0 until first fetched. */
+    driveTotalBytes: 0,
+    driveAvailableBytes: 0,
   }),
 
   getters: {
@@ -76,6 +80,8 @@ export const useNodesStore = defineStore('nodes', {
     total: (state) => state.nodes.length,
     totalPeers: (state) => state.nodes.reduce((sum, n) => sum + (n.peer_count ?? 0), 0),
     totalStorage: (state) => state.nodes.reduce((sum, n) => sum + (n.storage_bytes ?? 0), 0),
+    /** Recommended minimum total storage across all nodes (moving target). */
+    recommendedMinStorage: (state) => state.nodes.length * MIN_NODE_SIZE_BYTES,
   },
 
   actions: {
@@ -239,6 +245,27 @@ export const useNodesStore = defineStore('nodes', {
             node.storage_bytes = 0
           }
         }
+      }
+
+      // Drive capacity changes slowly; refresh it on the same (slow) cadence as
+      // storage enrichment rather than the fast status poll.
+      await this.refreshDriveSpace()
+    },
+
+    /** Refresh total/available capacity of the volume holding node storage.
+     *  Targets the configured storage dir when set, else the daemon default. */
+    async refreshDriveSpace() {
+      const settings = useSettingsStore()
+      try {
+        const space = await invoke<{ total: number; available: number }>('get_drive_space', {
+          path: settings.storageDir ?? null,
+        })
+        if (space && typeof space.total === 'number') {
+          this.driveTotalBytes = space.total
+          this.driveAvailableBytes = space.available
+        }
+      } catch (e) {
+        console.warn('Could not query drive space:', e)
       }
     },
 

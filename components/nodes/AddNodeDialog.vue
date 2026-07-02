@@ -23,9 +23,25 @@
           <p class="mt-1 text-xs text-autonomi-muted">{{ $t('nodes.add_dialog.range_hint') }}</p>
         </div>
 
+        <div class="mb-4 rounded-md border border-autonomi-blue/30 bg-autonomi-blue/5 p-3">
+          <p class="text-xs text-autonomi-muted">
+            {{ $t('nodes.add_dialog.min_size_info') }}
+          </p>
+        </div>
+
         <div v-if="!earningsSet" class="mb-4 rounded-md border border-autonomi-warning/30 bg-yellow-950/30 p-3">
           <p class="text-xs text-autonomi-warning">
             {{ $t('nodes.add_dialog.no_earnings_warning') }}
+          </p>
+        </div>
+
+        <div v-if="belowMinimum" class="mb-4 rounded-md border border-autonomi-warning/30 bg-yellow-950/30 p-3">
+          <p class="text-xs text-autonomi-warning">
+            {{ $t('nodes.add_dialog.below_minimum_warning', {
+              available: formatBytes(availableBytes),
+              required: formatBytes(requiredBytes),
+              count,
+            }) }}
           </p>
         </div>
 
@@ -52,6 +68,8 @@
 <script setup lang="ts">
 import { useNodesStore } from '~/stores/nodes'
 import { useWalletStore } from '~/stores/wallet'
+import { MIN_NODE_SIZE_BYTES } from '~/utils/constants'
+import { formatBytes } from '~/utils/formatters'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
@@ -64,10 +82,27 @@ const count = ref(1)
 const earningsSet = computed(() => !!walletStore.earningsAddress)
 const valid = computed(() => count.value >= 1 && count.value <= 50)
 
+// Warn (but don't block) when the drive doesn't have enough free space for the
+// nodes being added to each meet the recommended minimum — starting them below
+// it risks the network shunning them for being full.
+const availableBytes = computed(() => nodesStore.driveAvailableBytes)
+const requiredBytes = computed(() => Math.max(count.value, 0) * MIN_NODE_SIZE_BYTES)
+// driveTotalBytes stays 0 until the first successful get_drive_space fetch, so
+// use it as the "capacity known" signal. Gating on availableBytes > 0 would
+// hide the warning on a completely full drive (available === 0) — exactly the
+// case where it matters most.
+const driveKnown = computed(() => nodesStore.driveTotalBytes > 0)
+const belowMinimum = computed(
+  () => driveKnown.value && requiredBytes.value > 0 && availableBytes.value < requiredBytes.value,
+)
+
 watch(() => props.open, (val) => {
   if (val) {
     count.value = 1
     nextTick(() => inputEl.value?.focus())
+    // Refresh capacity so the warning reflects current free space, not a stale
+    // value from the last slow poll (or 0 before the first fetch).
+    nodesStore.refreshDriveSpace()
   }
 })
 

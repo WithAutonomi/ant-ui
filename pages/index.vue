@@ -43,6 +43,11 @@
 
     </div>
 
+    <!-- Disk usage bar: drive capacity vs. node storage vs. recommended min -->
+    <NodesDiskUsageBar
+      v-if="nodesStore.daemonConnected && nodesStore.total > 0 && nodesStore.driveTotalBytes > 0"
+    />
+
     <!-- Initializing state -->
     <div v-if="nodesStore.initializing" class="flex flex-col items-center justify-center py-20">
       <div class="mb-3 h-6 w-6 animate-spin rounded-full border-2 border-autonomi-blue border-t-transparent" />

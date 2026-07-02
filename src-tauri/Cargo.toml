@@ -36,6 +36,9 @@ zip = "2"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Storage_FileSystem"] }
+
 # Single-instance is only needed on Windows/Linux: it routes a deep link
 # opened while the app is already running into the existing instance (the
 # `deep-link` feature forwards the URL to the deep-link plugin's on_open_url)
