@@ -14,6 +14,18 @@ export type ApiNodeStatus =
    *  process has not yet restarted. The supervisor is waiting for the current
    *  process to exit before respawning it against the new binary. */
   | 'upgrade_scheduled'
+  /** The daemon stopped this node and deleted its data directory to reclaim disk
+   *  space for the remaining nodes. Terminal state; cleared only by dismissing
+   *  the node. */
+  | 'evicted'
+
+/** Details of an automatic eviction, persisted on the node's config. Present only
+ *  for evicted nodes. */
+export interface EvictionRecord {
+  reason: string
+  evicted_at: number
+  reclaimed_bytes: number
+}
 
 export interface NodeConfig {
   id: number
@@ -28,6 +40,7 @@ export interface NodeConfig {
   version: string
   env_variables: Record<string, string>
   bootstrap_peers: string[]
+  eviction?: EvictionRecord | null
 }
 
 // ApiNodeInfo: ant-core uses #[serde(flatten)] on config, so all NodeConfig
@@ -48,6 +61,9 @@ export interface NodeStatusSummary {
   /** Set only when `status === 'upgrade_scheduled'`: the new version that the
    *  replaced on-disk binary reports. Omitted otherwise. */
   pending_version?: string
+  /** Set only when `status === 'evicted'`: why/when the node was evicted, for
+   *  supplementary display text. Omitted otherwise. */
+  eviction?: EvictionRecord
 }
 
 export interface DaemonStatus {
@@ -59,6 +75,33 @@ export interface DaemonStatus {
   nodes_running: number
   nodes_stopped: number
   nodes_errored: number
+}
+
+// ── Fleet health ──
+
+export type HealthLevel = 'green' | 'warning' | 'critical'
+
+export type HealthCheckKind = 'disk_space'
+
+export interface EvictionCandidate {
+  node_id: number
+  data_dir: string
+  size_bytes: number
+}
+
+export interface HealthCheck {
+  kind: HealthCheckKind
+  level: HealthLevel
+  summary: string
+  partition?: string
+  available_bytes?: number
+  eviction_threshold_bytes?: number
+  candidate?: EvictionCandidate
+}
+
+export interface FleetHealth {
+  overall: HealthLevel
+  checks: HealthCheck[]
 }
 
 export interface NodeStatusResult {
@@ -128,6 +171,12 @@ export interface NodeEvent {
   old_version?: string
   /** NodeUpgraded: version the respawned process now reports. */
   new_version?: string
+  /** NodeEvicted: human-readable explanation of the eviction. */
+  reason?: string
+  /** NodeEvicted: approximate bytes reclaimed by deleting the data directory. */
+  reclaimed_bytes?: number
+  /** FleetHealthChanged: the new overall health level. */
+  overall?: HealthLevel
 }
 
 // ── API Client ──
@@ -179,6 +228,9 @@ function unwrapDaemonError(raw: string): string {
 export const daemonApi = {
   /** GET /api/v1/status */
   status: () => request<DaemonStatus>('GET', '/api/v1/status'),
+
+  /** GET /api/v1/health — fleet health snapshot (disk pressure, eviction candidate) */
+  health: () => request<FleetHealth>('GET', '/api/v1/health'),
 
   /** GET /api/v1/nodes/status */
   nodesStatus: () => request<NodeStatusResult>('GET', '/api/v1/nodes/status'),

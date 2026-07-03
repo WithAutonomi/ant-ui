@@ -36,6 +36,7 @@ const statusMap: Record<string, { dot: string; labelKey: string; color: string }
   adding: { dot: '◐', labelKey: 'status.node.adding', color: 'text-autonomi-warning' },
   errored: { dot: '●', labelKey: 'status.node.errored', color: 'text-autonomi-error' },
   upgrade_scheduled: { dot: '◐', labelKey: 'status.node.upgrade_scheduled', color: 'text-autonomi-blue' },
+  evicted: { dot: '●', labelKey: 'status.node.evicted', color: 'text-autonomi-error' },
   // File transfer statuses
   Pending: { dot: '○', labelKey: 'status.file.pending', color: 'text-autonomi-muted' },
   Quoting: { dot: '◐', labelKey: 'status.file.quoting', color: 'text-autonomi-warning' },

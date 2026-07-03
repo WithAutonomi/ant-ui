@@ -250,7 +250,6 @@ fn map_upload_event(transfer_id: &str, ev: UploadEvent) -> Option<UploadProgress
             total: Some(total),
             percent: Some(50.0 + percent_of(stored, total) * 0.5),
         },
-        UploadEvent::WaveComplete { .. } => return None,
     })
 }
 
