@@ -728,10 +728,18 @@ fn volume_capacity(path: &std::path::Path) -> Result<(u64, u64), String> {
         let mut total: u64 = 0;
         let mut total_free: u64 = 0;
         let ok = unsafe {
-            GetDiskFreeSpaceExW(wide.as_ptr(), &mut free_to_caller, &mut total, &mut total_free)
+            GetDiskFreeSpaceExW(
+                wide.as_ptr(),
+                &mut free_to_caller,
+                &mut total,
+                &mut total_free,
+            )
         };
         if ok == 0 {
-            return Err(format!("GetDiskFreeSpaceExW failed for {}", probe.display()));
+            return Err(format!(
+                "GetDiskFreeSpaceExW failed for {}",
+                probe.display()
+            ));
         }
         Ok((total, free_to_caller))
     }
@@ -802,8 +810,7 @@ fn volume_root(path: &std::path::Path) -> Result<std::path::PathBuf, String> {
 
     #[cfg(unix)]
     {
-        let dev =
-            stat_dev(&probe).ok_or_else(|| format!("stat failed for {}", probe.display()))?;
+        let dev = stat_dev(&probe).ok_or_else(|| format!("stat failed for {}", probe.display()))?;
         let mut cur = probe;
         loop {
             let parent = match cur.parent() {
