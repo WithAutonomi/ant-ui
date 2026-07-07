@@ -685,27 +685,24 @@ struct DriveSpace {
     available: u64,
 }
 
-/// Report total and available bytes on the volume that holds `path` (or the
-/// default node data directory when `path` is `None`/empty).
-///
-/// Used by the node page's disk-usage bar to render drive capacity alongside
-/// node storage and the recommended-minimum threshold. The storage dir may not
-/// exist yet (no nodes added), so we walk up to the nearest existing ancestor
-/// before querying — `statvfs` / `GetDiskFreeSpaceExW` need a real path.
-#[tauri::command]
-fn get_drive_space(path: Option<String>) -> Result<DriveSpace, String> {
-    let target = match path {
-        Some(p) if !p.trim().is_empty() => std::path::PathBuf::from(p),
-        _ => ant_core::config::data_dir().map_err(|e| format!("{e}"))?,
-    };
-
-    let mut probe = target.as_path();
+/// Walk up from `path` to the nearest ancestor that exists on disk. The storage
+/// dir may not exist yet (no nodes added), and `statvfs` / `GetDiskFreeSpaceExW`
+/// / `GetVolumePathNameW` all need a real path to query.
+fn nearest_existing(path: &std::path::Path) -> std::path::PathBuf {
+    let mut probe = path;
     while !probe.exists() {
         match probe.parent() {
             Some(parent) => probe = parent,
             None => break,
         }
     }
+    probe.to_path_buf()
+}
+
+/// Total and available bytes on the volume that holds `path` (walking up to the
+/// nearest existing ancestor first).
+fn volume_capacity(path: &std::path::Path) -> Result<(u64, u64), String> {
+    let probe = nearest_existing(path);
 
     #[cfg(unix)]
     {
@@ -718,10 +715,7 @@ fn get_drive_space(path: Option<String>) -> Result<DriveSpace, String> {
             return Err(format!("statvfs failed for {}", probe.display()));
         }
         let frsize = stat.f_frsize as u64;
-        Ok(DriveSpace {
-            total: stat.f_blocks as u64 * frsize,
-            available: stat.f_bavail as u64 * frsize,
-        })
+        Ok((stat.f_blocks as u64 * frsize, stat.f_bavail as u64 * frsize))
     }
 
     #[cfg(windows)]
@@ -734,23 +728,12 @@ fn get_drive_space(path: Option<String>) -> Result<DriveSpace, String> {
         let mut total: u64 = 0;
         let mut total_free: u64 = 0;
         let ok = unsafe {
-            GetDiskFreeSpaceExW(
-                wide.as_ptr(),
-                &mut free_to_caller,
-                &mut total,
-                &mut total_free,
-            )
+            GetDiskFreeSpaceExW(wide.as_ptr(), &mut free_to_caller, &mut total, &mut total_free)
         };
         if ok == 0 {
-            return Err(format!(
-                "GetDiskFreeSpaceExW failed for {}",
-                probe.display()
-            ));
+            return Err(format!("GetDiskFreeSpaceExW failed for {}", probe.display()));
         }
-        Ok(DriveSpace {
-            total,
-            available: free_to_caller,
-        })
+        Ok((total, free_to_caller))
     }
 
     #[cfg(not(any(unix, windows)))]
@@ -758,6 +741,159 @@ fn get_drive_space(path: Option<String>) -> Result<DriveSpace, String> {
         let _ = probe;
         Err("Drive space query unsupported on this platform".to_string())
     }
+}
+
+/// Report total and available bytes on the volume that holds `path` (or the
+/// default node data directory when `path` is `None`/empty).
+///
+/// Used by the node page's disk-usage bar to render drive capacity alongside
+/// node storage and the recommended-minimum threshold.
+#[tauri::command]
+fn get_drive_space(path: Option<String>) -> Result<DriveSpace, String> {
+    let target = match path {
+        Some(p) if !p.trim().is_empty() => std::path::PathBuf::from(p),
+        _ => ant_core::config::data_dir().map_err(|e| format!("{e}"))?,
+    };
+    let (total, available) = volume_capacity(&target)?;
+    Ok(DriveSpace { total, available })
+}
+
+/// `stat(2)`'s device id for `path`, used to detect filesystem/mount
+/// boundaries when resolving the volume root on Unix.
+#[cfg(unix)]
+fn stat_dev(path: &std::path::Path) -> Option<u64> {
+    use std::ffi::CString;
+    use std::os::unix::ffi::OsStrExt;
+    let c = CString::new(path.as_os_str().as_bytes()).ok()?;
+    let mut st: libc::stat = unsafe { std::mem::zeroed() };
+    let rc = unsafe { libc::stat(c.as_ptr(), &mut st) };
+    if rc != 0 {
+        return None;
+    }
+    Some(st.st_dev as u64)
+}
+
+/// Resolve the mount point / volume root that contains `path`.
+///
+/// - **Windows:** `GetVolumePathNameW` returns the mount root (`C:\`, or the
+///   mounted-folder path for a volume mounted into a directory).
+/// - **Unix:** walk up while `st_dev` stays constant; the last directory before
+///   it changes is the mount point.
+fn volume_root(path: &std::path::Path) -> Result<std::path::PathBuf, String> {
+    let probe = nearest_existing(path);
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::ffi::{OsStrExt, OsStringExt};
+        use windows_sys::Win32::Storage::FileSystem::GetVolumePathNameW;
+        let mut wide: Vec<u16> = probe.as_os_str().encode_wide().collect();
+        wide.push(0);
+        // Volume mount paths fit within MAX_PATH (260); +1 for the NUL.
+        let mut buf = vec![0u16; 261];
+        let ok = unsafe { GetVolumePathNameW(wide.as_ptr(), buf.as_mut_ptr(), buf.len() as u32) };
+        if ok == 0 {
+            return Err(format!("GetVolumePathNameW failed for {}", probe.display()));
+        }
+        let len = buf.iter().position(|&c| c == 0).unwrap_or(buf.len());
+        Ok(std::path::PathBuf::from(std::ffi::OsString::from_wide(
+            &buf[..len],
+        )))
+    }
+
+    #[cfg(unix)]
+    {
+        let dev =
+            stat_dev(&probe).ok_or_else(|| format!("stat failed for {}", probe.display()))?;
+        let mut cur = probe;
+        loop {
+            let parent = match cur.parent() {
+                Some(p) if !p.as_os_str().is_empty() => p.to_path_buf(),
+                _ => break,
+            };
+            match stat_dev(&parent) {
+                Some(pdev) if pdev == dev => cur = parent,
+                // Parent is on a different filesystem (or unstattable) →
+                // `cur` is the mount point.
+                _ => break,
+            }
+        }
+        Ok(cur)
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    {
+        Ok(probe)
+    }
+}
+
+/// One physical volume that holds at least one queried node data directory.
+#[derive(serde::Serialize)]
+struct NodeVolume {
+    /// Mount point / volume root — the grouping key and display label.
+    root: String,
+    total: u64,
+    available: u64,
+    /// The input paths (verbatim) that resolved to this volume, so the frontend
+    /// can map node → volume without re-running the OS resolution.
+    paths: Vec<String>,
+}
+
+#[derive(serde::Serialize)]
+struct NodeVolumesResult {
+    volumes: Vec<NodeVolume>,
+    /// Volume root of the currently-configured storage dir (or the daemon
+    /// default when unset), so the UI can distinguish the active drive.
+    current_root: String,
+}
+
+/// Group node data directories by the physical volume that holds them and
+/// report each volume's capacity, plus the volume of the configured storage
+/// dir. Backs the per-drive disk-usage graphs and the Settings "other drives"
+/// list when nodes are spread across multiple volumes — which happens after the
+/// storage location is changed, since existing nodes keep their old directory.
+#[tauri::command]
+fn get_node_volumes(
+    paths: Vec<String>,
+    storage_dir: Option<String>,
+) -> Result<NodeVolumesResult, String> {
+    let mut volumes: Vec<NodeVolume> = Vec::new();
+    for p in paths {
+        if p.trim().is_empty() {
+            continue;
+        }
+        let root = match volume_root(std::path::Path::new(&p)) {
+            Ok(r) => r.to_string_lossy().into_owned(),
+            // Unresolvable path (e.g. an unplugged volume): skip it rather than
+            // failing the whole query so the other drives still render.
+            Err(_) => continue,
+        };
+        match volumes.iter().position(|v| v.root == root) {
+            Some(i) => volumes[i].paths.push(p),
+            None => {
+                let (total, available) =
+                    volume_capacity(std::path::Path::new(&root)).unwrap_or((0, 0));
+                volumes.push(NodeVolume {
+                    root,
+                    total,
+                    available,
+                    paths: vec![p],
+                });
+            }
+        }
+    }
+
+    let current_target = match storage_dir {
+        Some(s) if !s.trim().is_empty() => std::path::PathBuf::from(s),
+        _ => ant_core::config::data_dir().map_err(|e| format!("{e}"))?,
+    };
+    let current_root = volume_root(&current_target)
+        .map(|r| r.to_string_lossy().into_owned())
+        .unwrap_or_default();
+
+    Ok(NodeVolumesResult {
+        volumes,
+        current_root,
+    })
 }
 
 #[tauri::command]
@@ -979,6 +1115,7 @@ pub fn run() {
             get_file_size,
             get_disk_usage,
             get_drive_space,
+            get_node_volumes,
             get_dir_size,
             get_node_data_dir,
             get_default_download_dir,

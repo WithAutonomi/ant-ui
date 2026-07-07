@@ -51,6 +51,31 @@
       <p v-if="settingsStore.storageDirProbeError" class="mt-2 rounded border border-autonomi-error/40 bg-autonomi-error/10 px-2 py-1.5 text-xs text-autonomi-error">
         {{ settingsStore.storageDirProbeError }}
       </p>
+
+      <!-- Directories where running nodes are actually stored, outside the
+           configured storage dir above. Surfaces node data left elsewhere
+           (e.g. after the storage location was changed) — even on the same
+           drive. -->
+      <div v-if="otherNodeLocations.length > 0" class="mt-3 border-t border-autonomi-border pt-3">
+        <h4 class="text-xs font-medium text-autonomi-text">{{ $t('settings.storage.other_locations_title') }}</h4>
+        <ul class="mt-1.5 space-y-1">
+          <li
+            v-for="loc in otherNodeLocations"
+            :key="loc.dir"
+            class="flex items-center justify-between gap-3 text-xs"
+          >
+            <span
+              class="min-w-0 flex-1 truncate font-mono text-autonomi-muted"
+              :title="loc.dir"
+            >
+              {{ loc.dir }}
+            </span>
+            <span class="shrink-0 text-autonomi-muted">
+              {{ $t('settings.storage.other_locations_nodes', { count: loc.nodeCount }) }} · {{ formatBytes(loc.used) }}
+            </span>
+          </li>
+        </ul>
+      </div>
     </div>
 
     <!-- Downloads Directory -->
@@ -573,6 +598,7 @@ import { setDevnetWalletKey, UPLOAD_CONCURRENCY_MIN, UPLOAD_CONCURRENCY_MAX } fr
 import { useSettingsStore } from '~/stores/settings'
 import { useLocale, SUPPORTED_LOCALES, NATIVE_LOCALE_NAMES, type SupportedLocale } from '~/composables/useLocale'
 import { isValidEthAddress } from '~/utils/validators'
+import { formatBytes } from '~/utils/formatters'
 import { useToastStore } from '~/stores/toasts'
 import { useErrorLogStore } from '~/stores/errorlog'
 import { useUpdaterStore } from '~/stores/updater'
@@ -610,6 +636,13 @@ const toasts = useToastStore()
 const errorLogStore = useErrorLogStore()
 const updaterStore = useUpdaterStore()
 const filesStore = useFilesStore()
+
+/** Directories where running nodes actually live, outside the configured
+ *  storage dir. Surfaces node data stored elsewhere (e.g. left in the default
+ *  %appdata% dir, or after the storage location was changed) — even when it's
+ *  on the same drive as the configured storage dir. */
+const otherNodeLocations = computed(() => nodesStore.otherNodeLocations)
+
 const showAdvanced = ref(false)
 const showLog = ref(false)
 const appVersion = ref('0.1.0')

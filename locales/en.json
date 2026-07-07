@@ -27,7 +27,9 @@
       "description": "Where node data is stored on disk",
       "default": "Default",
       "browse": "Browse",
-      "warning": "Only applies to newly added nodes. Existing nodes keep their current directory."
+      "warning": "Only applies to newly added nodes. Existing nodes keep their current directory.",
+      "other_locations_title": "Nodes stored in other locations",
+      "other_locations_nodes": "{count} node(s)"
     },
     "downloads": {
       "title": "Downloads Directory",
@@ -240,7 +242,8 @@
       "other": "Other data",
       "drive": "Drive Storage",
       "free": "free",
-      "aria": "Node storage {used} of {total} total drive capacity; recommended minimum {min}"
+      "aria": "Node storage {used} of {total} total drive capacity; recommended minimum {min}",
+      "drive_nodes": "{count} node(s)"
     },
     "add_dialog": {
       "title": "Add Nodes",

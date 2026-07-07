@@ -39,6 +39,47 @@ export interface NodeInfo {
   earnings?: string
 }
 
+/** One physical volume that holds node data, returned by `get_node_volumes`. */
+export interface NodeVolume {
+  root: string
+  total: number
+  available: number
+  paths: string[]
+}
+
+/** Per-drive disk usage, derived by the `driveUsageByVolume` getter. */
+export interface DriveUsage {
+  /** Volume root — stable key + drive label. */
+  key: string
+  label: string
+  total: number
+  available: number
+  /** Node storage bytes on this volume. */
+  used: number
+  /** Recommended-minimum total for the nodes on this volume. */
+  min: number
+  nodeCount: number
+}
+
+/** Parent directory of a path, handling both `\` and `/` separators. Collapses
+ *  a per-node data dir (e.g. `D:\Ant\node-1`) to its container (`D:\Ant`) for
+ *  display in Settings. */
+function parentDir(p: string): string {
+  const norm = p.replace(/[\\/]+$/, '')
+  const idx = Math.max(norm.lastIndexOf('/'), norm.lastIndexOf('\\'))
+  return idx > 0 ? norm.slice(0, idx) : norm
+}
+
+/** Whether `path` is the same as, or nested under, `base`. Case-insensitive and
+ *  separator-agnostic so it works for Windows paths (the storage dir may use a
+ *  different case/separator than the daemon's registered node dirs). */
+function isUnder(path: string, base: string): boolean {
+  const norm = (s: string) => s.replace(/[\\/]+$/, '').replace(/\//g, '\\').toLowerCase()
+  const p = norm(path)
+  const b = norm(base)
+  return p === b || p.startsWith(b + '\\')
+}
+
 function summaryToNodeInfo(s: NodeStatusSummary): NodeInfo {
   return {
     id: s.node_id,
@@ -76,6 +117,12 @@ export const useNodesStore = defineStore('nodes', {
      *  by `refreshDriveSpace`; 0 until first fetched. */
     driveTotalBytes: 0,
     driveAvailableBytes: 0,
+    /** Per-volume grouping of node data dirs (multi-drive disk graphs).
+     *  Populated by `refreshNodeVolumes`. */
+    driveVolumes: [] as NodeVolume[],
+    /** Volume root of the configured storage dir — distinguishes the active
+     *  drive from the others in the per-drive UI. */
+    currentVolumeRoot: '' as string,
   }),
 
   getters: {
@@ -90,6 +137,61 @@ export const useNodesStore = defineStore('nodes', {
     totalStorage: (state) => state.nodes.reduce((sum, n) => sum + (n.storage_bytes ?? 0), 0),
     /** Recommended minimum total storage across all nodes (moving target). */
     recommendedMinStorage: (state) => state.nodes.length * MIN_NODE_SIZE_BYTES,
+    /** Per-volume disk usage — one entry per drive that holds node data. Falls
+     *  back to a single synthesized entry (the legacy global fields) so the
+     *  common single-drive case and the pre-enrichment window still render one
+     *  bar. */
+    driveUsageByVolume(state): DriveUsage[] {
+      if (state.driveVolumes.length > 0) {
+        return state.driveVolumes.map((vol) => {
+          const nodesOnVol = state.nodes.filter(n => n.data_dir && vol.paths.includes(n.data_dir))
+          const used = nodesOnVol.reduce((sum, n) => sum + (n.storage_bytes ?? 0), 0)
+          return {
+            key: vol.root,
+            label: vol.root,
+            total: vol.total,
+            available: vol.available,
+            used,
+            min: nodesOnVol.length * MIN_NODE_SIZE_BYTES,
+            nodeCount: nodesOnVol.length,
+          }
+        })
+      }
+      if (state.driveTotalBytes > 0 && state.nodes.length > 0) {
+        return [{
+          key: state.currentVolumeRoot || 'primary',
+          label: '',
+          total: state.driveTotalBytes,
+          available: state.driveAvailableBytes,
+          used: state.nodes.reduce((sum, n) => sum + (n.storage_bytes ?? 0), 0),
+          min: state.nodes.length * MIN_NODE_SIZE_BYTES,
+          nodeCount: state.nodes.length,
+        }]
+      }
+      return []
+    },
+    /** Directories where running nodes are actually stored, grouped by their
+     *  container dir, EXCLUDING any under the configured storage dir. Surfaces
+     *  node data that lives outside the current storage location — even on the
+     *  same drive (e.g. nodes left in the default %appdata% dir, or the old
+     *  location after the storage dir was changed). Drives the Settings list.
+     *  When no storage dir is configured, `base` is empty and every location is
+     *  listed (nothing is treated as "current"). */
+    otherNodeLocations(state): { dir: string; nodeCount: number; used: number }[] {
+      const settings = useSettingsStore()
+      const base = settings.storageDir ?? ''
+      const groups = new Map<string, { dir: string; nodeCount: number; used: number }>()
+      for (const n of state.nodes) {
+        if (!n.data_dir) continue
+        if (base && isUnder(n.data_dir, base)) continue
+        const dir = parentDir(n.data_dir)
+        const g = groups.get(dir) ?? { dir, nodeCount: 0, used: 0 }
+        g.nodeCount += 1
+        g.used += n.storage_bytes ?? 0
+        groups.set(dir, g)
+      }
+      return [...groups.values()]
+    },
   },
 
   actions: {
@@ -277,6 +379,7 @@ export const useNodesStore = defineStore('nodes', {
       // Drive capacity changes slowly; refresh it on the same (slow) cadence as
       // storage enrichment rather than the fast status poll.
       await this.refreshDriveSpace()
+      await this.refreshNodeVolumes()
     },
 
     /** Refresh total/available capacity of the volume holding node storage.
@@ -293,6 +396,29 @@ export const useNodesStore = defineStore('nodes', {
         }
       } catch (e) {
         console.warn('Could not query drive space:', e)
+      }
+    },
+
+    /** Refresh the per-volume grouping of node data dirs, for the multi-drive
+     *  disk graphs. Independent of `refreshDriveSpace`, which tracks only the
+     *  configured storage-dir volume (the Add Nodes below-minimum warning). */
+    async refreshNodeVolumes() {
+      const settings = useSettingsStore()
+      const paths = this.nodes
+        .map(n => n.data_dir)
+        .filter((d): d is string => typeof d === 'string' && d.length > 0)
+      // Before any data dir has resolved, keep any prior grouping rather than
+      // clearing to empty (avoids a flash to the single-bar fallback).
+      if (paths.length === 0 && !settings.storageDir) return
+      try {
+        const res = await invoke<{ volumes: NodeVolume[]; current_root: string }>('get_node_volumes', {
+          paths,
+          storageDir: settings.storageDir ?? null,
+        })
+        this.driveVolumes = res.volumes ?? []
+        this.currentVolumeRoot = res.current_root ?? ''
+      } catch (e) {
+        console.warn('Could not query node volumes:', e)
       }
     },
 

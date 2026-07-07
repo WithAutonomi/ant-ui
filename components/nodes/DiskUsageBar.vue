@@ -1,5 +1,12 @@
 <template>
   <div class="mb-4">
+    <!-- Per-drive header: shown only when a label is provided (multi-drive
+         layouts). Single-drive users see the bare bar, as before. -->
+    <div v-if="label" class="mb-1 flex items-baseline justify-between gap-2">
+      <span class="truncate font-mono text-xs text-autonomi-text" :title="label">{{ label }}</span>
+      <span class="shrink-0 text-xs text-autonomi-muted">{{ $t('nodes.disk_bar.drive_nodes', { count: nodeCount }) }}</span>
+    </div>
+
     <!-- Legend -->
     <div class="mb-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
       <span class="flex items-center gap-1.5">
@@ -49,10 +56,28 @@
 </template>
 
 <script setup lang="ts">
-import { useNodesStore } from '~/stores/nodes'
 import { formatBytes } from '~/utils/formatters'
 
-const nodesStore = useNodesStore()
+// Prop-driven so the node page can render one bar per drive that holds nodes.
+// (Previously read singular store getters; now the parent maps over
+// `nodesStore.driveUsageByVolume`.)
+const props = withDefaults(defineProps<{
+  /** Node storage bytes on this volume. */
+  used: number
+  /** Recommended-minimum total for the nodes on this volume. */
+  min: number
+  /** Total volume capacity in bytes. */
+  total: number
+  /** Bytes available to the caller on this volume. */
+  available: number
+  /** Drive-root label; empty hides the per-drive header (single-drive case). */
+  label?: string
+  /** Node count on this volume (shown in the header). */
+  nodeCount?: number
+}>(), {
+  label: '',
+  nodeCount: 0,
+})
 
 // Recommended-minimum segment rendered as a TUI-style shaded block (▒): a
 // fine checkerboard dither that reads as a partially-filled threshold zone
@@ -67,10 +92,10 @@ const DITHER = {
   backgroundPosition: '0 0, 2px 2px',
 }
 
-const used = computed(() => nodesStore.totalStorage)
-const min = computed(() => nodesStore.recommendedMinStorage)
-const total = computed(() => nodesStore.driveTotalBytes)
-const available = computed(() => nodesStore.driveAvailableBytes)
+const used = computed(() => props.used)
+const min = computed(() => props.min)
+const total = computed(() => props.total)
+const available = computed(() => props.available)
 // Total drive space in use (node + non-node), for the "used / total (free)" label.
 const driveUsed = computed(() => Math.max(0, total.value - available.value))
 

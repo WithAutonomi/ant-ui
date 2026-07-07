@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setMockInvokeHandler, resetTauriMocks } from '../mocks/tauri'
 import { useNodesStore } from '~/stores/nodes'
 import { useSettingsStore } from '~/stores/settings'
+import { MIN_NODE_SIZE_BYTES } from '~/utils/constants'
 
 // Mock the daemon-api module — the nodes store imports connectSSE/disconnectSSE
 vi.mock('~/utils/daemon-api', () => ({
@@ -204,6 +205,76 @@ describe('nodes store', () => {
       expect(nodesStore.stopped).toBe(1)
       expect(nodesStore.errored).toBe(1)
       expect(nodesStore.total).toBe(4)
+    })
+
+    it('driveUsageByVolume groups nodes by volume and aggregates usage', () => {
+      nodesStore.nodes = [
+        { id: 1, name: 'n1', status: 'running', version: '', data_dir: 'C:\\ant\\node-1', storage_bytes: 100 },
+        { id: 2, name: 'n2', status: 'running', version: '', data_dir: 'C:\\ant\\node-2', storage_bytes: 200 },
+        { id: 3, name: 'n3', status: 'running', version: '', data_dir: 'D:\\Ant\\node-3', storage_bytes: 50 },
+      ]
+      nodesStore.driveVolumes = [
+        { root: 'C:\\', total: 1000, available: 400, paths: ['C:\\ant\\node-1', 'C:\\ant\\node-2'] },
+        { root: 'D:\\', total: 2000, available: 1500, paths: ['D:\\Ant\\node-3'] },
+      ]
+      nodesStore.currentVolumeRoot = 'C:\\'
+
+      const vols = nodesStore.driveUsageByVolume
+      expect(vols).toHaveLength(2)
+
+      const c = vols.find(v => v.key === 'C:\\')!
+      expect(c.used).toBe(300)
+      expect(c.nodeCount).toBe(2)
+      expect(c.min).toBe(2 * MIN_NODE_SIZE_BYTES)
+
+      const d = vols.find(v => v.key === 'D:\\')!
+      expect(d.used).toBe(50)
+      expect(d.nodeCount).toBe(1)
+    })
+
+    it('driveUsageByVolume falls back to a single synthesized volume', () => {
+      nodesStore.nodes = [
+        { id: 1, name: 'n1', status: 'running', version: '', storage_bytes: 100 },
+        { id: 2, name: 'n2', status: 'running', version: '', storage_bytes: 200 },
+      ]
+      nodesStore.driveVolumes = []
+      nodesStore.driveTotalBytes = 5000
+      nodesStore.driveAvailableBytes = 4000
+
+      const vols = nodesStore.driveUsageByVolume
+      expect(vols).toHaveLength(1)
+      expect(vols[0].used).toBe(300)
+      expect(vols[0].nodeCount).toBe(2)
+      expect(vols[0].total).toBe(5000)
+      expect(vols[0].label).toBe('')
+    })
+
+    it('driveUsageByVolume is empty with no volumes and no drive data', () => {
+      nodesStore.nodes = [{ id: 1, name: 'n1', status: 'running', version: '' }]
+      nodesStore.driveVolumes = []
+      nodesStore.driveTotalBytes = 0
+
+      expect(nodesStore.driveUsageByVolume).toEqual([])
+    })
+
+    it('otherNodeLocations lists node dirs outside the configured storage dir', () => {
+      settingsStore.storageDir = 'C:\\Users\\me\\Downloads'
+      nodesStore.nodes = [
+        { id: 1, name: 'n1', status: 'running', version: '', data_dir: 'C:\\Users\\me\\AppData\\Roaming\\ant\\nodes\\node-1', storage_bytes: 100 },
+        { id: 2, name: 'n2', status: 'running', version: '', data_dir: 'C:\\Users\\me\\AppData\\Roaming\\ant\\nodes\\node-2', storage_bytes: 200 },
+        { id: 3, name: 'n3', status: 'running', version: '', data_dir: 'C:\\tmp\\node-3', storage_bytes: 50 },
+        { id: 4, name: 'n4', status: 'running', version: '', data_dir: 'C:\\Users\\me\\Downloads\\ant\\node-4', storage_bytes: 10 },
+      ]
+
+      const locs = nodesStore.otherNodeLocations
+      // node-4 lives under the storage dir (Downloads) → excluded.
+      expect(locs).toHaveLength(2)
+      const ant = locs.find(l => l.dir === 'C:\\Users\\me\\AppData\\Roaming\\ant\\nodes')!
+      expect(ant.nodeCount).toBe(2)
+      expect(ant.used).toBe(300)
+      const tmp = locs.find(l => l.dir === 'C:\\tmp')!
+      expect(tmp.nodeCount).toBe(1)
+      expect(tmp.used).toBe(50)
     })
   })
 })
