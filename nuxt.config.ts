@@ -1,10 +1,18 @@
 export default defineNuxtConfig({
   ssr: false,
+  telemetry: false,
   devtools: { enabled: false },
 
   modules: [
     '@pinia/nuxt',
   ],
+
+  // Keep the frontend dev-server file watcher out of the Rust side. Tauri's
+  // own Cargo watcher handles src-tauri; letting Nuxt/Vite recurse into it
+  // means watching src-tauri/target (thousands of build artifacts), which
+  // exhausts the macOS per-process open-file limit (kern.maxfilesperproc,
+  // 10240) and causes EMFILE "too many open files" crashes + a blank window.
+  ignore: ['**/src-tauri/**'],
 
   css: ['~/assets/css/main.css'],
 
@@ -20,6 +28,9 @@ export default defineNuxtConfig({
     envPrefix: ['VITE_', 'TAURI_'],
     server: {
       strictPort: true,
+      watch: {
+        ignored: ['**/src-tauri/**'],
+      },
     },
     resolve: {
       dedupe: ['vue'],
