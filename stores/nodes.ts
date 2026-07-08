@@ -123,6 +123,10 @@ export const useNodesStore = defineStore('nodes', {
     /** Volume root of the configured storage dir — distinguishes the active
      *  drive from the others in the per-drive UI. */
     currentVolumeRoot: '' as string,
+    /** Resolved current storage directory (configured storage dir, or the
+     *  daemon default when unset). Used to exclude nodes that live under the
+     *  current location from the "other locations" list. */
+    currentVolumeDir: '' as string,
   }),
 
   getters: {
@@ -179,7 +183,10 @@ export const useNodesStore = defineStore('nodes', {
      *  listed (nothing is treated as "current"). */
     otherNodeLocations(state): { dir: string; nodeCount: number; used: number }[] {
       const settings = useSettingsStore()
-      const base = settings.storageDir ?? ''
+      // Prefer the backend-resolved current dir (correct even when no storage
+      // dir is configured — it resolves to the daemon default); fall back to
+      // the configured storage dir before the first volumes query returns.
+      const base = state.currentVolumeDir || (settings.storageDir ?? '')
       const groups = new Map<string, { dir: string; nodeCount: number; used: number }>()
       for (const n of state.nodes) {
         if (!n.data_dir) continue
@@ -411,12 +418,13 @@ export const useNodesStore = defineStore('nodes', {
       // clearing to empty (avoids a flash to the single-bar fallback).
       if (paths.length === 0 && !settings.storageDir) return
       try {
-        const res = await invoke<{ volumes: NodeVolume[]; current_root: string }>('get_node_volumes', {
+        const res = await invoke<{ volumes: NodeVolume[]; current_root: string; current_dir: string }>('get_node_volumes', {
           paths,
           storageDir: settings.storageDir ?? null,
         })
         this.driveVolumes = res.volumes ?? []
         this.currentVolumeRoot = res.current_root ?? ''
+        this.currentVolumeDir = res.current_dir ?? ''
       } catch (e) {
         console.warn('Could not query node volumes:', e)
       }

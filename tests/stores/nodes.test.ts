@@ -276,5 +276,20 @@ describe('nodes store', () => {
       expect(tmp.nodeCount).toBe(1)
       expect(tmp.used).toBe(50)
     })
+
+    it('otherNodeLocations uses the resolved current dir when no storage dir is set', () => {
+      settingsStore.storageDir = null
+      nodesStore.currentVolumeDir = 'C:\\Users\\me\\AppData\\Roaming\\ant'
+      nodesStore.nodes = [
+        { id: 1, name: 'n1', status: 'running', version: '', data_dir: 'C:\\Users\\me\\AppData\\Roaming\\ant\\nodes\\node-1', storage_bytes: 100 },
+        { id: 2, name: 'n2', status: 'running', version: '', data_dir: 'C:\\tmp\\node-2', storage_bytes: 50 },
+      ]
+
+      // node-1 is under the resolved default dir → excluded; only C:\tmp is "other".
+      const locs = nodesStore.otherNodeLocations
+      expect(locs).toHaveLength(1)
+      expect(locs[0].dir).toBe('C:\\tmp')
+      expect(locs[0].nodeCount).toBe(1)
+    })
   })
 })

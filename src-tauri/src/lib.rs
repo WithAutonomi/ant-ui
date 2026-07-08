@@ -851,13 +851,17 @@ struct NodeVolumesResult {
     /// Volume root of the currently-configured storage dir (or the daemon
     /// default when unset), so the UI can distinguish the active drive.
     current_root: String,
+    /// Resolved storage directory (the configured `storage_dir`, or the daemon
+    /// default when unset). Lets the UI exclude nodes that live under the
+    /// current location even when no `storage_dir` is configured.
+    current_dir: String,
 }
 
 /// Group node data directories by the physical volume that holds them and
-/// report each volume's capacity, plus the volume of the configured storage
-/// dir. Backs the per-drive disk-usage graphs and the Settings "other drives"
-/// list when nodes are spread across multiple volumes — which happens after the
-/// storage location is changed, since existing nodes keep their old directory.
+/// report each volume's capacity, plus the resolved current storage dir. Backs
+/// the per-drive disk-usage graphs and the Settings "other locations" list when
+/// nodes are spread across multiple volumes/directories — which happens after
+/// the storage location is changed, since existing nodes keep their old dir.
 #[tauri::command]
 fn get_node_volumes(
     paths: Vec<String>,
@@ -893,6 +897,7 @@ fn get_node_volumes(
         Some(s) if !s.trim().is_empty() => std::path::PathBuf::from(s),
         _ => ant_core::config::data_dir().map_err(|e| format!("{e}"))?,
     };
+    let current_dir = current_target.to_string_lossy().into_owned();
     let current_root = volume_root(&current_target)
         .map(|r| r.to_string_lossy().into_owned())
         .unwrap_or_default();
@@ -900,6 +905,7 @@ fn get_node_volumes(
     Ok(NodeVolumesResult {
         volumes,
         current_root,
+        current_dir,
     })
 }
 

@@ -52,12 +52,13 @@
          old directory), so each volume is shown separately. -->
     <div
       v-if="nodesStore.daemonConnected && nodesStore.total > 0 && nodesStore.driveUsageByVolume.length > 0"
-      class="space-y-1"
     >
+      <!-- Shared colour key, once — the per-drive bars below carry only labels + figures. -->
+      <NodesDiskUsageKey />
       <NodesDiskUsageBar
         v-for="vol in nodesStore.driveUsageByVolume"
         :key="vol.key"
-        :label="nodesStore.driveUsageByVolume.length > 1 ? vol.label : ''"
+        :label="vol.label"
         :used="vol.used"
         :min="vol.min"
         :total="vol.total"
