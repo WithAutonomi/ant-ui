@@ -804,9 +804,9 @@ dependencies = [
 
 [[package]]
 name = "ant-core"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "112b868f1a9102b1b3f8fa14d22023c01147acd8a98bc92fb4bf06a5b70a6895"
+checksum = "6a28d5955e8f905d87f7fb03485a6c17a047b1bf75c67d154e5bee6887ed01ef"
 dependencies = [
  "ant-protocol",
  "async-stream",
@@ -849,7 +849,7 @@ dependencies = [
 
 [[package]]
 name = "ant-gui"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "ant-core",
  "dirs 5.0.1",
