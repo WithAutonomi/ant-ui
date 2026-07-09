@@ -178,7 +178,7 @@ jobs:
           # the artifacts uploaded below and creates the release at the end.
           args: ${{ matrix.args }}
 
-      - name: repair AppImage sidecar (static-pie workaround)
+      - name: repair AppImage (sidecar + strip host graphics loaders)
         if: startsWith(matrix.platform, 'ubuntu')
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -208,6 +208,35 @@ jobs:
 
           cp -f "$PRISTINE" squashfs-root/usr/bin/ant
           chmod +x squashfs-root/usr/bin/ant
+
+          # Strip host-coupled low-level graphics loaders bundled by linuxdeploy.
+          # Mixing AppImage-bundled GLVND/Mesa/Wayland loaders with the host's
+          # GPU driver stack makes WebKitWebProcess abort on newer distros
+          # (Ubuntu 26.04 reproducer: EGL_BAD_PARAMETER on default EGL display,
+          # see issue #173). Keep bundled WebKitGTK/JSC/GStreamer/GTK — this is
+          # only the driver boundary. `.deb`/`.rpm` don't bundle these libs and
+          # already work.
+          echo "Stripping bundled graphics loader libraries:"
+          find squashfs-root \( -type f -o -type l \) \( \
+            -name 'libEGL.so*' -o \
+            -name 'libGL.so*' -o \
+            -name 'libGLESv2.so*' -o \
+            -name 'libGLX.so*' -o \
+            -name 'libGLdispatch.so*' -o \
+            -name 'libOpenGL.so*' -o \
+            -name 'libgbm.so*' -o \
+            -name 'libdrm.so*' -o \
+            -name 'libwayland-client.so*' -o \
+            -name 'libwayland-cursor.so*' -o \
+            -name 'libwayland-egl.so*' -o \
+            -name 'libwayland-server.so*' \
+          \) -print -delete
+          # GLVND vendor metadata: force libEGL to use the host vendor JSON
+          # so it picks the driver that matches the host's libraries.
+          rm -rf squashfs-root/usr/share/glvnd \
+                 squashfs-root/usr/share/egl \
+                 squashfs-root/etc/glvnd \
+                 squashfs-root/etc/egl
 
           # GH runners don't have FUSE, so AppImages must be run with
           # --appimage-extract-and-run.
