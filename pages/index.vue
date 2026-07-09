@@ -47,10 +47,25 @@
 
     </div>
 
-    <!-- Disk usage bar: drive capacity vs. node storage vs. recommended min -->
-    <NodesDiskUsageBar
-      v-if="nodesStore.daemonConnected && nodesStore.total > 0 && nodesStore.driveTotalBytes > 0"
-    />
+    <!-- Disk usage: one bar per drive that holds node data. Multi-drive layouts
+         arise when the storage location is changed (existing nodes keep their
+         old directory), so each volume is shown separately. -->
+    <div
+      v-if="nodesStore.daemonConnected && nodesStore.total > 0 && nodesStore.driveUsageByVolume.length > 0"
+    >
+      <!-- Shared colour key, once — the per-drive bars below carry only labels + figures. -->
+      <NodesDiskUsageKey />
+      <NodesDiskUsageBar
+        v-for="vol in nodesStore.driveUsageByVolume"
+        :key="vol.key"
+        :label="vol.label"
+        :used="vol.used"
+        :min="vol.min"
+        :total="vol.total"
+        :available="vol.available"
+        :node-count="vol.nodeCount"
+      />
+    </div>
 
     <!-- Initializing state -->
     <div v-if="nodesStore.initializing" class="flex flex-col items-center justify-center py-20">
