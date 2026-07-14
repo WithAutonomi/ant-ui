@@ -20,15 +20,9 @@
       <div class="flex items-center gap-2">
         <button
           class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
-          @click="openDownloadByAddress"
+          @click="openDownload"
         >
-          {{ $t('files.download_by_address') }}
-        </button>
-        <button
-          class="rounded-md border border-autonomi-border px-3 py-1.5 text-sm text-autonomi-muted hover:text-autonomi-text"
-          @click="openDownloadByDatamap"
-        >
-          {{ $t('files.download_by_datamap') }}
+          {{ $t('files.download_button') }}
         </button>
       </div>
     </div>
@@ -54,7 +48,7 @@
           leave-to-class="opacity-0"
         >
           <div
-            v-if="dragging"
+            v-if="dragging && !showDownloadDialog"
             class="absolute inset-0 z-10 flex items-center justify-center rounded-lg border-2 border-dashed border-autonomi-blue bg-autonomi-dark/90"
           >
             <div class="text-center">
@@ -121,7 +115,7 @@
                     />
                   </div>
                 </td>
-                <td class="px-4 py-2.5 align-top">
+                <td class="px-4 py-2.5 align-middle">
                   <div><StatusBadge :status="statusLabel(file)" /></div>
                   <div v-if="showsProgressBar(file) && stageDetail(file)" class="mt-1 text-[10px] leading-tight text-autonomi-muted">
                     {{ stageDetail(file) }}
@@ -138,22 +132,22 @@
                   </template>
                 </td>
                 <td class="px-4 py-2.5 text-autonomi-muted">{{ formatDate(file.date) }}</td>
-                <td class="px-4 py-2.5">
+                <td class="px-4 py-2.5 w-full max-w-0">
                   <span
                     v-if="file.public_address"
-                    class="inline-flex cursor-pointer items-center gap-1.5 font-mono text-xs text-autonomi-blue hover:text-autonomi-blue/80"
+                    class="flex min-w-0 cursor-pointer items-center gap-1.5 font-mono text-xs text-autonomi-blue hover:text-autonomi-blue/80"
                     :title="$t('files.row.public_tooltip')"
                     @click.stop="copyPublicAddress(file.public_address)"
                   >
-                    <span class="rounded bg-autonomi-blue/15 px-1 py-px text-[9px] font-sans uppercase tracking-wider">{{ $t('files.row.public_badge') }}</span>
-                    {{ truncateAddress(file.public_address, 8, 6) }}
+                    <span class="shrink-0 rounded bg-autonomi-blue/15 px-1 py-px text-[9px] font-sans uppercase tracking-wider">{{ $t('files.row.public_badge') }}</span>
+                    <span class="truncate">{{ file.public_address }}</span>
                   </span>
                   <div
                     v-else-if="file.data_map_file"
-                    class="flex items-center gap-1.5"
+                    class="flex min-w-0 items-center gap-1.5"
                   >
                     <span
-                      class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue hover:underline"
+                      class="truncate cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue hover:underline"
                       :title="$t('files.row.reveal_datamap_tooltip')"
                       @click.stop="openFolder(file.data_map_file)"
                     >
@@ -161,7 +155,7 @@
                     </span>
                     <button
                       type="button"
-                      class="rounded p-0.5 text-autonomi-muted/60 hover:text-autonomi-blue hover:bg-autonomi-surface"
+                      class="shrink-0 rounded p-0.5 text-autonomi-muted/60 hover:text-autonomi-blue hover:bg-autonomi-surface"
                       :title="$t('files.row.copy_datamap_tooltip')"
                       @click.stop="copyDatamapPath(file.data_map_file!)"
                     >
@@ -173,11 +167,11 @@
                   </div>
                   <span
                     v-else-if="file.address"
-                    class="cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue"
+                    class="block truncate cursor-pointer font-mono text-xs text-autonomi-muted hover:text-autonomi-blue"
                     :title="$t('files.row.copy_address_tooltip')"
                     @click.stop="copyAddress(file.address)"
                   >
-                    {{ truncateAddress(file.address, 8, 6) }}
+                    {{ file.address }}
                   </span>
                   <span v-else class="text-autonomi-muted">-</span>
                 </td>
@@ -304,23 +298,10 @@
       :open="showDownloadDialog"
       :prefill-address="downloadPrefillAddress"
       :prefill-filename="downloadPrefillFilename"
+      :drag-active="dragging && showDownloadDialog"
       @close="showDownloadDialog = false; downloadPrefillAddress = ''; downloadPrefillFilename = ''"
-      @download="handleDownload"
-    />
-
-    <FilesDownloadByDatamapDialog
-      :open="showDatamapDialog"
-      :candidates="datamapCandidates"
-      @close="showDatamapDialog = false"
       @browse="browseForDatamap"
-      @select="onDatamapPicked"
-    />
-
-    <FilesDatamapSaveAsDialog
-      :open="showDatamapSaveAs"
-      :default-name="pendingDatamap?.defaultName ?? ''"
-      @close="cancelDatamapSaveAs"
-      @confirm="startDatamapDownload"
+      @download="handleDownload"
     />
 
     <FilesUploadConfirmDialog
@@ -348,7 +329,7 @@ import { open as openFileDialog } from '@tauri-apps/plugin-dialog'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { useI18n } from 'vue-i18n'
 import { useFilesStore, type FileEntry } from '~/stores/files'
-import { formatBytes, truncateAddress } from '~/utils/formatters'
+import { formatBytes } from '~/utils/formatters'
 import { formatNanoTokens, formatGasCost } from '~/utils/payment'
 import { useSettingsStore } from '~/stores/settings'
 import { useToastStore } from '~/stores/toasts'
@@ -633,7 +614,14 @@ async function setupDragDrop() {
     } else if (event.payload.type === 'drop') {
       dragging.value = false
       const paths = event.payload.paths
-      if (paths.length > 0) {
+      if (paths.length === 0) return
+      // With the Download dialog open, a dropped file is a datamap to download
+      // from — feed its path into the dialog's smart input rather than kicking
+      // off an upload.
+      if (showDownloadDialog.value) {
+        downloadPrefillFilename.value = ''
+        downloadPrefillAddress.value = paths[0]
+      } else {
         showUploadConfirmForPaths(paths)
       }
     } else if (event.payload.type === 'leave') {
@@ -806,27 +794,10 @@ watchEffect(() => {
   kickScheduler()
 })
 
-// Auto-dismiss the confirm dialog when every selected entry was detected as
-// already stored on the network. Those entries bypass `awaiting_approval`
-// (no user decision left to make) and flow through the scheduler on their
-// own, so leaving the dialog open waiting for an Approve that can never
-// enable is just clutter.
-watch(
-  () => selectedFileIds.value.map(id => filesStore.findById(id)?.alreadyStored),
-  (flags) => {
-    if (!showUploadConfirm.value) return
-    if (flags.length === 0) return
-    if (flags.some(f => f === undefined)) return
-    if (!flags.every(f => f === true)) return
-    const n = flags.length
-    showUploadConfirm.value = false
-    selectedFileIds.value = []
-    toastStore.add(
-      n === 1 ? t('files.toast.already_stored_one') : t('files.toast.already_stored_many', { count: n }),
-      'info',
-    )
-  },
-)
+// Note: already-stored files are NOT auto-dismissed. Even when every data
+// chunk is on-network the user still chooses private (return the DataMap) vs
+// public (publish the DataMap), so the confirm dialog stays open and waits for
+// an explicit Approve — the approve gate now counts already-stored entries.
 
 function cancelPendingUploads() {
   for (const id of selectedFileIds.value) filesStore.cancelPendingUpload(id)
@@ -847,8 +818,8 @@ const showDownloadDialog = ref(false)
 const downloadPrefillAddress = ref('')
 const downloadPrefillFilename = ref('')
 
-/** Manual "Download by address" — always opens a blank dialog. */
-function openDownloadByAddress() {
+/** Manual "Download" — always opens a blank unified dialog. */
+function openDownload() {
   downloadPrefillAddress.value = ''
   downloadPrefillFilename.value = ''
   showDownloadDialog.value = true
@@ -895,37 +866,11 @@ function waitForConnection(): Promise<boolean> {
   })
 }
 
-const showDatamapDialog = ref(false)
-const showDatamapSaveAs = ref(false)
-
-/** Set between phase 1 (picker) and phase 2 (Save As) of the download-by-
- *  datamap flow. Cleared once a download starts or the user cancels. */
-const pendingDatamap = ref<{ path: string; defaultName: string } | null>(null)
-
-/** Previously uploaded files for which we still hold a local datamap — the
- *  set the user can re-download from without picking a file from disk. */
-const datamapCandidates = computed(() =>
-  filesStore.files
-    .filter(f => f.kind === 'upload' && f.status === 'complete' && f.data_map_file)
-    .map(f => ({
-      name: f.name,
-      data_map_file: f.data_map_file!,
-      date: f.date,
-      size_bytes: f.size_bytes,
-    })),
-)
-
-function openDownloadByDatamap() {
-  showDatamapDialog.value = true
-}
-
-function onDatamapPicked(path: string, suggestedName: string) {
-  pendingDatamap.value = { path, defaultName: suggestedName }
-  showDatamapSaveAs.value = true
-}
-
+// The dialog's "drop a datamap / browse" affordance emits `browse`. Open the
+// native picker and feed the chosen path back into the dialog's smart input
+// (as a prefill) — the dialog then classifies it as a datamap and derives the
+// filename, exactly as a dropped or pasted path would.
 async function browseForDatamap() {
-  showDatamapDialog.value = false
   let selected: string | string[] | null
   try {
     selected = await openFileDialog({
@@ -938,58 +883,43 @@ async function browseForDatamap() {
     return
   }
   if (!selected) return
-  const datamapPath = String(Array.isArray(selected) ? selected[0] : selected)
-  const basename = datamapPath.split(/[\\/]/).pop() ?? 'download'
-  const defaultName = basename.replace(/\.datamap$/i, '') || basename
-  pendingDatamap.value = { path: datamapPath, defaultName }
-  showDatamapSaveAs.value = true
+  downloadPrefillFilename.value = ''
+  downloadPrefillAddress.value = String(Array.isArray(selected) ? selected[0] : selected)
+  showDownloadDialog.value = true
 }
 
-function cancelDatamapSaveAs() {
-  showDatamapSaveAs.value = false
-  pendingDatamap.value = null
+// Ensure the embedded client is connected before a download row can progress.
+// Marks the row failed if the connection ultimately fails. Shared by both
+// download kinds.
+async function ensureConnectedForDownload(id: number): Promise<boolean> {
+  if (autonomiConnected.value) return true
+  // Kick the connect loop (no-op if already connecting) and wait. The row
+  // already shows `downloading`; progress stays at 0 until the client is ready.
+  invoke('retry_autonomi_client').catch(() => {})
+  const connected = await waitForConnection()
+  if (!connected) {
+    filesStore.updateEntry(id, { status: 'failed', error: t('files.error.not_connected_to_network') })
+    toastStore.add(t('files.toast.download_requires_network'), 'warning')
+    return false
+  }
+  return true
 }
 
-async function startDatamapDownload(filename: string) {
-  const pending = pendingDatamap.value
-  if (!pending) return
-  showDatamapSaveAs.value = false
-  pendingDatamap.value = null
-
-  const id = await filesStore.downloadFromDatamapFile(pending.path, filename)
+// Unified download handler. The dialog resolved the free-form input into either
+// an address (hex / autonomi:// link) or a local `.datamap` file path.
+async function handleDownload(target: { kind: 'address' | 'datamap' | 'url'; value: string; filename: string }) {
+  let id: number | null
+  if (target.kind === 'datamap') {
+    id = await filesStore.downloadFromDatamapFile(target.value, target.filename)
+  } else if (target.kind === 'url') {
+    id = await filesStore.downloadFromDatamapUrl(target.value, target.filename)
+  } else {
+    const destPath = `${filesStore.getDownloadDir()}/${target.filename}`
+    id = filesStore.startDownload(target.value, target.filename, destPath)
+  }
   if (id === null) return
 
-  if (!autonomiConnected.value) {
-    invoke('retry_autonomi_client').catch(() => {})
-    const connected = await waitForConnection()
-    if (!connected) {
-      filesStore.updateEntry(id, { status: 'failed', error: t('files.error.not_connected_to_network') })
-      toastStore.add(t('files.toast.download_requires_network'), 'warning')
-      return
-    }
-  }
-
-  filesStore.startRealDownload(id)
-}
-
-async function handleDownload(address: string, filename: string) {
-  const downloadDir = filesStore.getDownloadDir()
-  const destPath = `${downloadDir}/${filename}`
-  const id = filesStore.startDownload(address, filename, destPath)
-
-  if (!autonomiConnected.value) {
-    // Kick the connect loop (no-op if already connecting) and wait. The row
-    // already shows `downloading` — progress just stays at 0 until the
-    // client is ready.
-    invoke('retry_autonomi_client').catch(() => {})
-    const connected = await waitForConnection()
-    if (!connected) {
-      filesStore.updateEntry(id, { status: 'failed', error: t('files.error.not_connected_to_network') })
-      toastStore.add(t('files.toast.download_requires_network'), 'warning')
-      return
-    }
-  }
-
+  if (!(await ensureConnectedForDownload(id))) return
   filesStore.startRealDownload(id)
 }
 

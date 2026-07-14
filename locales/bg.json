@@ -332,8 +332,13 @@
     },
     "download_dialog": {
       "title": "Изтегляне на файл",
-      "address_label": "Адрес на файла",
-      "address_placeholder": "Адрес на файла (hex)",
+      "subtitle": "Извличане на файл от мрежата Autonomi",
+      "address_placeholder": "Адрес 0x…, връзка autonomi:// или път / URL на datamap",
+      "paste_intro": "Можете да поставите някое от следните:",
+      "accept_address": "Мрежов адрес (0x… / 64 hex знака)",
+      "accept_link": "Връзка за споделяне autonomi:// (съдържа името на файла)",
+      "accept_datamap": "Datamap — поставете локален път или URL, или пуснете / прегледайте по-долу",
+      "drop_datamap": "Пуснете .datamap файл тук или щракнете за преглед",
       "filename_label": "Запазване като име на файл",
       "filename_placeholder": "moifail.dat"
     },
@@ -374,8 +379,10 @@
       "cancel_upload": "Отказ на качването",
       "ready_count": "Готови: {ready} от {total}",
       "approve_button_one": "Одобряване на качването",
-      "approve_button_many": "Одобряване на {count} качвания"
-    }
+      "approve_button_many": "Одобряване на {count} качвания",
+      "get_datamap_button": "Вземи datamap"
+    },
+    "download_button": "Изтегляне"
   },
   "wallet": {
     "earnings_heading": "Адрес за приходи",

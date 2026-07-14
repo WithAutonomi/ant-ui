@@ -332,8 +332,13 @@
     },
     "download_dialog": {
       "title": "Bestand downloaden",
-      "address_label": "Bestandsadres",
-      "address_placeholder": "Bestandsadres (hex)",
+      "subtitle": "Een bestand ophalen van het Autonomi-netwerk",
+      "address_placeholder": "0x…-adres, autonomi://-link of datamap-pad / URL",
+      "paste_intro": "Je kunt een van de volgende plakken:",
+      "accept_address": "Een netwerkadres (0x… / 64 hex-tekens)",
+      "accept_link": "Een autonomi://-deellink (bevat de bestandsnaam)",
+      "accept_datamap": "Een datamap — plak een lokaal pad of URL, of sleep / blader hieronder",
+      "drop_datamap": "Sleep hier een .datamap-bestand naartoe, of klik om te bladeren",
       "filename_label": "Opslaan als bestandsnaam",
       "filename_placeholder": "mijnbestand.dat"
     },
@@ -374,8 +379,10 @@
       "cancel_upload": "Upload annuleren",
       "ready_count": "Klaar: {ready} van {total}",
       "approve_button_one": "Upload goedkeuren",
-      "approve_button_many": "{count} uploads goedkeuren"
-    }
+      "approve_button_many": "{count} uploads goedkeuren",
+      "get_datamap_button": "Datamap ophalen"
+    },
+    "download_button": "Downloaden"
   },
   "wallet": {
     "earnings_heading": "Verdienstenadres",
