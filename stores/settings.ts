@@ -34,6 +34,8 @@ interface AppConfig {
   upload_concurrency: number
   prerelease_channel: boolean
   i18n_locale: string | null
+  lan_devnet_host: string | null
+  lan_devnet_port: number | null
 }
 
 /** Allowed range for upload_concurrency (see AppConfig in Rust). */
@@ -70,6 +72,12 @@ export const useSettingsStore = defineStore('settings', {
     prereleaseChannelBootValue: false,
     /** Persisted UI locale choice. `null` = follow the OS. */
     i18nLocale: null as string | null,
+    /** Developer option: the LAN `ant-devnet --serve-port` host/port whose
+     *  manifest was last imported. Remembered so Developer Options can show and
+     *  re-fetch it; the live connection is driven by the written manifest file,
+     *  not these values. `null` when unused. */
+    lanDevnetHost: null as string | null,
+    lanDevnetPort: null as number | null,
     loaded: false,
     /** Set by `revalidateStorageDir()` on startup if the saved storage_dir is
      *  no longer writable (USB unplugged, OneDrive offline, ACL changed).
@@ -109,6 +117,8 @@ export const useSettingsStore = defineStore('settings', {
         this.uploadConcurrency = clampConcurrency(config.upload_concurrency)
         this.prereleaseChannel = config.prerelease_channel ?? false
         this.i18nLocale = config.i18n_locale ?? null
+        this.lanDevnetHost = config.lan_devnet_host ?? null
+        this.lanDevnetPort = config.lan_devnet_port ?? null
         // Capture once on first load — represents the value the Rust side
         // resolved its updater endpoint URL from. Subsequent toggles diverge
         // from this until the next app restart.
@@ -133,6 +143,8 @@ export const useSettingsStore = defineStore('settings', {
           upload_concurrency: this.uploadConcurrency,
           prerelease_channel: this.prereleaseChannel,
           i18n_locale: this.i18nLocale,
+          lan_devnet_host: this.lanDevnetHost,
+          lan_devnet_port: this.lanDevnetPort,
         }
         await invoke('save_config', { config })
       } catch (e) {
@@ -279,6 +291,28 @@ export const useSettingsStore = defineStore('settings', {
         // No manifest or invalid — stay in production mode
         this.devnetActive = false
       }
+    },
+
+    /** Developer option: import a devnet manifest from a LAN `ant-devnet
+     *  --serve-port` host. Downloads the manifest and writes it to the shared
+     *  data dir (the same file a local devnet uses), then persists the host/port
+     *  so it's remembered. The caller restarts the app; on next launch
+     *  `loadDevnetManifest` picks up the written file and connects exactly like a
+     *  local devnet. Throws with a readable message on failure. */
+    async applyLanDevnet(host: string, port: number) {
+      await invoke('import_devnet_manifest_url', { host: host.trim(), port })
+      this.lanDevnetHost = host.trim()
+      this.lanDevnetPort = port
+      await this.saveConfig()
+    },
+
+    /** Developer option: remove the imported devnet manifest and forget the LAN
+     *  host/port, reverting the next launch to production mode. */
+    async clearLanDevnet() {
+      await invoke('clear_devnet_manifest')
+      this.lanDevnetHost = null
+      this.lanDevnetPort = null
+      await this.saveConfig()
     },
 
     /** Re-validate stored credentials on app load */

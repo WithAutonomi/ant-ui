@@ -68,6 +68,21 @@
       "restart_required": "Restart the app to apply this change.",
       "restart_now": "Restart now"
     },
+    "developer": {
+      "title": "Developer Options",
+      "description": "Tools for testing against non-production networks. Not needed for normal use.",
+      "lan_devnet": {
+        "title": "LAN devnet",
+        "description": "Connect to a devnet running on another machine via `ant-devnet --serve-port`. Imports its manifest and restarts to run against it, like a local devnet. The manifest is re-fetched fresh each launch.",
+        "active": "Connected to LAN devnet at {host}:{port}",
+        "address_label": "Host address",
+        "address_placeholder": "192.168.1.100:8088",
+        "apply": "Apply & Restart",
+        "applying": "Importing…",
+        "disconnect": "Disconnect & Restart",
+        "invalid_address": "Enter a host and port as ip:port (e.g. 192.168.1.100:8088)."
+      }
+    },
     "direct_wallet": {
       "title": "Direct Wallet",
       "description": "Connect with a private key (bypasses WalletConnect)",

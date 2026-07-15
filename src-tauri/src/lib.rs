@@ -185,6 +185,78 @@ fn load_devnet_manifest() -> Result<Option<serde_json::Value>, String> {
     })))
 }
 
+/// Download a devnet manifest from a LAN `ant-devnet --serve-port` host and
+/// write it into the shared data dir as `devnet-manifest.json`, so the next
+/// launch loads it exactly like a locally-launched devnet (via
+/// [`load_devnet_manifest`]). Validates the response parses and carries the
+/// `bootstrap` + `evm` fields the loader needs before writing anything.
+///
+/// The manifest is fetched fresh (never cached) — a devnet restart on the host
+/// changes ports and the wallet key, so re-importing is how the user re-syncs.
+#[tauri::command]
+async fn import_devnet_manifest_url(host: String, port: u16) -> Result<(), String> {
+    let host = host.trim();
+    if host.is_empty() {
+        return Err("Host (IP address) is required".into());
+    }
+    let url = format!("http://{host}:{port}/api/devnet-manifest.json");
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| format!("HTTP client error: {e}"))?;
+    let resp = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Could not reach devnet at {host}:{port}: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(format!(
+            "Devnet host returned HTTP {} for {url}",
+            resp.status().as_u16()
+        ));
+    }
+    let text = resp
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read manifest response: {e}"))?;
+
+    // Validate before writing: must parse and carry the fields the loader reads.
+    let manifest: serde_json::Value =
+        serde_json::from_str(&text).map_err(|e| format!("Manifest is not valid JSON: {e}"))?;
+    if !manifest.get("bootstrap").is_some_and(|b| b.is_array()) {
+        return Err("Manifest has no bootstrap peers".into());
+    }
+    if manifest.get("evm").map(|e| e.is_null()).unwrap_or(true) {
+        return Err("Manifest has no EVM configuration".into());
+    }
+
+    let dir = ant_core::config::data_dir().map_err(|e| format!("No data directory: {e}"))?;
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create data directory: {e}"))?;
+    let path = dir.join("devnet-manifest.json");
+    std::fs::write(&path, text.as_bytes()).map_err(|e| format!("Failed to write manifest: {e}"))?;
+    Ok(())
+}
+
+/// Delete any imported/launched devnet manifest from both the shared data dir
+/// and the legacy GUI config dir (mirroring [`load_devnet_manifest`]'s search),
+/// reverting the next launch to production mode.
+#[tauri::command]
+fn clear_devnet_manifest() -> Result<(), String> {
+    let manifest_name = "devnet-manifest.json";
+    if let Ok(dir) = ant_core::config::data_dir() {
+        let path = dir.join(manifest_name);
+        if path.exists() {
+            std::fs::remove_file(&path).map_err(|e| format!("Failed to remove manifest: {e}"))?;
+        }
+    }
+    let legacy = config::config_path().join(manifest_name);
+    if legacy.exists() {
+        let _ = std::fs::remove_file(&legacy);
+    }
+    Ok(())
+}
+
 #[tauri::command]
 async fn daemon_status(url: String) -> Result<bool, String> {
     let resp = reqwest::get(format!("{url}/api/v1/status"))
@@ -1121,6 +1193,8 @@ pub fn run() {
             load_config,
             save_config,
             load_devnet_manifest,
+            import_devnet_manifest_url,
+            clear_devnet_manifest,
             get_app_version,
             daemon_status,
             daemon_request,

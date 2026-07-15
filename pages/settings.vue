@@ -222,50 +222,6 @@
           </div>
         </div>
 
-        <!-- Pre-release channel -->
-        <div class="rounded-lg border border-autonomi-border p-4">
-          <div class="flex items-center justify-between gap-3">
-            <div class="min-w-0 flex-1">
-              <h3 class="text-sm font-medium">{{ $t('settings.prerelease.title') }}</h3>
-              <p class="mt-1 text-xs text-autonomi-muted">
-                {{ $t('settings.prerelease.description') }}
-              </p>
-              <div
-                v-if="prereleaseChannelRestartRequired"
-                class="mt-1.5 flex items-center gap-2"
-              >
-                <p class="text-xs font-medium text-amber-400">
-                  {{ $t('settings.prerelease.restart_required') }}
-                </p>
-                <button
-                  type="button"
-                  class="rounded-md border border-amber-400/40 px-2 py-0.5 text-xs font-medium text-amber-400 hover:bg-amber-400/10"
-                  @click="relaunchApp"
-                >
-                  {{ $t('settings.prerelease.restart_now') }}
-                </button>
-              </div>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              :aria-checked="settingsStore.prereleaseChannel"
-              :class="[
-                'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors',
-                settingsStore.prereleaseChannel ? 'bg-autonomi-blue' : 'bg-autonomi-border',
-              ]"
-              @click="onPrereleaseToggle"
-            >
-              <span
-                :class="[
-                  'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                  settingsStore.prereleaseChannel ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-1 rtl:-translate-x-1',
-                ]"
-              />
-            </button>
-          </div>
-        </div>
-
         <!-- Indelible Enterprise Connection (only show setup when not connected) -->
         <div v-if="!settingsStore.indelibleConnected" class="rounded-lg border border-autonomi-border p-4">
           <div class="flex items-center justify-between">
@@ -491,6 +447,105 @@
             {{ showLog ? $t('settings.diagnostics.hide_log') : $t('settings.diagnostics.show_log') }}
           </button>
         </div>
+
+        <!-- Developer Options -->
+        <div class="rounded-lg border border-teal-500/40 p-4">
+          <h3 class="text-sm font-medium">{{ $t('settings.developer.title') }}</h3>
+          <p class="mt-1 text-xs text-autonomi-muted">{{ $t('settings.developer.description') }}</p>
+
+          <div class="mt-4 space-y-4">
+            <!-- LAN devnet -->
+            <div class="rounded-md border border-teal-500/30 p-3">
+              <h4 class="text-xs font-medium">{{ $t('settings.developer.lan_devnet.title') }}</h4>
+              <p class="mt-1 text-[11px] leading-relaxed text-autonomi-muted">
+                {{ $t('settings.developer.lan_devnet.description') }}
+              </p>
+
+              <p v-if="settingsStore.lanDevnetHost" class="mt-2 text-[11px] font-medium text-green-400">
+                {{ $t('settings.developer.lan_devnet.active', { host: settingsStore.lanDevnetHost, port: settingsStore.lanDevnetPort }) }}
+              </p>
+
+              <div class="mt-2">
+                <label class="mb-1 block text-[11px] text-autonomi-muted">{{ $t('settings.developer.lan_devnet.address_label') }}</label>
+                <input
+                  v-model="lanDevnetAddr"
+                  type="text"
+                  :placeholder="$t('settings.developer.lan_devnet.address_placeholder')"
+                  :disabled="lanDevnetBusy"
+                  class="w-full rounded-md border border-autonomi-border bg-autonomi-dark px-2 py-1 font-mono text-sm text-autonomi-text placeholder-autonomi-muted placeholder:opacity-70 focus:border-autonomi-blue focus:outline-none disabled:opacity-50"
+                  @keyup.enter="onApplyLanDevnet"
+                />
+              </div>
+
+              <p v-if="lanDevnetError" class="mt-1.5 text-[11px] text-red-400">{{ lanDevnetError }}</p>
+
+              <div class="mt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  :disabled="lanDevnetBusy || !lanDevnetAddr.trim()"
+                  class="rounded-md bg-autonomi-blue px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
+                  @click="onApplyLanDevnet"
+                >
+                  {{ lanDevnetBusy ? $t('settings.developer.lan_devnet.applying') : $t('settings.developer.lan_devnet.apply') }}
+                </button>
+                <button
+                  v-if="settingsStore.lanDevnetHost"
+                  type="button"
+                  :disabled="lanDevnetBusy"
+                  class="rounded-md border border-autonomi-border px-3 py-1.5 text-xs text-autonomi-muted hover:text-autonomi-text disabled:opacity-50"
+                  @click="onDisconnectLanDevnet"
+                >
+                  {{ $t('settings.developer.lan_devnet.disconnect') }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Pre-release channel -->
+            <div class="rounded-md border border-teal-500/30 p-3">
+              <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                  <h4 class="text-xs font-medium">{{ $t('settings.prerelease.title') }}</h4>
+                  <p class="mt-1 text-[11px] text-autonomi-muted">
+                    {{ $t('settings.prerelease.description') }}
+                  </p>
+                  <div
+                    v-if="prereleaseChannelRestartRequired"
+                    class="mt-1.5 flex items-center gap-2"
+                  >
+                    <p class="text-[11px] font-medium text-amber-400">
+                      {{ $t('settings.prerelease.restart_required') }}
+                    </p>
+                    <button
+                      type="button"
+                      class="rounded-md border border-amber-400/40 px-2 py-0.5 text-[11px] font-medium text-amber-400 hover:bg-amber-400/10"
+                      @click="relaunchApp"
+                    >
+                      {{ $t('settings.prerelease.restart_now') }}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  :aria-checked="settingsStore.prereleaseChannel"
+                  :class="[
+                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors',
+                    settingsStore.prereleaseChannel ? 'bg-autonomi-blue' : 'bg-autonomi-border',
+                  ]"
+                  @click="onPrereleaseToggle"
+                >
+                  <span
+                    :class="[
+                      'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                      settingsStore.prereleaseChannel ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-1 rtl:-translate-x-1',
+                    ]"
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -1019,6 +1074,58 @@ async function onPrereleaseToggle() {
 async function relaunchApp() {
   const { relaunch } = await import('@tauri-apps/plugin-process')
   await relaunch()
+}
+
+// ── Developer Options: LAN devnet ──
+// Import a manifest from a `ant-devnet --serve-port` host, write it to the local
+// manifest file, then restart so it loads exactly like a local devnet.
+const lanDevnetAddr = ref(
+  settingsStore.lanDevnetHost ? `${settingsStore.lanDevnetHost}:${settingsStore.lanDevnetPort}` : '',
+)
+const lanDevnetBusy = ref(false)
+const lanDevnetError = ref('')
+
+/** Parse a pasted `host:port` (tolerating an `http(s)://` prefix and any
+ *  trailing path) into its parts, or null if it isn't a valid host + port. */
+function parseHostPort(raw: string): { host: string; port: number } | null {
+  const s = raw.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '')
+  const idx = s.lastIndexOf(':')
+  if (idx <= 0 || idx === s.length - 1) return null
+  const host = s.slice(0, idx).trim()
+  const port = Number(s.slice(idx + 1).trim())
+  if (!host || !Number.isInteger(port) || port < 1 || port > 65535) return null
+  return { host, port }
+}
+
+async function onApplyLanDevnet() {
+  lanDevnetError.value = ''
+  const parsed = parseHostPort(lanDevnetAddr.value)
+  if (!parsed) {
+    lanDevnetError.value = t('settings.developer.lan_devnet.invalid_address')
+    return
+  }
+  lanDevnetBusy.value = true
+  try {
+    await settingsStore.applyLanDevnet(parsed.host, parsed.port)
+    // Restart so app.vue's startup reads the freshly-written manifest file.
+    await relaunchApp()
+  } catch (e: any) {
+    lanDevnetError.value = e?.message ?? String(e)
+    lanDevnetBusy.value = false
+  }
+}
+
+async function onDisconnectLanDevnet() {
+  lanDevnetError.value = ''
+  lanDevnetBusy.value = true
+  try {
+    await settingsStore.clearLanDevnet()
+    lanDevnetAddr.value = ''
+    await relaunchApp()
+  } catch (e: any) {
+    lanDevnetError.value = e?.message ?? String(e)
+    lanDevnetBusy.value = false
+  }
 }
 
 async function copyDiagnostics() {

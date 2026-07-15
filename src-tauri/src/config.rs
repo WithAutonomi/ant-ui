@@ -35,6 +35,14 @@ pub struct AppConfig {
     /// English if it doesn't match a shipped locale.
     #[serde(default)]
     pub i18n_locale: Option<String>,
+    /// Developer option: address of a LAN `ant-devnet --serve-port` host whose
+    /// manifest was imported. Remembered so the Developer Options panel can show
+    /// and re-fetch it; the actual connection is driven by the manifest file
+    /// written into the shared data dir on import. `None` when not in use.
+    #[serde(default)]
+    pub lan_devnet_host: Option<String>,
+    #[serde(default)]
+    pub lan_devnet_port: Option<u16>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -133,6 +141,8 @@ impl Default for AppConfig {
             upload_concurrency: default_upload_concurrency(),
             prerelease_channel: false,
             i18n_locale: None,
+            lan_devnet_host: None,
+            lan_devnet_port: None,
         }
     }
 }
