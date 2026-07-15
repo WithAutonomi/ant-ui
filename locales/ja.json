@@ -332,8 +332,13 @@
     },
     "download_dialog": {
       "title": "ファイルをダウンロード",
-      "address_label": "ファイルアドレス",
-      "address_placeholder": "ファイルアドレス (16 進)",
+      "subtitle": "Autonomi ネットワークからファイルを取得",
+      "address_placeholder": "0x… アドレス、autonomi:// リンク、または datamap のパス / URL",
+      "paste_intro": "以下のいずれかを貼り付けできます:",
+      "accept_address": "ネットワークアドレス（0x… / 64桁の16進数）",
+      "accept_link": "autonomi:// 共有リンク（ファイル名を含む）",
+      "accept_datamap": "datamap — ローカルパスまたは URL を貼り付け、または下にドロップ / 参照",
+      "drop_datamap": "​.datamap ファイルをここにドロップ、またはクリックして参照",
       "filename_label": "保存ファイル名",
       "filename_placeholder": "myfile.dat"
     },
@@ -374,8 +379,10 @@
       "cancel_upload": "アップロードをキャンセル",
       "ready_count": "準備完了: {total} 件中 {ready} 件",
       "approve_button_one": "アップロードを承認",
-      "approve_button_many": "{count} 件のアップロードを承認"
-    }
+      "approve_button_many": "{count} 件のアップロードを承認",
+      "get_datamap_button": "datamap を取得"
+    },
+    "download_button": "ダウンロード"
   },
   "wallet": {
     "earnings_heading": "報酬アドレス",

@@ -332,8 +332,13 @@
     },
     "download_dialog": {
       "title": "הורד קובץ",
-      "address_label": "כתובת קובץ",
-      "address_placeholder": "כתובת קובץ (hex)",
+      "subtitle": "אחזור קובץ מרשת Autonomi",
+      "address_placeholder": "כתובת 0x…, קישור autonomi:// או נתיב / כתובת URL של datamap",
+      "paste_intro": "אפשר להדביק כל אחד מהבאים:",
+      "accept_address": "כתובת רשת (0x… / 64 תווים הקסדצימליים)",
+      "accept_link": "קישור שיתוף autonomi:// (כולל את שם הקובץ)",
+      "accept_datamap": "datamap — הדביקו נתיב מקומי או כתובת URL, או גררו / עיינו למטה",
+      "drop_datamap": "גררו לכאן קובץ .datamap, או לחצו כדי לעיין",
       "filename_label": "שמור בשם",
       "filename_placeholder": "myfile.dat"
     },
@@ -374,8 +379,10 @@
       "cancel_upload": "בטל העלאה",
       "ready_count": "מוכן: {ready} מתוך {total}",
       "approve_button_one": "אשר העלאה",
-      "approve_button_many": "אשר {count} העלאות"
-    }
+      "approve_button_many": "אשר {count} העלאות",
+      "get_datamap_button": "קבל datamap"
+    },
+    "download_button": "הורדה"
   },
   "wallet": {
     "earnings_heading": "כתובת רווחים",

@@ -276,6 +276,7 @@
   "files": {
     "upload_button": "Upload File(s)",
     "estimate_button": "Estimate Cost",
+    "download_button": "Download",
     "download_by_address": "Download by Address",
     "download_by_datamap": "Download by Datamap",
     "uploads_heading": "Uploads",
@@ -360,8 +361,13 @@
     },
     "download_dialog": {
       "title": "Download File",
-      "address_label": "File address",
-      "address_placeholder": "File address (hex)",
+      "subtitle": "Fetch a file from the Autonomi Network",
+      "address_placeholder": "0x… address, autonomi:// link, or datamap path / URL",
+      "paste_intro": "You can paste in any of the following:",
+      "accept_address": "A network address (0x… / 64 hex chars)",
+      "accept_link": "An autonomi:// share link (carries the filename)",
+      "accept_datamap": "A datamap — paste a local path or URL, or drop / browse below",
+      "drop_datamap": "Drop a .datamap file here, or click to browse",
       "filename_label": "Save as filename",
       "filename_placeholder": "myfile.dat"
     },
@@ -402,7 +408,8 @@
       "cancel_upload": "Cancel Upload",
       "ready_count": "Ready: {ready} of {total}",
       "approve_button_one": "Approve Upload",
-      "approve_button_many": "Approve {count} Uploads"
+      "approve_button_many": "Approve {count} Uploads",
+      "get_datamap_button": "Get Datamap"
     }
   },
   "wallet": {

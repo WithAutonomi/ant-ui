@@ -332,8 +332,13 @@
     },
     "download_dialog": {
       "title": "Unduh file",
-      "address_label": "Alamat file",
-      "address_placeholder": "Alamat file (hex)",
+      "subtitle": "Ambil berkas dari Jaringan Autonomi",
+      "address_placeholder": "Alamat 0x…, tautan autonomi://, atau jalur / URL datamap",
+      "paste_intro": "Anda dapat menempelkan salah satu dari berikut:",
+      "accept_address": "Alamat jaringan (0x… / 64 karakter hex)",
+      "accept_link": "Tautan berbagi autonomi:// (berisi nama berkas)",
+      "accept_datamap": "Datamap — tempelkan jalur lokal atau URL, atau letakkan / telusuri di bawah",
+      "drop_datamap": "Letakkan berkas .datamap di sini, atau klik untuk menelusuri",
       "filename_label": "Simpan sebagai",
       "filename_placeholder": "myfile.dat"
     },
@@ -374,8 +379,10 @@
       "cancel_upload": "Batalkan unggahan",
       "ready_count": "Siap: {ready} dari {total}",
       "approve_button_one": "Setujui unggahan",
-      "approve_button_many": "Setujui {count} unggahan"
-    }
+      "approve_button_many": "Setujui {count} unggahan",
+      "get_datamap_button": "Dapatkan datamap"
+    },
+    "download_button": "Unduh"
   },
   "wallet": {
     "earnings_heading": "Alamat penghasilan",

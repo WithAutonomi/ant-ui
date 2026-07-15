@@ -27,13 +27,7 @@
               class="flex items-center justify-between text-sm"
             >
               <span class="flex min-w-0 items-center gap-2">
-                <span class="max-w-[200px] truncate">{{ entry.name }}</span>
-                <span
-                  v-if="entry.alreadyStored"
-                  class="shrink-0 rounded bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-green-400"
-                >
-                  {{ $t('files.upload_confirm.already_stored_badge') }}
-                </span>
+                <span class="truncate">{{ entry.name }}</span>
               </span>
               <span class="text-autonomi-muted">{{ entry.size_bytes ? formatBytes(entry.size_bytes) : '-' }}</span>
             </div>
@@ -269,11 +263,12 @@ const someAlreadyStored = computed(() =>
 const anyQuoting = computed(() =>
   entries.value.some(e => e.status === 'quoting' || e.status === 'queued_for_quote'),
 )
-/** Entries that still require a user decision — already-stored files auto-
- *  process through the scheduler and never see `awaiting_approval`, so they
- *  don't count toward the approve gate. */
+/** Entries that require a user decision. Every selected entry does — even an
+ *  already-stored file still needs its private/public visibility confirmed
+ *  (private returns the DataMap, public publishes it), so none are exempt from
+ *  the approve gate. */
 const needsApprovalEntries = computed(() =>
-  entries.value.filter(e => !e.alreadyStored),
+  entries.value,
 )
 const readyCount = computed(() =>
   needsApprovalEntries.value.filter(e => e.status === 'awaiting_approval').length,
@@ -343,6 +338,12 @@ watch(visibility, (val) => {
 })
 
 const approveButtonLabel = computed(() => {
+  // Already-stored + private: nothing is uploaded — the action just returns the
+  // DataMap for retrieval — so the button reads "Get Datamap". Public still
+  // publishes the DataMap on-network, so it stays a normal Approve.
+  if (allAlreadyStored.value && visibility.value === 'private') {
+    return t('files.upload_confirm.get_datamap_button')
+  }
   const n = needsApprovalEntries.value.length
   if (n <= 1) return t('files.upload_confirm.approve_button_one')
   return t('files.upload_confirm.approve_button_many', { count: n })

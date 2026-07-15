@@ -332,8 +332,13 @@
     },
     "download_dialog": {
       "title": "파일 다운로드",
-      "address_label": "파일 주소",
-      "address_placeholder": "파일 주소 (16진수)",
+      "subtitle": "Autonomi 네트워크에서 파일 가져오기",
+      "address_placeholder": "0x… 주소, autonomi:// 링크 또는 datamap 경로 / URL",
+      "paste_intro": "다음 중 하나를 붙여넣을 수 있습니다:",
+      "accept_address": "네트워크 주소 (0x… / 64자리 16진수)",
+      "accept_link": "autonomi:// 공유 링크 (파일 이름 포함)",
+      "accept_datamap": "datamap — 로컬 경로나 URL을 붙여넣거나 아래에 놓기 / 찾아보기",
+      "drop_datamap": ".datamap 파일을 여기에 놓거나 클릭하여 찾아보기",
       "filename_label": "저장할 파일 이름",
       "filename_placeholder": "myfile.dat"
     },
@@ -374,8 +379,10 @@
       "cancel_upload": "업로드 취소",
       "ready_count": "준비됨: {total}개 중 {ready}개",
       "approve_button_one": "업로드 승인",
-      "approve_button_many": "{count}개 업로드 승인"
-    }
+      "approve_button_many": "{count}개 업로드 승인",
+      "get_datamap_button": "datamap 가져오기"
+    },
+    "download_button": "다운로드"
   },
   "wallet": {
     "earnings_heading": "수익 주소",

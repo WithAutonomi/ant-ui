@@ -332,8 +332,13 @@
     },
     "download_dialog": {
       "title": "下載檔案",
-      "address_label": "檔案位址",
-      "address_placeholder": "檔案位址(hex)",
+      "subtitle": "從 Autonomi 網路取得檔案",
+      "address_placeholder": "0x… 位址、autonomi:// 連結或 datamap 路徑 / URL",
+      "paste_intro": "您可以貼上以下任一項目:",
+      "accept_address": "網路位址（0x… / 64 位十六進位）",
+      "accept_link": "autonomi:// 分享連結（包含檔案名稱）",
+      "accept_datamap": "datamap — 貼上本機路徑或 URL，或在下方拖放 / 瀏覽",
+      "drop_datamap": "將 .datamap 檔案拖放到此處，或點擊瀏覽",
       "filename_label": "另存為",
       "filename_placeholder": "myfile.dat"
     },
@@ -374,8 +379,10 @@
       "cancel_upload": "取消上傳",
       "ready_count": "就緒:{ready} / {total}",
       "approve_button_one": "核准上傳",
-      "approve_button_many": "核准 {count} 個上傳"
-    }
+      "approve_button_many": "核准 {count} 個上傳",
+      "get_datamap_button": "取得 datamap"
+    },
+    "download_button": "下載"
   },
   "wallet": {
     "earnings_heading": "收益位址",

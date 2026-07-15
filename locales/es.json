@@ -332,8 +332,13 @@
     },
     "download_dialog": {
       "title": "Descargar archivo",
-      "address_label": "Dirección del archivo",
-      "address_placeholder": "Dirección del archivo (hex)",
+      "subtitle": "Obtener un archivo de la red Autonomi",
+      "address_placeholder": "Dirección 0x…, enlace autonomi:// o ruta / URL de datamap",
+      "paste_intro": "Puedes pegar cualquiera de los siguientes:",
+      "accept_address": "Una dirección de red (0x… / 64 caracteres hex)",
+      "accept_link": "Un enlace autonomi:// para compartir (incluye el nombre del archivo)",
+      "accept_datamap": "Un datamap: pega una ruta local o URL, o suelta / examina abajo",
+      "drop_datamap": "Suelta un archivo .datamap aquí, o haz clic para examinar",
       "filename_label": "Guardar como",
       "filename_placeholder": "miarchivo.dat"
     },
@@ -374,8 +379,10 @@
       "cancel_upload": "Cancelar subida",
       "ready_count": "Listos: {ready} de {total}",
       "approve_button_one": "Aprobar subida",
-      "approve_button_many": "Aprobar {count} subidas"
-    }
+      "approve_button_many": "Aprobar {count} subidas",
+      "get_datamap_button": "Obtener datamap"
+    },
+    "download_button": "Descargar"
   },
   "wallet": {
     "earnings_heading": "Dirección de ingresos",

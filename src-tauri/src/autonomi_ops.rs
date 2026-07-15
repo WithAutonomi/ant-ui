@@ -944,6 +944,7 @@ pub async fn wallet_upload(
     state: tauri::State<'_, AutonomiState>,
     upload_id: String,
     file_path: String,
+    visibility: Option<String>,
 ) -> Result<UploadResult, String> {
     let client_lock = state.client.read().await;
     let client = client_lock
@@ -970,10 +971,21 @@ pub async fn wallet_upload(
 
     let progress_tx = spawn_upload_progress_forwarder(app.clone(), upload_id.clone());
 
-    let result = client
-        .file_upload_with_progress(&canonical, PaymentMode::Auto, Some(progress_tx))
-        .await
-        .map_err(|e| format!("Upload failed: {e}"))?;
+    // Public uploads bundle the serialized DataMap into the payment batch so
+    // it's stored on-network; the resulting chunk address comes back via
+    // `FileUploadResult.data_map_address` and is surfaced as `public_address`.
+    // Private uploads keep the DataMap local only. Default to private.
+    let is_public = matches!(visibility.as_deref(), Some("public"));
+    let result = if is_public {
+        client
+            .file_upload_public_with_progress(&canonical, PaymentMode::Auto, Some(progress_tx))
+            .await
+    } else {
+        client
+            .file_upload_with_progress(&canonical, PaymentMode::Auto, Some(progress_tx))
+            .await
+    }
+    .map_err(|e| format!("Upload failed: {e}"))?;
 
     let data_map_json = serde_json::to_string(&result.data_map)
         .map_err(|e| format!("Failed to serialize DataMap: {e}"))?;
@@ -1131,6 +1143,78 @@ pub fn read_datamap_file(path: String) -> Result<String, String> {
     let data_map = ant_core::data::read_datamap(&canonical)
         .map_err(|e| format!("Failed to read datamap at {path}: {e}"))?;
     serde_json::to_string(&data_map).map_err(|e| format!("Failed to encode datamap at {path}: {e}"))
+}
+
+/// Fetch a persisted DataMap from an `http(s)://` URL and return its JSON.
+///
+/// The URL-based sibling of [`read_datamap_file`]: used by the Download dialog
+/// when the user pastes a URL ending in `.datamap`. The fetched bytes are only
+/// a DataMap (a list of chunk addresses); the file's data is still pulled from
+/// the Autonomi network by `download_file`, so a hostile URL cannot substitute
+/// file content — at worst it points the download at other on-network chunks,
+/// no different from any datamap the user might paste.
+///
+/// Guardrails: a 15s total timeout and a 5 MiB streamed cap. A datamap is a few
+/// KB, so anything larger is treated as a wrong/hostile URL, not a datamap. The
+/// cap is enforced while streaming so a server with no (or a lying)
+/// `Content-Length` can't balloon memory.
+#[tauri::command]
+pub async fn read_datamap_url(url: String) -> Result<String, String> {
+    const MAX_BYTES: usize = 5 * 1024 * 1024;
+
+    let url = url.trim();
+    if !(url.starts_with("http://") || url.starts_with("https://")) {
+        return Err("Datamap URL must start with http:// or https://".into());
+    }
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| format!("HTTP client error: {e}"))?;
+
+    let mut resp = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch datamap: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!(
+            "Datamap URL returned HTTP {}",
+            resp.status().as_u16()
+        ));
+    }
+    // Fast-fail when the server declares an oversized body up front.
+    if let Some(len) = resp.content_length() {
+        if len as usize > MAX_BYTES {
+            return Err(format!("Datamap response too large ({len} bytes)"));
+        }
+    }
+
+    // Stream the body, enforcing the cap as we go — never trust Content-Length.
+    let mut bytes: Vec<u8> = Vec::new();
+    while let Some(chunk) = resp
+        .chunk()
+        .await
+        .map_err(|e| format!("Failed to read datamap response: {e}"))?
+    {
+        if bytes.len() + chunk.len() > MAX_BYTES {
+            return Err(format!("Datamap response too large (> {MAX_BYTES} bytes)"));
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+
+    // Reuse ant-core's format-sniffing reader (msgpack canonical / legacy JSON,
+    // plus any future envelope) by round-tripping through a temp file keyed on
+    // the content hash so concurrent fetches don't collide.
+    let digest = Sha256::digest(&bytes);
+    let tmp = std::env::temp_dir().join(format!("ant-gui-datamap-{digest:x}.datamap"));
+    std::fs::write(&tmp, &bytes).map_err(|e| format!("Failed to buffer datamap: {e}"))?;
+    let parsed = ant_core::data::read_datamap(&tmp);
+    let _ = std::fs::remove_file(&tmp);
+    let data_map = parsed.map_err(|e| format!("Not a valid datamap: {e}"))?;
+
+    serde_json::to_string(&data_map).map_err(|e| format!("Failed to encode datamap: {e}"))
 }
 
 /// Check if the data client is currently connected.

@@ -332,8 +332,13 @@
     },
     "download_dialog": {
       "title": "Скачати файл",
-      "address_label": "Адреса файлу",
-      "address_placeholder": "Адреса файлу (hex)",
+      "subtitle": "Отримати файл із мережі Autonomi",
+      "address_placeholder": "Адреса 0x…, посилання autonomi:// або шлях / URL датамапу",
+      "paste_intro": "Можна вставити будь-що з наведеного:",
+      "accept_address": "Мережева адреса (0x… / 64 hex-символи)",
+      "accept_link": "Посилання autonomi:// для обміну (містить назву файлу)",
+      "accept_datamap": "Датамап — вставте локальний шлях або URL, або перетягніть / оберіть нижче",
+      "drop_datamap": "Перетягніть сюди файл .datamap або натисніть, щоб обрати",
       "filename_label": "Зберегти як",
       "filename_placeholder": "myfile.dat"
     },
@@ -374,8 +379,10 @@
       "cancel_upload": "Скасувати завантаження",
       "ready_count": "Готово: {ready} з {total}",
       "approve_button_one": "Схвалити завантаження",
-      "approve_button_many": "Схвалити {count} завантажень"
-    }
+      "approve_button_many": "Схвалити {count} завантажень",
+      "get_datamap_button": "Отримати датамап"
+    },
+    "download_button": "Завантажити"
   },
   "wallet": {
     "earnings_heading": "Адреса винагород",

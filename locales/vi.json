@@ -332,8 +332,13 @@
     },
     "download_dialog": {
       "title": "Tải xuống tệp",
-      "address_label": "Địa chỉ tệp",
-      "address_placeholder": "Địa chỉ tệp (hex)",
+      "subtitle": "Lấy tệp từ Mạng Autonomi",
+      "address_placeholder": "Địa chỉ 0x…, liên kết autonomi:// hoặc đường dẫn / URL datamap",
+      "paste_intro": "Bạn có thể dán bất kỳ mục nào sau đây:",
+      "accept_address": "Một địa chỉ mạng (0x… / 64 ký tự hex)",
+      "accept_link": "Một liên kết chia sẻ autonomi:// (chứa tên tệp)",
+      "accept_datamap": "Một datamap — dán đường dẫn cục bộ hoặc URL, hoặc thả / duyệt bên dưới",
+      "drop_datamap": "Thả tệp .datamap vào đây, hoặc nhấp để duyệt",
       "filename_label": "Lưu thành",
       "filename_placeholder": "myfile.dat"
     },
@@ -374,8 +379,10 @@
       "cancel_upload": "Hủy tải lên",
       "ready_count": "Sẵn sàng: {ready} / {total}",
       "approve_button_one": "Phê duyệt tải lên",
-      "approve_button_many": "Phê duyệt {count} tải lên"
-    }
+      "approve_button_many": "Phê duyệt {count} tải lên",
+      "get_datamap_button": "Lấy datamap"
+    },
+    "download_button": "Tải xuống"
   },
   "wallet": {
     "earnings_heading": "Địa chỉ thu nhập",

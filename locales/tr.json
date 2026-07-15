@@ -332,8 +332,13 @@
     },
     "download_dialog": {
       "title": "Dosyayı indir",
-      "address_label": "Dosya adresi",
-      "address_placeholder": "Dosya adresi (hex)",
+      "subtitle": "Autonomi Ağı'ndan bir dosya getir",
+      "address_placeholder": "0x… adresi, autonomi:// bağlantısı veya datamap yolu / URL",
+      "paste_intro": "Aşağıdakilerden herhangi birini yapıştırabilirsiniz:",
+      "accept_address": "Bir ağ adresi (0x… / 64 hex karakter)",
+      "accept_link": "Bir autonomi:// paylaşım bağlantısı (dosya adını içerir)",
+      "accept_datamap": "Bir datamap — yerel bir yol veya URL yapıştırın ya da aşağıya bırakın / göz atın",
+      "drop_datamap": "Bir .datamap dosyasını buraya bırakın veya göz atmak için tıklayın",
       "filename_label": "Farklı kaydet",
       "filename_placeholder": "myfile.dat"
     },
@@ -374,8 +379,10 @@
       "cancel_upload": "Yüklemeyi iptal et",
       "ready_count": "Hazır: {total} içinden {ready}",
       "approve_button_one": "Yüklemeyi onayla",
-      "approve_button_many": "{count} yüklemeyi onayla"
-    }
+      "approve_button_many": "{count} yüklemeyi onayla",
+      "get_datamap_button": "Datamap al"
+    },
+    "download_button": "İndir"
   },
   "wallet": {
     "earnings_heading": "Kazanç adresi",

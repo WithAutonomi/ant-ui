@@ -449,17 +449,19 @@ export const useFilesStore = defineStore('files', {
           && estimate.storage_cost_atto === '0'
           && estimate.estimated_gas_cost_wei === '0'
 
-        // Already-stored entries skip awaiting_approval entirely — there's
-        // no user decision to make (no payment, no real upload). Route them
-        // straight into the upload queue so the scheduler drives them through
-        // to `complete` without a ceremonial Approve click.
+        // Even when every data chunk is already on the network the user still
+        // has a real decision to make: a private upload returns/writes the
+        // DataMap for later retrieval, a public upload publishes the DataMap
+        // on-network so it can be shared. Neither is a no-op, so always route
+        // through awaiting_approval and require an explicit Approve rather than
+        // silently queuing already-stored files with a default visibility.
         this.updateEntry(id, {
           estimate,
           paymentMode: estimate.payment_mode === 'merkle' ? 'merkle' : 'regular',
           cost: formatNanoTokens(estimate.storage_cost_atto),
           gas_cost: formatGasCost(estimate.estimated_gas_cost_wei),
           alreadyStored,
-          status: alreadyStored ? 'queued_for_upload' : 'awaiting_approval',
+          status: 'awaiting_approval',
         })
       } else {
         this.updateEntry(id, { status: 'awaiting_approval' })
@@ -615,7 +617,8 @@ export const useFilesStore = defineStore('files', {
             address: string
             chunks_stored: number
             data_map_file: string
-          }>('wallet_upload', { uploadId: String(id), filePath: entry.path })
+            public_address: string | null
+          }>('wallet_upload', { uploadId: String(id), filePath: entry.path, visibility: options.visibility })
 
           const duration = entry.transferStartedAt
             ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
@@ -624,6 +627,7 @@ export const useFilesStore = defineStore('files', {
             status: 'complete',
             progress: 100,
             address: result.address,
+            public_address: result.public_address ?? undefined,
             data_map_json: result.data_map_json,
             data_map_file: result.data_map_file,
             duration,
@@ -970,6 +974,48 @@ export const useFilesStore = defineStore('files', {
         address,
         data_map_json: json,
         data_map_file: datamapPath,
+        status: 'downloading',
+        dest_path: destPath,
+        progress: 0,
+        date: new Date().toISOString(),
+        transferStartedAt: Date.now(),
+      })
+      return id
+    },
+
+    /** Fetch a datamap from an `http(s)` URL and stage a download row, exactly
+     *  like {@link downloadFromDatamapFile} but sourcing the DataMap over the
+     *  network. The file's data is still pulled from Autonomi via the resolved
+     *  DataMap. Returns the new row id, or null if the fetch/parse failed. */
+    async downloadFromDatamapUrl(
+      url: string,
+      filename?: string,
+    ): Promise<number | null> {
+      const toasts = useToastStore()
+
+      let json: string
+      try {
+        json = await invoke<string>('read_datamap_url', { url })
+      } catch (e: any) {
+        toasts.add(t('files.toast.datamap_read_failed', { error: e.message ?? e }), 'error')
+        return null
+      }
+
+      const cleanUrl = url.split(/[?#]/)[0]
+      const basename = cleanUrl.split(/[\\/]/).pop() ?? 'download'
+      const fallback = basename.replace(/\.datamap$/i, '') || basename
+      const finalName = filename?.trim() || fallback
+      const address = await sha256Hex(json)
+      const destPath = `${this.getDownloadDir()}/${finalName}`
+
+      const id = this.nextId++
+      this.files.unshift({
+        id,
+        kind: 'download',
+        name: finalName,
+        size_bytes: 0,
+        address,
+        data_map_json: json,
         status: 'downloading',
         dest_path: destPath,
         progress: 0,

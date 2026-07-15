@@ -332,8 +332,13 @@
     },
     "download_dialog": {
       "title": "تنزيل ملف",
-      "address_label": "عنوان الملف",
-      "address_placeholder": "عنوان الملف (سداسي عشري)",
+      "subtitle": "جلب ملف من شبكة Autonomi",
+      "address_placeholder": "عنوان 0x… أو رابط autonomi:// أو مسار / رابط datamap",
+      "paste_intro": "يمكنك لصق أي مما يلي:",
+      "accept_address": "عنوان شبكة (0x… / 64 حرفًا ست عشريًا)",
+      "accept_link": "رابط مشاركة autonomi:// (يتضمن اسم الملف)",
+      "accept_datamap": "ملف datamap — الصق مسارًا محليًا أو رابطًا، أو أفلِت / تصفّح بالأسفل",
+      "drop_datamap": "أفلِت ملف .datamap هنا، أو انقر للتصفح",
       "filename_label": "حفظ باسم",
       "filename_placeholder": "myfile.dat"
     },
@@ -374,8 +379,10 @@
       "cancel_upload": "إلغاء الرفع",
       "ready_count": "جاهز: {ready} من {total}",
       "approve_button_one": "الموافقة على الرفع",
-      "approve_button_many": "الموافقة على {count} عمليات رفع"
-    }
+      "approve_button_many": "الموافقة على {count} عمليات رفع",
+      "get_datamap_button": "الحصول على datamap"
+    },
+    "download_button": "تنزيل"
   },
   "wallet": {
     "earnings_heading": "عنوان الأرباح",
