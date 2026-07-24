@@ -21,6 +21,13 @@ jobs:
     # - docs-only changes — `docs:` and `docs(scope):` conventional-commit
     #   prefixes on push and on PR title. typecheck/vitest don't exercise
     #   markdown, so running them on README/CONTRIBUTING edits is no-op signal.
+    # - CI/workflow-only changes — `ci:` and `ci(scope):` prefixes, same
+    #   mechanism. app code doesn't exercise workflow YAML; Actions still
+    #   surfaces parse errors when it loads the changed workflow.
+    # Job-level `if:` (not paths-ignore on the trigger) so skipped jobs still
+    # report a conclusion and satisfy required checks instead of hanging as
+    # "Expected". The skip trusts the title/message prefix — a mislabeled PR
+    # bypasses validation, same exposure for all three prefixes.
     # `startsWith(null, ...)` returns false, so each absent context evaluates
     # safely — on push events `pull_request.title` is null and vice versa.
     if: >-
@@ -30,6 +37,10 @@ jobs:
       && !startsWith(github.event.head_commit.message, 'docs(')
       && !startsWith(github.event.pull_request.title, 'docs:')
       && !startsWith(github.event.pull_request.title, 'docs(')
+      && !startsWith(github.event.head_commit.message, 'ci:')
+      && !startsWith(github.event.head_commit.message, 'ci(')
+      && !startsWith(github.event.pull_request.title, 'ci:')
+      && !startsWith(github.event.pull_request.title, 'ci(')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -56,6 +67,10 @@ jobs:
       && !startsWith(github.event.head_commit.message, 'docs(')
       && !startsWith(github.event.pull_request.title, 'docs:')
       && !startsWith(github.event.pull_request.title, 'docs(')
+      && !startsWith(github.event.head_commit.message, 'ci:')
+      && !startsWith(github.event.head_commit.message, 'ci(')
+      && !startsWith(github.event.pull_request.title, 'ci:')
+      && !startsWith(github.event.pull_request.title, 'ci(')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
