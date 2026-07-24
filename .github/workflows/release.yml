@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       ant_version:
-        description: "ant-client release tag to bundle (e.g. ant-cli-v0.1.2-rc.17). Leave empty to use the latest ant-client release."
+        description: "ant-client release tag to bundle (e.g. ant-cli-v0.1.2-rc.17). Leave empty to use the .ant-version pin."
         required: false
 
 env:
@@ -58,17 +58,25 @@ jobs:
       - name: resolve version
         id: resolve
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # env, not inline ${{ }} in the script: keeps the user-supplied
+          # value out of the shell text (injection surface).
+          INPUT: ${{ github.event.inputs.ant_version }}
         run: |
-          # Priority: workflow_dispatch input > latest ant-client release
-          INPUT="${{ github.event.inputs.ant_version }}"
-
+          # Priority: workflow_dispatch input > .ant-version pin.
+          # The pin lives in-repo so the sidecar travels with the tag:
+          # tag-push builds are reproducible and can't race an ant-client
+          # release that lands mid-wave. Bump it like any other pin.
           if [ -n "$INPUT" ]; then
             TAG="$INPUT"
             echo "Source: workflow_dispatch input"
-          else
-            TAG=$(gh release list --repo WithAutonomi/ant-client --limit 1 --json tagName --jq '.[0].tagName')
-            echo "Source: latest ant-client release ($TAG)"
+          elif [ -s .ant-version ]; then
+            TAG=$(tr -d '[:space:]' < .ant-version)
+            echo "Source: .ant-version pin"
+          fi
+
+          if [ -z "${TAG:-}" ]; then
+            echo "::error::.ant-version missing/empty and no ant_version input — refusing to float to latest ant-client release"
+            exit 1
           fi
 
           # Extract version number (strip ant-cli-v prefix)
