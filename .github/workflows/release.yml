@@ -57,20 +57,24 @@ jobs:
 
       - name: resolve version
         id: resolve
+        env:
+          # env, not inline ${{ }} in the script: keeps the user-supplied
+          # value out of the shell text (injection surface).
+          INPUT: ${{ github.event.inputs.ant_version }}
         run: |
           # Priority: workflow_dispatch input > .ant-version pin.
           # The pin lives in-repo so the sidecar travels with the tag:
           # tag-push builds are reproducible and can't race an ant-client
           # release that lands mid-wave. Bump it like any other pin.
-          INPUT="${{ github.event.inputs.ant_version }}"
-
           if [ -n "$INPUT" ]; then
             TAG="$INPUT"
             echo "Source: workflow_dispatch input"
           elif [ -s .ant-version ]; then
             TAG=$(tr -d '[:space:]' < .ant-version)
             echo "Source: .ant-version pin"
-          else
+          fi
+
+          if [ -z "${TAG:-}" ]; then
             echo "::error::.ant-version missing/empty and no ant_version input — refusing to float to latest ant-client release"
             exit 1
           fi
