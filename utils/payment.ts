@@ -212,6 +212,19 @@ export async function payForMerkleTree(
   throw new Error('MerklePaymentMade event not found in transaction receipt')
 }
 
+/** Standing ERC20 allowance granted to the PaymentVault: 1 ANT (18 decimals).
+ *  Approving the exact quote amount would be consumed in full by the payment
+ *  that follows, forcing a fresh approve — and a second wallet prompt — on
+ *  every upload. A standing amount lets subsequent uploads skip straight to
+ *  the payment tx until it drains. Bounded rather than unlimited so wallet
+ *  allowance warnings stay reasonable and exposure to the vault is capped. */
+export const STANDING_ALLOWANCE = 10n ** 18n
+
+/** Amount to approve when the current allowance can't cover `needed`. */
+export function approvalAmountFor(needed: bigint): bigint {
+  return needed > STANDING_ALLOWANCE ? needed : STANDING_ALLOWANCE
+}
+
 /**
  * Ensure the PaymentVault has sufficient ERC20 allowance.
  * Returns gas spent on approval (0 if no approval needed).
@@ -233,7 +246,7 @@ async function ensureAllowance(wagmiConfig: any, needed: bigint): Promise<bigint
     abi: paymentTokenAbi,
     address: getTokenAddress(),
     functionName: 'approve',
-    args: [getVaultAddress(), needed],
+    args: [getVaultAddress(), approvalAmountFor(needed)],
     chainId: getActiveChainId(),
     // V2-231: override BOTH fees so EIP-1559's maxFee >= maxPriority holds.
     maxFeePerGas: 1_000_000_000n,
