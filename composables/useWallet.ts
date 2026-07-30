@@ -130,15 +130,20 @@ async function syncFromAppKit() {
   const settingsStore = useSettingsStore()
   if (settingsStore._devnetWalletKeySet) return
 
-  const { useAppKitAccount } = await import('@reown/appkit/vue')
+  const { useAppKitAccount, useAppKitNetwork } = await import('@reown/appkit/vue')
 
   // Re-check after async import — key may have been set during the await.
   if (settingsStore._devnetWalletKeySet) return
 
   const walletStore = useWalletStore()
   const account = useAppKitAccount()
+  const network = useAppKitNetwork()
   const address = computed(() => (account.value as any)?.address as string | undefined)
   const isConnected = computed(() => (account.value as any)?.isConnected as boolean | undefined)
+  const sessionChainId = computed(() => {
+    const id = (network.value as any)?.chainId
+    return id === undefined || id === null ? undefined : Number(id)
+  })
 
   watch(
     [isConnected, address],
@@ -148,9 +153,11 @@ async function syncFromAppKit() {
       walletStore.paymentAddress = addr ?? null
       if (connected && addr) {
         // Move the wallet onto our target chain before reading balances, so
-        // our panel and the AppKit modal agree (GH #85 / V2-474). If the
-        // switch doesn't complete, flag it for the "wrong network" banner.
-        walletStore.wrongNetwork = !(await ensureActiveChain())
+        // our panel and the AppKit modal agree (GH #85 / V2-474). Silent
+        // one-shot attempt — the chain watcher below owns the wrong-network
+        // flag, so a declined/unsurfaced request shows the banner and a
+        // successful one never does.
+        await ensureActiveChain()
         refreshBalances()
       } else {
         walletStore.balance = null
@@ -159,6 +166,29 @@ async function syncFromAppKit() {
         walletStore.usdcBalance = null
         walletStore.wrongNetwork = false
       }
+    },
+    { immediate: true },
+  )
+
+  // The wrong-network banner tracks the LIVE session chain, not a snapshot
+  // taken at connect. A switch request that MetaMask surfaces late (its
+  // request queue only shows when the app is foregrounded) used to leave a
+  // stale banner after the user approved it — the flag was set once and
+  // nothing re-evaluated. Deriving it from the session chain means the
+  // banner only shows while the mismatch is real and actionable, and
+  // disappears by itself the moment the wallet lands on the target chain,
+  // however that happens (our request, the queued one, or a manual switch).
+  let hadMismatch = false
+  watch(
+    [isConnected, sessionChainId],
+    ([connected, chainId]) => {
+      if (settingsStore._devnetWalletKeySet) return
+      const mismatch = !!connected && chainId !== undefined && chainId !== getActiveChainId()
+      walletStore.wrongNetwork = mismatch
+      // Mismatch just resolved — re-read balances so the panel reflects the
+      // now-agreeing chain without waiting for a manual refresh.
+      if (hadMismatch && !mismatch && connected) refreshBalances()
+      hadMismatch = mismatch
     },
     { immediate: true },
   )
