@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "Đang mã hóa…",
+      "approve_in_wallet": "Mở ứng dụng ví của bạn và xác nhận giao dịch thanh toán",
       "quoting_pct": "Báo giá · {pct}%",
       "quoting_indeterminate": "Đang báo giá…",
       "storing_pct": "Đang lưu · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "Đang lưu datamap…",
       "network_unavailable": "Mạng không khả dụng",
       "ready_to_approve": "Sẵn sàng phê duyệt",
-      "awaiting_approval": "Đang chờ phê duyệt",
+      "awaiting_approval": "Phê duyệt trong ví của bạn",
       "uploading": "Đang tải lên",
       "downloading": "Đang tải xuống",
       "done": "Hoàn tất",

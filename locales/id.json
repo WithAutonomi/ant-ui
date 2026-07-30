@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "Mengenkripsi…",
+      "approve_in_wallet": "Buka aplikasi dompet Anda dan konfirmasi transaksi pembayaran",
       "quoting_pct": "Penawaran · {pct}%",
       "quoting_indeterminate": "Penawaran…",
       "storing_pct": "Menyimpan · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "Menyimpan datamap…",
       "network_unavailable": "Jaringan tidak tersedia",
       "ready_to_approve": "Siap disetujui",
-      "awaiting_approval": "Menunggu persetujuan",
+      "awaiting_approval": "Setujui di dompet Anda",
       "uploading": "Mengunggah",
       "downloading": "Mengunduh",
       "done": "Selesai",

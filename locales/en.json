@@ -326,6 +326,7 @@
     },
     "stage": {
       "encrypting": "Encrypting…",
+      "approve_in_wallet": "Open your wallet app and confirm the payment transaction",
       "quoting_pct": "Quoting · {pct}%",
       "quoting_indeterminate": "Quoting…",
       "storing_pct": "Storing · {pct}%",
@@ -514,7 +515,7 @@
       "saving_datamap": "Saving datamap…",
       "network_unavailable": "Network unavailable",
       "ready_to_approve": "Ready to approve",
-      "awaiting_approval": "Awaiting approval",
+      "awaiting_approval": "Approve in your wallet",
       "uploading": "Uploading",
       "downloading": "Downloading",
       "done": "Done",

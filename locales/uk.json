@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "Шифрування…",
+      "approve_in_wallet": "Відкрийте застосунок гаманця та підтвердьте платіжну транзакцію",
       "quoting_pct": "Котирування · {pct}%",
       "quoting_indeterminate": "Котирування…",
       "storing_pct": "Збереження · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "Збереження datamap…",
       "network_unavailable": "Мережа недоступна",
       "ready_to_approve": "Готово до схвалення",
-      "awaiting_approval": "Очікує схвалення",
+      "awaiting_approval": "Схваліть у гаманці",
       "uploading": "Завантаження",
       "downloading": "Скачування",
       "done": "Готово",

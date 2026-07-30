@@ -500,6 +500,14 @@ function statusLabel(file: FileEntry): string {
  *  the bar above shows global progress. Returns null when there's nothing
  *  useful to show (no event yet, or the row isn't in an active state). */
 function stageDetail(file: FileEntry): string | null {
+  // While the wallet signature request is pending, the user is the one
+  // being waited on — say so instead of leaving the last quote-stage
+  // percentage on screen. `paying` is only reachable in the WalletConnect
+  // flow (direct-key payment runs inside Rust), so the instruction to open
+  // the wallet app is always accurate here. Already-stored rows pass
+  // through `paying` in milliseconds with a zero-cost payment and no
+  // wallet prompt — don't flash the instruction for those.
+  if (file.status === 'paying' && !file.alreadyStored) return t('files.stage.approve_in_wallet')
   if (!file.stage) return null
   const done = file.stageDone ?? 0
   const total = file.stageTotal

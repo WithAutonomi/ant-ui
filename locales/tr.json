@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "Şifreleniyor…",
+      "approve_in_wallet": "Cüzdan uygulamanızı açın ve ödeme işlemini onaylayın",
       "quoting_pct": "Teklif alınıyor · {pct}%",
       "quoting_indeterminate": "Teklif alınıyor…",
       "storing_pct": "Depolanıyor · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "datamap kaydediliyor…",
       "network_unavailable": "Ağ kullanılamıyor",
       "ready_to_approve": "Onaylamaya hazır",
-      "awaiting_approval": "Onay bekleniyor",
+      "awaiting_approval": "Cüzdanınızda onaylayın",
       "uploading": "Yükleniyor",
       "downloading": "İndiriliyor",
       "done": "Tamamlandı",

@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "Chiffrement…",
+      "approve_in_wallet": "Ouvrez l'application de votre portefeuille et confirmez la transaction de paiement",
       "quoting_pct": "Devis · {pct}%",
       "quoting_indeterminate": "Obtention du devis…",
       "storing_pct": "Stockage · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "Enregistrement du DataMap…",
       "network_unavailable": "Réseau indisponible",
       "ready_to_approve": "Prêt à approuver",
-      "awaiting_approval": "En attente d'approbation",
+      "awaiting_approval": "Approuvez dans votre portefeuille",
       "uploading": "Téléversement",
       "downloading": "Téléchargement",
       "done": "Terminé",

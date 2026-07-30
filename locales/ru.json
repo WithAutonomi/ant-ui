@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "Шифрование…",
+      "approve_in_wallet": "Откройте приложение кошелька и подтвердите транзакцию оплаты",
       "quoting_pct": "Получение стоимости · {pct}%",
       "quoting_indeterminate": "Получение стоимости",
       "storing_pct": "Загрузка в сеть · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "Сохранение datamap…",
       "network_unavailable": "Сеть недоступна",
       "ready_to_approve": "Готов к одобрению",
-      "awaiting_approval": "Ожидает одобрения",
+      "awaiting_approval": "Подтвердите в кошельке",
       "uploading": "Загрузка",
       "downloading": "Скачивание",
       "done": "Готово",

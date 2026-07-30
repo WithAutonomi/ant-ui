@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "מצפין…",
+      "approve_in_wallet": "פתח את אפליקציית הארנק שלך ואשר את עסקת התשלום",
       "quoting_pct": "מתמחר · {pct}%",
       "quoting_indeterminate": "מתמחר…",
       "storing_pct": "מאחסן · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "שומר datamap…",
       "network_unavailable": "הרשת לא זמינה",
       "ready_to_approve": "מוכן לאישור",
-      "awaiting_approval": "ממתין לאישור",
+      "awaiting_approval": "אשר בארנק שלך",
       "uploading": "מעלה",
       "downloading": "מוריד",
       "done": "הושלם",
