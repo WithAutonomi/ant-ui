@@ -676,6 +676,18 @@ export const useFilesStore = defineStore('files', {
           this._transferIdToRowId[uploadId] = id
         }
 
+        // The row may have been cancelled while the quote above was in
+        // flight — cancelPendingUpload allows it, and quote collection can
+        // legitimately take minutes. updateEntry silently no-ops on removed
+        // rows, so without this check the flow would march on into a real
+        // on-chain payment (and chunk storage) for an upload the user
+        // cancelled, spending funds with no visible row or history entry.
+        // Once `paying` is set below no further removal is possible
+        // (cancelPendingUpload refuses paying rows), so this single guard
+        // closes the race. The daemon's parked PreparedUpload is reclaimed
+        // by gc_pending_uploads on a later start_upload.
+        if (!this.findById(id)) return
+
         this.updateEntry(id, { status: 'paying' })
 
         if (quote.payment_mode === 'merkle') {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mockInvoke, resetTauriMocks, setMockInvokeHandler } from '../mocks/tauri'
+import { mockInvoke, mockListen, resetTauriMocks, setMockInvokeHandler } from '../mocks/tauri'
 import { useFilesStore } from '~/stores/files'
 
 describe('files store — upload history persistence', () => {
@@ -98,6 +98,54 @@ describe('files store — upload history persistence', () => {
       mockInvoke.mockImplementationOnce(() => [])
       await store.loadHistory()
       expect(store.historyLoadFailed).toBe(false)
+    })
+  })
+
+  describe('cancel during the post-approval quote', () => {
+    it('aborts before payment when the row is cancelled while the quote is in flight', async () => {
+      store.files.push({
+        id: 1,
+        kind: 'upload',
+        name: 'a.bin',
+        size_bytes: 10,
+        path: 'C:/tmp/a.bin',
+        status: 'queued_for_upload',
+        date: '2026-07-30T00:00:00Z',
+      } as any)
+
+      // Capture the upload-quote listener so the mocked backend can answer.
+      let quoteCb: ((event: any) => void) | null = null
+      mockListen.mockImplementation(((event: string, cb: any) => {
+        if (event === 'upload-quote') quoteCb = cb
+        return Promise.resolve(vi.fn())
+      }) as any)
+
+      const invoked: string[] = []
+      setMockInvokeHandler((cmd, args) => {
+        invoked.push(cmd)
+        if (cmd === 'start_upload') {
+          // The user cancels the row while the quote is being collected…
+          store.cancelPendingUpload(1)
+          // …and the backend still answers with a (free) quote. With
+          // payment_required=false the pre-fix flow would fall straight
+          // through to confirm_upload — the sentinel asserted below.
+          quoteCb?.({
+            payload: {
+              upload_id: args.request.upload_id,
+              payment_mode: 'regular',
+              payments: [],
+              total_cost: '0',
+              payment_required: false,
+            },
+          })
+        }
+      })
+
+      await store.startRealUpload(1, {}, { visibility: 'private', paymentMode: 'regular' })
+
+      expect(store.findById(1)).toBeUndefined()
+      expect(invoked).toContain('start_upload')
+      expect(invoked).not.toContain('confirm_upload')
     })
   })
 })
