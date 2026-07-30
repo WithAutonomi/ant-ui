@@ -21,6 +21,13 @@ import {
 const labelledArbitrumOne = { ...SUPPORTED_CHAIN, name: 'Arbitrum One (Mainnet)' }
 const labelledArbitrumSepolia = { ...arbitrumSepolia, name: 'Arbitrum Sepolia (Testnet)' }
 
+// WalletConnect explorer id for MetaMask (verified against
+// explorer-api.walletconnect.com). Pinned as the only featured wallet so the
+// connect modal presents just: the QR/URI option, MetaMask, and search —
+// instead of the default explorer spread of recommended wallets. Any other
+// wallet stays reachable via search or by scanning the QR.
+const METAMASK_WALLET_ID = 'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96'
+
 export default defineNuxtPlugin(async () => {
   // In local Anvil devnet mode, skip AppKit entirely — use direct wagmi config.
   // Detected by VITE_DEVNET env var since manifest isn't loaded yet at plugin time.
@@ -75,6 +82,14 @@ export default defineNuxtPlugin(async () => {
       // advertise an unreachable "Browser" connector card.
       enableInjected: false,
       enableEIP6963: false,
+      // Pin MetaMask as the sole featured wallet (see METAMASK_WALLET_ID
+      // above). Deliberately NOT includeWalletIds — that would restrict the
+      // All Wallets / search results to the listed ids and break search.
+      featuredWalletIds: [METAMASK_WALLET_ID],
+      // Drop the "Haven't got a wallet?" onboarding footer — one less block
+      // between the user and the three things we present (QR, MetaMask,
+      // search).
+      enableWalletGuide: false,
       themeMode: 'dark',
     })
 
@@ -89,8 +104,24 @@ export default defineNuxtPlugin(async () => {
     // in OptionsControllerStateInternal, which Reown does not expose on the
     // createAppKit options type even though setIsUniversalProvider is the
     // setter the SDK itself uses.
-    const { OptionsController } = await import('@reown/appkit-controllers')
+    const { OptionsController, ApiController } = await import('@reown/appkit-controllers')
     OptionsController.setIsUniversalProvider(true)
+
+    // Suppress the explorer "recommended wallets" rows so the connect list is
+    // just the QR option + MetaMask. There is no public option for this:
+    // AppKit fills a hard-coded budget of 4 wallet rows (ConnectorUtil
+    // DISPLAYED_WALLETS_AMOUNT) with explorer recommendations after our one
+    // featured wallet, and `includeWalletIds` — the only official filter —
+    // would also restrict the All Wallets / search results, which must keep
+    // finding any wallet. So blank the recommended state whenever a fetch
+    // repopulates it (guarded, so the reset itself doesn't re-trigger).
+    // `allRecommended` too: namespace filtering restores `recommended` from it.
+    ApiController.subscribeKey('recommended', (wallets) => {
+      if (wallets?.length) {
+        ApiController.state.recommended = []
+        ApiController.state.allRecommended = []
+      }
+    })
 
     return {
       provide: {
