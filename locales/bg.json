@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "Шифроване…",
+      "approve_in_wallet": "Отворете приложението на портфейла си и потвърдете транзакцията за плащане",
       "quoting_pct": "Оферта · {pct}%",
       "quoting_indeterminate": "Получаване на оферта…",
       "storing_pct": "Съхранение · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "Запазване на DataMap…",
       "network_unavailable": "Мрежата е недостъпна",
       "ready_to_approve": "Готово за одобрение",
-      "awaiting_approval": "Очаква одобрение",
+      "awaiting_approval": "Одобрете в портфейла си",
       "uploading": "Качване",
       "downloading": "Изтегляне",
       "done": "Готово",

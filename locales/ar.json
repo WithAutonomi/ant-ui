@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "جارٍ التشفير…",
+      "approve_in_wallet": "افتح تطبيق محفظتك وأكد معاملة الدفع",
       "quoting_pct": "تسعير · {pct}%",
       "quoting_indeterminate": "جارٍ التسعير…",
       "storing_pct": "تخزين · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "جارٍ حفظ datamap…",
       "network_unavailable": "الشبكة غير متاحة",
       "ready_to_approve": "جاهز للموافقة",
-      "awaiting_approval": "بانتظار الموافقة",
+      "awaiting_approval": "وافق في محفظتك",
       "uploading": "جارٍ الرفع",
       "downloading": "جارٍ التنزيل",
       "done": "تم",

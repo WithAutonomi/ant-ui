@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "Verschlüsseln…",
+      "approve_in_wallet": "Öffnen Sie Ihre Wallet-App und bestätigen Sie die Zahlungstransaktion",
       "quoting_pct": "Angebot · {pct}%",
       "quoting_indeterminate": "Angebot…",
       "storing_pct": "Speichern · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "Datamap wird gespeichert…",
       "network_unavailable": "Netzwerk nicht verfügbar",
       "ready_to_approve": "Bereit zur Genehmigung",
-      "awaiting_approval": "Wartet auf Genehmigung",
+      "awaiting_approval": "In Ihrer Wallet genehmigen",
       "uploading": "Wird hochgeladen",
       "downloading": "Wird heruntergeladen",
       "done": "Fertig",

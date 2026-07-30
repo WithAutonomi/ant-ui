@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "암호화 중…",
+      "approve_in_wallet": "지갑 앱을 열어 결제 트랜잭션을 승인하세요",
       "quoting_pct": "견적 중 · {pct}%",
       "quoting_indeterminate": "견적 중…",
       "storing_pct": "저장 중 · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "데이터맵 저장 중…",
       "network_unavailable": "네트워크 사용 불가",
       "ready_to_approve": "승인 준비됨",
-      "awaiting_approval": "승인 대기 중",
+      "awaiting_approval": "지갑에서 승인하세요",
       "uploading": "업로드 중",
       "downloading": "다운로드 중",
       "done": "완료",

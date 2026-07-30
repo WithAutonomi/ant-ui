@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "加密中…",
+      "approve_in_wallet": "请打开钱包应用并确认支付交易",
       "quoting_pct": "报价中 · {pct}%",
       "quoting_indeterminate": "报价中…",
       "storing_pct": "存储中 · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "保存 datamap…",
       "network_unavailable": "网络不可用",
       "ready_to_approve": "准备批准",
-      "awaiting_approval": "等待批准",
+      "awaiting_approval": "请在钱包中批准",
       "uploading": "上传中",
       "downloading": "下载中",
       "done": "完成",

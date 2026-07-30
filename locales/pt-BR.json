@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "Criptografando…",
+      "approve_in_wallet": "Abra o aplicativo da sua carteira e confirme a transação de pagamento",
       "quoting_pct": "Cotando · {pct}%",
       "quoting_indeterminate": "Cotando…",
       "storing_pct": "Armazenando · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "Salvando datamap…",
       "network_unavailable": "Rede indisponível",
       "ready_to_approve": "Pronto para aprovar",
-      "awaiting_approval": "Aguardando aprovação",
+      "awaiting_approval": "Aprove na sua carteira",
       "uploading": "Enviando",
       "downloading": "Baixando",
       "done": "Concluído",

@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "暗号化中…",
+      "approve_in_wallet": "ウォレットアプリを開いて支払いトランザクションを承認してください",
       "quoting_pct": "見積もり中 · {pct}%",
       "quoting_indeterminate": "見積もり中…",
       "storing_pct": "保存中 · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "データマップを保存中…",
       "network_unavailable": "ネットワーク利用不可",
       "ready_to_approve": "承認の準備完了",
-      "awaiting_approval": "承認待ち",
+      "awaiting_approval": "ウォレットで承認してください",
       "uploading": "アップロード中",
       "downloading": "ダウンロード中",
       "done": "完了",

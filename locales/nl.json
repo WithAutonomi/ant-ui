@@ -282,6 +282,7 @@
     },
     "stage": {
       "encrypting": "Versleutelen…",
+      "approve_in_wallet": "Open je portemonnee-app en bevestig de betalingstransactie",
       "quoting_pct": "Offerte · {pct}%",
       "quoting_indeterminate": "Offerte ophalen…",
       "storing_pct": "Opslaan · {pct}%",
@@ -467,7 +468,7 @@
       "saving_datamap": "DataMap opslaan…",
       "network_unavailable": "Netwerk niet beschikbaar",
       "ready_to_approve": "Klaar voor goedkeuring",
-      "awaiting_approval": "Wacht op goedkeuring",
+      "awaiting_approval": "Keur goed in je portemonnee",
       "uploading": "Uploaden",
       "downloading": "Downloaden",
       "done": "Klaar",
