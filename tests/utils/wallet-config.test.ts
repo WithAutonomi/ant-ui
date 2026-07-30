@@ -5,6 +5,7 @@ import {
   getTokenAddress,
   getVaultAddress,
   getActiveChainId,
+  manifestWantsSepolia,
   ANT_TOKEN_ADDRESS,
   PAYMENT_VAULT_ADDRESS,
 } from '~/utils/wallet-config'
@@ -75,6 +76,26 @@ describe('wallet-config', () => {
       settings.devnetChainId = null
 
       expect(getActiveChainId()).toBe(42161)
+    })
+  })
+
+  describe('manifestWantsSepolia', () => {
+    it('is false with no manifest (production)', () => {
+      expect(manifestWantsSepolia(null)).toBe(false)
+      expect(manifestWantsSepolia(undefined)).toBe(false)
+    })
+
+    it('is false for a manifest without an rpc_url', () => {
+      expect(manifestWantsSepolia({})).toBe(false)
+      expect(manifestWantsSepolia({ rpc_url: null })).toBe(false)
+    })
+
+    it('is false for an Anvil/LAN devnet manifest', () => {
+      expect(manifestWantsSepolia({ rpc_url: 'http://192.168.1.20:8545' })).toBe(false)
+    })
+
+    it('is true for a Sepolia manifest', () => {
+      expect(manifestWantsSepolia({ rpc_url: 'https://sepolia-rollup.arbitrum.io/rpc' })).toBe(true)
     })
   })
 })

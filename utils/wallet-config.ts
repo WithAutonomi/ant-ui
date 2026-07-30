@@ -58,3 +58,14 @@ export function getActiveChainId(): number {
 export function getUsdcAddress(): `0x${string}` | null {
   return USDC_ADDRESSES[getActiveChainId()] ?? null
 }
+
+/** Whether a devnet manifest routes to Arbitrum Sepolia — mirrors the chain
+ *  detection in `stores/settings.ts::loadDevnetManifest`. Gates the AppKit
+ *  network list: WalletConnect session proposals only mention Sepolia when a
+ *  manifest asks for it, because single-chain wallets can reject a proposal
+ *  that lists a chain they don't support. */
+export function manifestWantsSepolia(
+  manifest: { rpc_url?: string | null } | null | undefined,
+): boolean {
+  return (manifest?.rpc_url ?? '').includes('sepolia')
+}

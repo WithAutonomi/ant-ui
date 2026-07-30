@@ -1,7 +1,14 @@
 import { createAppKit } from '@reown/appkit/vue'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { arbitrumSepolia } from '@reown/appkit/networks'
-import { WALLETCONNECT_PROJECT_ID, SUPPORTED_CHAIN, APPKIT_METADATA } from '~/utils/wallet-config'
+import type { AppKitNetwork } from '@reown/appkit/networks'
+import { invoke } from '@tauri-apps/api/core'
+import {
+  WALLETCONNECT_PROJECT_ID,
+  SUPPORTED_CHAIN,
+  APPKIT_METADATA,
+  manifestWantsSepolia,
+} from '~/utils/wallet-config'
 
 // Default chain `name` values from @reown/appkit/networks (= viem) are
 // "Arbitrum One" and "Arbitrum Sepolia" — bare names with no Mainnet /
@@ -28,17 +35,33 @@ export default defineNuxtPlugin(async () => {
     }
   }
 
+  // Every network configured here ends up in the WalletConnect session
+  // proposal (as `optionalNamespaces`), and strict single-chain wallets
+  // reject proposals that mention a chain they don't support. Contracts and
+  // payments are Arbitrum One only, so production offers just mainnet;
+  // Sepolia is added only when a devnet manifest routes there (alpha-network
+  // testing via $appkit.open()). The settings store hasn't loaded the
+  // manifest at plugin time, so query it directly. The Settings direct-key
+  // import keeps its own Sepolia option — it never goes through AppKit.
+  let networks: [AppKitNetwork, ...AppKitNetwork[]] = [labelledArbitrumOne]
   try {
-    // Include both Arbitrum mainnet and Sepolia so WalletConnect works on either.
-    // The user's wallet determines which chain is active.
+    const manifest = await invoke<{ rpc_url?: string } | null>('load_devnet_manifest')
+    if (manifestWantsSepolia(manifest)) {
+      networks = [labelledArbitrumOne, labelledArbitrumSepolia]
+    }
+  } catch {
+    // No manifest (or command unavailable) — production, mainnet only.
+  }
+
+  try {
     const wagmiAdapter = new WagmiAdapter({
       projectId: WALLETCONNECT_PROJECT_ID,
-      networks: [labelledArbitrumOne, labelledArbitrumSepolia],
+      networks,
     })
 
     const appkit = createAppKit({
       adapters: [wagmiAdapter],
-      networks: [labelledArbitrumOne, labelledArbitrumSepolia],
+      networks,
       projectId: WALLETCONNECT_PROJECT_ID,
       metadata: APPKIT_METADATA,
       features: {
