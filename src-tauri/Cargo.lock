@@ -852,9 +852,11 @@ name = "ant-gui"
 version = "0.9.5-rc.1"
 dependencies = [
  "ant-core",
+ "axum",
  "dirs 5.0.1",
  "evmlib",
  "futures-util",
+ "getrandom 0.2.17",
  "hex",
  "libc",
  "reqwest 0.12.28",
