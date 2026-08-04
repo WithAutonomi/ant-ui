@@ -220,6 +220,7 @@
     entry.provider.on?.('accountsChanged', updateAccountLine)
     entry.provider.on?.('chainChanged', updateAccountLine)
     void pollLoop()
+    void pingLoop()
   }
 
   async function updateAccountLine() {
@@ -301,6 +302,23 @@
       void updateAccountLine()
       try { await api('/signer/response', { method: 'POST', body: JSON.stringify(body) }) } catch { /* next poll surfaces it */ }
       inFlight = false
+    }
+  }
+
+  // Dedicated liveness loop. pollLoop blocks inside provider.request while
+  // the user reads a wallet prompt, so it cannot double as a heartbeat —
+  // without this, a slow approval would look like a dead page to the app.
+  // One ping stays parked at the server at all times; both loops die
+  // together when the tab actually closes. Pure awaited fetch, so
+  // background-tab timer throttling cannot starve it.
+  async function pingLoop() {
+    for (;;) {
+      try {
+        const res = await api('/signer/ping')
+        if (res.status === 401 || res.status === 403) return // session over
+      } catch {
+        await new Promise((r) => setTimeout(r, 1500))
+      }
     }
   }
 

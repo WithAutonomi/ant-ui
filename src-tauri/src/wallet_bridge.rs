@@ -17,13 +17,16 @@
 //! CORS surface). The browser side talks HTTP to a loopback listener that
 //! serves the signing page and two relay endpoints.
 //!
-//! Page lifecycle: polling recency is the liveness signal. A request relayed
-//! while no page is live reopens the signing page in the default browser
-//! (debounced). A page that dies holding a claimed request (tab closed
-//! mid-approval) can never deliver the wallet's answer — the bye handler and
-//! the watchdog fail such requests immediately with a "check your wallet"
-//! error, and they are never re-queued: the wallet may still execute the
-//! first copy, and a resent payment would double-pay.
+//! Page lifecycle: liveness = recency of `/signer/requests` polls OR
+//! `/signer/ping` stamps. The request loop blocks inside `provider.request`
+//! while a human reads a wallet prompt, so the page keeps a dedicated ping
+//! parked at all times — a slow approval must never read as a dead page. A
+//! request relayed while no page is live reopens the signing page in the
+//! default browser (debounced). A page that dies holding a claimed request
+//! (tab closed mid-approval) can never deliver the wallet's answer — the bye
+//! handler and the watchdog fail such requests immediately with a "check
+//! your wallet" error, and they are never re-queued: the wallet may still
+//! execute the first copy, and a resent payment would double-pay.
 //!
 //! Security posture (see the feature ticket for the full checklist):
 //! * listener binds `127.0.0.1` only, on a stable port so the wallet's
@@ -60,8 +63,16 @@ const PORT_ATTEMPTS: u16 = 10;
 /// immediately re-polls; this is also the liveness heartbeat).
 const SIGNER_POLL_PARK: Duration = Duration::from_secs(25);
 
-/// The page is considered connected if it polled within this window.
+/// The page is considered connected if it polled or pinged within this
+/// window. The request long-poll alone cannot be the liveness signal: it
+/// blocks inside `provider.request` for as long as a human ponders a wallet
+/// prompt, which is why the page keeps a dedicated ping parked as well.
 const SIGNER_LIVENESS_WINDOW: Duration = Duration::from_secs(35);
+
+/// How long a `/signer/ping` parks before returning 204. The page keeps one
+/// ping in flight at all times, so consecutive liveness stamps are at most
+/// this far apart — must stay comfortably under the liveness window.
+const SIGNER_PING_PARK: Duration = Duration::from_secs(20);
 
 /// Once the signing page has been (re)opened, further automatic reopens are
 /// suppressed for this long — a burst of relayed calls (chain check followed
@@ -135,6 +146,25 @@ pub struct BridgeStatus {
 
 // ── session ──
 
+/// Timing knobs, overridable in tests so liveness scenarios run in
+/// milliseconds instead of real minutes.
+#[derive(Clone, Copy)]
+struct SessionTuning {
+    liveness_window: Duration,
+    watchdog_tick: Duration,
+    ping_park: Duration,
+}
+
+impl Default for SessionTuning {
+    fn default() -> Self {
+        Self {
+            liveness_window: SIGNER_LIVENESS_WINDOW,
+            watchdog_tick: CLAIMED_WATCHDOG_INTERVAL,
+            ping_park: SIGNER_PING_PARK,
+        }
+    }
+}
+
 struct SessionInner {
     port: u16,
     /// 256-bit bearer token, lowercase hex.
@@ -150,12 +180,13 @@ struct SessionInner {
     next_id: AtomicU64,
     last_signer_poll: Mutex<Option<Instant>>,
     last_page_open: Mutex<Option<Instant>>,
+    tuning: SessionTuning,
     shutdown_tx: watch::Sender<bool>,
 }
 
 impl SessionInner {
     fn signer_connected(&self, last_poll: Option<Instant>) -> bool {
-        last_poll.is_some_and(|t| t.elapsed() < SIGNER_LIVENESS_WINDOW)
+        last_poll.is_some_and(|t| t.elapsed() < self.tuning.liveness_window)
     }
 
     fn page_url(&self) -> String {
@@ -422,6 +453,27 @@ mod server {
         }
     }
 
+    /// Pure liveness channel. The page keeps one ping parked here at all
+    /// times — unlike `/signer/requests`, this loop never blocks on the
+    /// wallet, so a human taking minutes over an approval still stamps the
+    /// clock. Stamped on entry; the park just paces the loop. The park races
+    /// shutdown so a stopped session doesn't linger on open ping handlers.
+    async fn signer_ping(
+        AxState(session): AxState<Arc<SessionInner>>,
+        headers: HeaderMap,
+    ) -> Response {
+        if let Err(code) = guard(&headers, &session, false) {
+            return code.into_response();
+        }
+        *session.last_signer_poll.lock().await = Some(Instant::now());
+        let mut shutdown_rx = session.shutdown_tx.subscribe();
+        tokio::select! {
+            _ = tokio::time::sleep(session.tuning.ping_park) => {}
+            _ = shutdown_rx.changed() => {}
+        }
+        StatusCode::NO_CONTENT.into_response()
+    }
+
     /// Best-effort "tab is closing" signal so status flips immediately
     /// instead of waiting out the liveness window.
     async fn signer_bye(
@@ -448,6 +500,7 @@ mod server {
         Router::new()
             .route("/", get(page))
             .route("/signer/requests", get(signer_requests))
+            .route("/signer/ping", get(signer_ping))
             .route("/signer/response", post(signer_response))
             .route("/signer/bye", post(signer_bye))
             .with_state(session)
@@ -462,6 +515,16 @@ async fn start_session(
     preferred_port: u16,
     attempts: u16,
     app: Option<AppHandle>,
+) -> Result<Arc<SessionInner>, String> {
+    start_session_tuned(preferred_port, attempts, app, SessionTuning::default()).await
+}
+
+/// [`start_session`] with explicit timing knobs, for liveness tests.
+async fn start_session_tuned(
+    preferred_port: u16,
+    attempts: u16,
+    app: Option<AppHandle>,
+    tuning: SessionTuning,
 ) -> Result<Arc<SessionInner>, String> {
     let token = new_token()?;
 
@@ -498,10 +561,13 @@ async fn start_session(
         next_id: AtomicU64::new(1),
         last_signer_poll: Mutex::new(None),
         last_page_open: Mutex::new(None),
+        tuning,
         shutdown_tx,
     });
 
-    // Watchdog, two duties while no page is polling:
+    // Watchdog, two duties while no page is live (no polls AND no pings —
+    // the dedicated ping loop keeps stamping while a human ponders a wallet
+    // prompt, so a slow approval never reads as death here):
     // * claimed requests — the page died without a bye (tab crash, browser
     //   tab-sleep) and can never answer them: fail them promptly instead of
     //   letting the app wait out RPC_RESPONSE_TIMEOUT. A freshly opened page
@@ -509,13 +575,13 @@ async fn start_session(
     // * queued requests — keep re-trying the page reopen until one lands.
     //   The enqueue-time reopen is a single-shot decision and can lose to
     //   the debounce window, a dropped bye (page looks alive for up to
-    //   SIGNER_LIVENESS_WINDOW), or an opener failure; without this loop
-    //   the request would just park until the RPC timeout.
+    //   the liveness window), or an opener failure; without this loop the
+    //   request would just park until the RPC timeout.
     let watchdog = session.clone();
     let watchdog_app = app;
     let mut watchdog_rx = session.shutdown_tx.subscribe();
     tokio::spawn(async move {
-        let mut tick = tokio::time::interval(CLAIMED_WATCHDOG_INTERVAL);
+        let mut tick = tokio::time::interval(watchdog.tuning.watchdog_tick);
         loop {
             tokio::select! {
                 _ = tick.tick() => {
@@ -900,11 +966,134 @@ mod tests {
         let outcome = waiter.await.expect("join").expect("outcome");
         let err = outcome.error.expect("queued request must fail");
         assert_eq!(err.code, 4900);
-        assert!(!err.message.contains("check your wallet"), "{}", err.message);
+        assert!(
+            !err.message.contains("check your wallet"),
+            "{}",
+            err.message
+        );
         assert!(
             session.last_page_open.lock().await.is_none(),
             "bye must clear the reopen debounce"
         );
+
+        let _ = session.shutdown_tx.send(true);
+    }
+
+    /// Review regression: an approval that takes longer than the liveness
+    /// window must NOT be failed by the watchdog while the page keeps its
+    /// ping parked (the request loop is silent inside `provider.request` the
+    /// whole time) — and the late answer must still be accepted with 204 and
+    /// delivered to the app.
+    #[tokio::test]
+    async fn slow_wallet_approval_survives_liveness_window() {
+        let tuning = SessionTuning {
+            liveness_window: Duration::from_millis(500),
+            watchdog_tick: Duration::from_millis(100),
+            ping_park: Duration::from_millis(100),
+        };
+        let session = start_session_tuned(0, 1, None, tuning)
+            .await
+            .expect("bind ephemeral");
+        let base = format!("http://127.0.0.1:{}", session.port);
+        let client = reqwest::Client::new();
+
+        let s2 = session.clone();
+        let waiter = tokio::spawn(async move {
+            enqueue_and_wait(&s2, "eth_sendTransaction".into(), Value::Array(vec![])).await
+        });
+
+        // Page claims the request, then "waits on the wallet": no further
+        // request-polls, only pings.
+        let req: serde_json::Value = client
+            .get(format!("{base}/signer/requests"))
+            .header("x-bridge-token", &session.token)
+            .send()
+            .await
+            .expect("poll")
+            .json()
+            .await
+            .expect("request json");
+        let id = req["id"].as_u64().expect("id");
+
+        let ping_base = base.clone();
+        let ping_token = session.token.clone();
+        let pinger = tokio::spawn(async move {
+            let client = reqwest::Client::new();
+            loop {
+                let _ = client
+                    .get(format!("{ping_base}/signer/ping"))
+                    .header("x-bridge-token", &ping_token)
+                    .send()
+                    .await;
+            }
+        });
+
+        // Several liveness windows and many watchdog ticks pass.
+        tokio::time::sleep(Duration::from_millis(1500)).await;
+        assert!(
+            !waiter.is_finished(),
+            "watchdog must not fail a claimed request while the page pings"
+        );
+
+        // The user finally approves: the answer must be accepted and land.
+        let resp = client
+            .post(format!("{base}/signer/response"))
+            .header("x-bridge-token", &session.token)
+            .header("origin", &base)
+            .json(&serde_json::json!({ "id": id, "result": "0xdeadbeef", "error": null }))
+            .send()
+            .await
+            .expect("post response");
+        assert_eq!(resp.status(), 204);
+
+        pinger.abort();
+        let outcome = waiter.await.expect("join").expect("outcome");
+        assert_eq!(outcome.result, Some(Value::String("0xdeadbeef".into())));
+        assert!(outcome.error.is_none());
+
+        let _ = session.shutdown_tx.send(true);
+    }
+
+    /// The counterpart: when pings stop too (real page death — crash,
+    /// browser tab-sleep), the watchdog must still fail the claimed request
+    /// promptly instead of letting it hang to the RPC timeout.
+    #[tokio::test]
+    async fn watchdog_fails_claimed_request_when_pings_stop() {
+        let tuning = SessionTuning {
+            liveness_window: Duration::from_millis(300),
+            watchdog_tick: Duration::from_millis(100),
+            ping_park: Duration::from_millis(100),
+        };
+        let session = start_session_tuned(0, 1, None, tuning)
+            .await
+            .expect("bind ephemeral");
+        let base = format!("http://127.0.0.1:{}", session.port);
+        let client = reqwest::Client::new();
+
+        let s2 = session.clone();
+        let waiter = tokio::spawn(async move {
+            enqueue_and_wait(&s2, "eth_sendTransaction".into(), Value::Array(vec![])).await
+        });
+
+        // Page claims the request, then dies silently (no bye, no pings).
+        let _req: serde_json::Value = client
+            .get(format!("{base}/signer/requests"))
+            .header("x-bridge-token", &session.token)
+            .send()
+            .await
+            .expect("poll")
+            .json()
+            .await
+            .expect("request json");
+
+        let outcome = tokio::time::timeout(Duration::from_secs(3), waiter)
+            .await
+            .expect("watchdog must fail the claim within seconds")
+            .expect("join")
+            .expect("outcome");
+        let err = outcome.error.expect("claimed request must fail");
+        assert_eq!(err.code, 4900);
+        assert!(err.message.contains("check your wallet"), "{}", err.message);
 
         let _ = session.shutdown_tx.send(true);
     }
