@@ -125,7 +125,7 @@
 
   <div id="view-active" class="hidden">
     <h2>Connected to the Autonomi app</h2>
-    <p>Keep this tab open while paying for uploads. Approval requests from the app appear in your wallet extension.</p>
+    <p>Approval requests from the app appear in your wallet extension. This tab can stay in the background — if it gets closed, the app reopens it when an approval is needed.</p>
     <div class="status">
       <div class="head"><span class="spinner hidden" id="busy"></span><span id="status-head">Waiting for the app…</span></div>
       <div class="detail" id="status-detail"></div>
@@ -257,6 +257,7 @@
   }
 
   let handled = 0
+  let inFlight = false // a claimed request the wallet hasn't answered yet
   async function pollLoop() {
     let failures = 0
     for (;;) {
@@ -275,6 +276,7 @@
       }
       if (!res.ok) continue
       const req = await res.json()
+      inFlight = true
 
       const [head, detail] = LABELS[req.method] || [req.method, 'Respond in your wallet if prompted.']
       setStatus(head, detail, true)
@@ -298,6 +300,7 @@
       }
       void updateAccountLine()
       try { await api('/signer/response', { method: 'POST', body: JSON.stringify(body) }) } catch { /* next poll surfaces it */ }
+      inFlight = false
     }
   }
 
@@ -306,6 +309,15 @@
     show('view-ended')
     setDot('dead')
   }
+
+  window.addEventListener('beforeunload', (e) => {
+    // While a request is with the wallet, this tab is the only path its
+    // answer can take back to the app — warn before losing it. Best-effort:
+    // browsers only show the prompt if the user has interacted with the page.
+    if (!inFlight) return
+    e.preventDefault()
+    e.returnValue = ''
+  })
 
   window.addEventListener('pagehide', () => {
     // keepalive lets the request outlive the tab; sendBeacon can't carry
