@@ -64,7 +64,11 @@ export function browserBridge() {
 
     async setup() {},
 
-    async connect({ chainId } = {} as { chainId?: number }) {
+    async connect({ chainId, withCapabilities } = {} as {
+      chainId?: number
+      isReconnecting?: boolean
+      withCapabilities?: boolean
+    }) {
       // Starts the loopback server (idempotent) and opens the signing page
       // in the default browser unless one is already connected.
       await invoke('bridge_start')
@@ -78,7 +82,16 @@ export function browserBridge() {
         if (switched) currentChainId = switched.id
       }
 
-      return { accounts, chainId: currentChainId }
+      return {
+        // wagmi's conditional return type (plain addresses vs address +
+        // capabilities records, keyed on the generic `withCapabilities`)
+        // can't be expressed from an implementation — same cast wagmi's own
+        // connectors use.
+        accounts: (withCapabilities
+          ? accounts.map((address) => ({ address, capabilities: {} }))
+          : accounts) as never,
+        chainId: currentChainId,
+      }
     },
 
     async disconnect() {

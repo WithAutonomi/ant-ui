@@ -1,3 +1,16 @@
 {
-  "extends": "./.nuxt/tsconfig.json"
+  "extends": "./.nuxt/tsconfig.json",
+  // Overriding `exclude` replaces the generated list entirely — keep its
+  // entries (root-relative here) and add local build output vue-tsc must
+  // not sweep: cargo's target dir holds binary tauri-codegen assets named
+  // *.js, and .claude/worktrees holds full repo copies.
+  "exclude": [
+    "dist",
+    ".data",
+    "node_modules/runtime/server",
+    "node_modules/dist/runtime/server",
+    ".output",
+    "src-tauri/target",
+    ".claude"
+  ]
 }
