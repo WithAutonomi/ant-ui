@@ -9,6 +9,7 @@ import {
   APPKIT_METADATA,
   manifestWantsSepolia,
 } from '~/utils/wallet-config'
+import { browserBridge } from '~/utils/wallet-bridge-connector'
 
 // Default chain `name` values from @reown/appkit/networks (= viem) are
 // "Arbitrum One" and "Arbitrum Sepolia" — bare names with no Mainnet /
@@ -61,9 +62,15 @@ export default defineNuxtPlugin(async () => {
   }
 
   try {
+    // `browserBridge` is our loopback signing bridge: a wagmi connector that
+    // relays wallet requests to a page in the system default browser, where
+    // extension wallets (MetaMask, Rabby, …) actually exist. AppKit renders
+    // registered wagmi connectors as cards in the connect modal, giving the
+    // extension path a home next to the WalletConnect QR.
     const wagmiAdapter = new WagmiAdapter({
       projectId: WALLETCONNECT_PROJECT_ID,
       networks,
+      connectors: [browserBridge()],
     })
 
     const appkit = createAppKit({
@@ -79,7 +86,9 @@ export default defineNuxtPlugin(async () => {
       // Tauri's webview has no browser extensions, so the legacy injected
       // (window.ethereum) and the EIP-6963 multi-wallet discovery channels
       // can never resolve a wallet — disable both so the modal doesn't
-      // advertise an unreachable "Browser" connector card.
+      // advertise an unreachable "Browser" connector card. Extension access
+      // goes through the explicit `browserBridge` connector instead, which
+      // reaches wallets in the system browser rather than the webview.
       enableInjected: false,
       enableEIP6963: false,
       // Pin MetaMask as the sole featured wallet (see METAMASK_WALLET_ID

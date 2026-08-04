@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Autonomi — wallet approval</title>
+<style>
+  :root {
+    --bg: #0A0F1C;
+    --surface: #141B2D;
+    --surface-2: #1B2438;
+    --line: #263349;
+    --text: #E2E8F2;
+    --soft: #93A1B5;
+    --accent: #4A9FE5;
+    --good: #52B98A;
+    --bad: #E0596B;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    line-height: 1.55;
+  }
+  .card {
+    width: 100%;
+    max-width: 26rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.8rem 1.7rem;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.3rem;
+  }
+  .brand .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent);
+    flex: none;
+  }
+  .brand .dot.live { background: var(--good); }
+  .brand .dot.dead { background: var(--bad); }
+  .brand h1 { font-size: 1.02rem; font-weight: 650; letter-spacing: 0.01em; }
+  h2 { font-size: 0.95rem; font-weight: 650; margin-bottom: 0.4rem; }
+  p { color: var(--soft); font-size: 0.88rem; margin-bottom: 0.7rem; }
+  p.em { color: var(--text); }
+  .hidden { display: none !important; }
+  .wallet-list { display: flex; flex-direction: column; gap: 0.55rem; margin-top: 0.9rem; }
+  button.wallet {
+    display: flex; align-items: center; gap: 0.7rem;
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.65rem 0.85rem;
+    color: var(--text);
+    font: inherit; font-size: 0.92rem; font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+  }
+  button.wallet:hover, button.wallet:focus-visible { border-color: var(--accent); outline: none; }
+  button.wallet img { width: 26px; height: 26px; border-radius: 6px; flex: none; }
+  .status {
+    margin-top: 1rem;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.8rem 0.95rem;
+    font-size: 0.88rem;
+  }
+  .status .head { display: flex; align-items: center; gap: 0.55rem; font-weight: 650; }
+  .status .detail { color: var(--soft); margin-top: 0.25rem; font-size: 0.84rem; }
+  .spinner {
+    width: 14px; height: 14px; flex: none;
+    border: 2px solid var(--line);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+  .meta { margin-top: 1.1rem; font-size: 0.8rem; color: var(--soft); }
+  .meta code {
+    font-family: Consolas, ui-monospace, monospace;
+    font-size: 0.78rem;
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 0.08em 0.35em;
+    overflow-wrap: anywhere;
+  }
+  .ok { color: var(--good); }
+  .err { color: var(--bad); }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand"><span class="dot" id="live-dot"></span><h1>Autonomi — wallet approval</h1></div>
+
+  <div id="view-no-token">
+    <h2>This page needs to be opened by the Autonomi app</h2>
+    <p>The link is missing its session key. In the app, choose <span class="em">Connect Wallet → Browser extension</span> to open a fresh signing session.</p>
+  </div>
+
+  <div id="view-no-wallet" class="hidden">
+    <h2>No wallet extension found in this browser</h2>
+    <p>This browser has no EVM wallet extension (MetaMask, Rabby, …) installed — or the extension is locked.</p>
+    <p>If your wallet lives in a different browser, copy this page's address and open it there:</p>
+    <p><code id="self-url"></code></p>
+  </div>
+
+  <div id="view-pick" class="hidden">
+    <h2>Choose the wallet to approve with</h2>
+    <div class="wallet-list" id="wallet-list"></div>
+  </div>
+
+  <div id="view-active" class="hidden">
+    <h2>Connected to the Autonomi app</h2>
+    <p>Approval requests from the app appear in your wallet extension. This tab can stay in the background — if it gets closed, the app reopens it when an approval is needed.</p>
+    <div class="status">
+      <div class="head"><span class="spinner hidden" id="busy"></span><span id="status-head">Waiting for the app…</span></div>
+      <div class="detail" id="status-detail"></div>
+    </div>
+    <div class="meta" id="account-line"></div>
+  </div>
+
+  <div id="view-ended" class="hidden">
+    <h2>Session ended</h2>
+    <p id="ended-reason">The Autonomi app closed this signing session. You can close this tab.</p>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict'
+
+  const token = location.hash.replace(/^#/, '')
+  const $ = (id) => document.getElementById(id)
+  const views = ['view-no-token', 'view-no-wallet', 'view-pick', 'view-active', 'view-ended']
+  function show(view) {
+    for (const v of views) $(v).classList.toggle('hidden', v !== view)
+  }
+  function setDot(state) {
+    const dot = $('live-dot')
+    dot.classList.remove('live', 'dead')
+    if (state) dot.classList.add(state)
+  }
+
+  if (!token) { show('view-no-token'); setDot('dead'); return }
+
+  // ── EIP-6963 provider discovery (fall back to window.ethereum) ──
+
+  const providers = new Map() // rdns -> { info, provider }
+  window.addEventListener('eip6963:announceProvider', (ev) => {
+    const d = ev.detail
+    if (d && d.info && d.provider) providers.set(d.info.rdns || d.info.uuid, d)
+  })
+  window.dispatchEvent(new Event('eip6963:requestProvider'))
+
+  const REMEMBER_KEY = 'autonomi-bridge-wallet'
+  let active = null // chosen { info, provider }
+
+  setTimeout(() => {
+    if (providers.size === 0 && window.ethereum) {
+      providers.set('legacy', {
+        info: { name: 'Browser wallet', rdns: 'legacy', icon: null },
+        provider: window.ethereum,
+      })
+    }
+    if (providers.size === 0) {
+      $('self-url').textContent = location.href
+      show('view-no-wallet')
+      setDot('dead')
+      return
+    }
+    const remembered = localStorage.getItem(REMEMBER_KEY)
+    if (providers.size === 1) {
+      select(providers.values().next().value)
+    } else if (remembered && providers.has(remembered)) {
+      select(providers.get(remembered))
+    } else {
+      renderPicker()
+    }
+  }, 400)
+
+  function renderPicker() {
+    const list = $('wallet-list')
+    list.textContent = ''
+    for (const entry of providers.values()) {
+      const btn = document.createElement('button')
+      btn.className = 'wallet'
+      if (entry.info.icon) {
+        const img = document.createElement('img')
+        img.src = entry.info.icon
+        img.alt = ''
+        btn.appendChild(img)
+      }
+      btn.appendChild(document.createTextNode(entry.info.name))
+      btn.addEventListener('click', () => select(entry))
+      list.appendChild(btn)
+    }
+    show('view-pick')
+  }
+
+  function select(entry) {
+    active = entry
+    localStorage.setItem(REMEMBER_KEY, entry.info.rdns || 'legacy')
+    show('view-active')
+    setDot('live')
+    updateAccountLine()
+    entry.provider.on?.('accountsChanged', updateAccountLine)
+    entry.provider.on?.('chainChanged', updateAccountLine)
+    void pollLoop()
+    void pingLoop()
+  }
+
+  async function updateAccountLine() {
+    try {
+      const accounts = await active.provider.request({ method: 'eth_accounts' })
+      $('account-line').textContent = accounts && accounts[0]
+        ? `Wallet: ${active.info.name} · ${accounts[0].slice(0, 6)}…${accounts[0].slice(-4)}`
+        : `Wallet: ${active.info.name} — not yet connected`
+    } catch { /* cosmetic only */ }
+  }
+
+  // ── relay loop ──
+
+  const LABELS = {
+    eth_requestAccounts: ['Connection request', 'Approve the connection in your wallet.'],
+    eth_sendTransaction: ['Transaction approval', 'Review and confirm the transaction in your wallet.'],
+    wallet_switchEthereumChain: ['Network switch', 'Approve switching network in your wallet.'],
+    wallet_addEthereumChain: ['Add network', 'Approve adding the network in your wallet.'],
+  }
+
+  function setStatus(head, detail, busy) {
+    $('status-head').textContent = head
+    $('status-detail').textContent = detail || ''
+    $('busy').classList.toggle('hidden', !busy)
+  }
+
+  async function api(path, opts) {
+    return fetch(path, {
+      ...opts,
+      headers: {
+        'x-bridge-token': token,
+        ...(opts && opts.body ? { 'content-type': 'application/json' } : {}),
+      },
+    })
+  }
+
+  let handled = 0
+  let inFlight = false // a claimed request the wallet hasn't answered yet
+  async function pollLoop() {
+    let failures = 0
+    for (;;) {
+      let res
+      try {
+        res = await api('/signer/requests')
+      } catch {
+        if (++failures >= 3) return ended('The Autonomi app is no longer reachable. You can close this tab.')
+        await new Promise((r) => setTimeout(r, 1500))
+        continue
+      }
+      failures = 0
+      if (res.status === 204) { setStatus('Waiting for the app…', '', false); continue }
+      if (res.status === 401 || res.status === 403) {
+        return ended('This signing session is no longer valid. Reopen it from the Autonomi app.')
+      }
+      if (!res.ok) continue
+      const req = await res.json()
+      inFlight = true
+
+      const [head, detail] = LABELS[req.method] || [req.method, 'Respond in your wallet if prompted.']
+      setStatus(head, detail, true)
+
+      let body
+      try {
+        const result = await active.provider.request({ method: req.method, params: req.params })
+        body = { id: req.id, result: result === undefined ? null : result, error: null }
+        handled += 1
+        setStatus('Done', `${head} completed. Return to the Autonomi app.`, false)
+      } catch (e) {
+        body = {
+          id: req.id,
+          result: null,
+          error: {
+            code: typeof e?.code === 'number' ? e.code : -32603,
+            message: String(e?.message || e || 'Wallet request failed'),
+          },
+        }
+        setStatus('Request not completed', `${head} was rejected or failed. The app has been told.`, false)
+      }
+      void updateAccountLine()
+      try { await api('/signer/response', { method: 'POST', body: JSON.stringify(body) }) } catch { /* next poll surfaces it */ }
+      inFlight = false
+    }
+  }
+
+  // Dedicated liveness loop. pollLoop blocks inside provider.request while
+  // the user reads a wallet prompt, so it cannot double as a heartbeat —
+  // without this, a slow approval would look like a dead page to the app.
+  // One ping stays parked at the server at all times; both loops die
+  // together when the tab actually closes. Pure awaited fetch, so
+  // background-tab timer throttling cannot starve it.
+  async function pingLoop() {
+    for (;;) {
+      try {
+        const res = await api('/signer/ping')
+        if (res.status === 401 || res.status === 403) return // session over
+      } catch {
+        await new Promise((r) => setTimeout(r, 1500))
+      }
+    }
+  }
+
+  function ended(reason) {
+    $('ended-reason').textContent = reason
+    show('view-ended')
+    setDot('dead')
+  }
+
+  window.addEventListener('beforeunload', (e) => {
+    // While a request is with the wallet, this tab is the only path its
+    // answer can take back to the app — warn before losing it. Best-effort:
+    // browsers only show the prompt if the user has interacted with the page.
+    if (!inFlight) return
+    e.preventDefault()
+    e.returnValue = ''
+  })
+
+  window.addEventListener('pagehide', () => {
+    // keepalive lets the request outlive the tab; sendBeacon can't carry
+    // the token header, so plain fetch it is.
+    try {
+      fetch('/signer/bye', {
+        method: 'POST',
+        keepalive: true,
+        headers: { 'x-bridge-token': token, 'content-type': 'application/json' },
+        body: '{}',
+      })
+    } catch { /* best effort */ }
+  })
+})()
+</script>
+</body>
+</html>

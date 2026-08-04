@@ -2,6 +2,7 @@ mod autonomi_ops;
 mod config;
 mod datamap_backup;
 mod updater_channel;
+mod wallet_bridge;
 
 use autonomi_ops::AutonomiState;
 use config::{AppConfig, FileMetaResult, UploadHistory, UploadHistoryEntry};
@@ -1153,6 +1154,7 @@ pub fn run() {
         .manage(Arc::new(SseState::new()))
         .manage(updater_channel::UpdaterChannelState::new())
         .manage(DeepLinkState::default())
+        .manage(wallet_bridge::BridgeState::new())
         .setup(|app| {
             use tauri_plugin_deep_link::DeepLinkExt;
 
@@ -1235,6 +1237,10 @@ pub fn run() {
             updater_channel::check_for_update_custom,
             updater_channel::install_pending_update,
             updater_channel::cancel_pending_install,
+            wallet_bridge::bridge_start,
+            wallet_bridge::bridge_request,
+            wallet_bridge::bridge_status,
+            wallet_bridge::bridge_stop,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

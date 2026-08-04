@@ -32,6 +32,11 @@ evmlib = "0.9"
 hex = "0.4"
 sha2 = "0.10"
 zip = "2"
+# Wallet bridge: loopback HTTP server that serves the browser signing page
+# and relays EIP-1193 requests between the webview and the user's browser
+# wallet extension. axum rides the tokio runtime tauri already runs.
+axum = "0.8"
+getrandom = "0.2"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
