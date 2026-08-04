@@ -152,6 +152,21 @@ const ACTIVE_STATUSES: FileStatus[] = [
 // stalls (they don't need progress bars or spinners in the header).
 const IN_FLIGHT_STATUSES: FileStatus[] = ['quoting', 'paying', 'uploading', 'downloading']
 
+/** One-line summary of a wallet payment error. viem's `.message` is a
+ *  multi-line diagnostic dump (request args, calldata, docs link) meant for
+ *  the console, not the UI; `shortMessage` carries the human sentence. A
+ *  4001 rejection — the code survives WalletConnect and the browser-bridge
+ *  relay alike — gets its own friendlier line. */
+function paymentErrorSummary(e: any): string {
+  console.error('[payment]', e) // full dump stays available in devtools
+  const rejected =
+    typeof e?.walk === 'function'
+      ? Boolean(e.walk((c: any) => c?.code === 4001))
+      : e?.code === 4001
+  if (rejected) return 'Cancelled in your wallet'
+  return e?.shortMessage ?? String(e?.message ?? e).split('\n')[0]
+}
+
 /** Shape persisted to upload_history.json (kept for backwards compat) */
 export interface UploadHistoryEntry {
   name: string
@@ -734,8 +749,9 @@ export const useFilesStore = defineStore('files', {
               transferStartedAt: undefined,
             })
           } catch (e: any) {
-            this.updateEntry(id, { status: 'failed', error: `Payment failed: ${e.message}` })
-            toasts.add(t('files.toast.payment_failed', { error: e.message }), 'error')
+            const summary = paymentErrorSummary(e)
+            this.updateEntry(id, { status: 'failed', error: `Payment failed: ${summary}` })
+            toasts.add(t('files.toast.payment_failed', { error: summary }), 'error')
             return
           }
         } else {
@@ -751,8 +767,9 @@ export const useFilesStore = defineStore('files', {
               txHashes = payResult.txHashMap
               this.updateEntry(id, { gas_cost: formatGasCost(payResult.gasSpent.toString()) })
             } catch (e: any) {
-              this.updateEntry(id, { status: 'failed', error: `Payment failed: ${e.message}` })
-              toasts.add(t('files.toast.payment_failed', { error: e.message }), 'error')
+              const summary = paymentErrorSummary(e)
+              this.updateEntry(id, { status: 'failed', error: `Payment failed: ${summary}` })
+              toasts.add(t('files.toast.payment_failed', { error: summary }), 'error')
               return
             }
           }
