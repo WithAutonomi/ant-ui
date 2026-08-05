@@ -119,6 +119,7 @@ const networkLabelKey = computed<string | null>(() => {
 
 const mainNav = computed(() => [
   { path: '/files', labelKey: 'nav.files', icon: '◫' },
+  { path: '/uploads', labelKey: 'nav.uploads', icon: '📁' },
   { path: '/nodes', labelKey: 'nav.nodes', icon: '⬡' },
   { path: '/wallet', labelKey: 'nav.wallet', icon: '◎' },
 ])

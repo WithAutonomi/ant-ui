@@ -1,6 +1,8 @@
 mod autonomi_ops;
 mod config;
 mod datamap_backup;
+mod folder_ops;
+mod recovery_ops;
 mod updater_channel;
 mod wallet_bridge;
 
@@ -1155,6 +1157,13 @@ pub fn run() {
         .manage(updater_channel::UpdaterChannelState::new())
         .manage(DeepLinkState::default())
         .manage(wallet_bridge::BridgeState::new())
+        .manage(folder_ops::UploadQueueState {
+            state_path: std::env::var("HOME").unwrap_or_else(|_| "/tmp".into()).into(),
+            staging_dir: std::env::var("HOME").unwrap_or_else(|_| "/tmp".into()).into(),
+            state: std::sync::Mutex::new(ant_core::data::client::folder::UploadState {
+                version: 1, pending: vec![], uploading: None, completed: vec![],
+            }),
+        })
         .setup(|app| {
             use tauri_plugin_deep_link::DeepLinkExt;
 
@@ -1218,6 +1227,13 @@ pub fn run() {
             discover_daemon_url,
             ensure_daemon_running,
             restart_daemon,
+            // Folder upload + recovery
+            folder_ops::get_upload_status,
+            folder_ops::scan_staging,
+            folder_ops::clear_completed,
+            folder_ops::set_staging_dir,
+            folder_ops::start_upload,
+            recovery_ops::list_recovery_entries,
             connect_daemon_sse,
             disconnect_daemon_sse,
             autonomi_ops::init_autonomi_client,

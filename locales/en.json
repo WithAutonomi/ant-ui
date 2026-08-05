@@ -19,7 +19,7 @@
       "api_key_label": "API Key",
       "api_key_placeholder": "Your API token",
       "test_connect": "Test & Connect",
-      "testing": "Testing…",
+      "testing": "Testing\u2026",
       "configure": "Configure Connection"
     },
     "storage": {
@@ -48,14 +48,14 @@
       "aria_toggle": "Toggle light mode"
     },
     "advanced": {
-      "hide": "▾ Hide Advanced",
-      "show": "▸ Show Advanced"
+      "hide": "\u25be Hide Advanced",
+      "show": "\u25b8 Show Advanced"
     },
     "daemon": {
       "title": "Node daemon",
-      "description": "Restart the background service that supervises your nodes. Your running nodes keep running — only the supervisor is swapped.",
+      "description": "Restart the background service that supervises your nodes. Your running nodes keep running \u2014 only the supervisor is swapped.",
       "restart": "Restart daemon",
-      "restarting": "Restarting…"
+      "restarting": "Restarting\u2026"
     },
     "concurrency": {
       "title": "Upload concurrency",
@@ -78,7 +78,7 @@
         "address_label": "Host address",
         "address_placeholder": "192.168.1.100:8088",
         "apply": "Apply & Restart",
-        "applying": "Importing…",
+        "applying": "Importing\u2026",
         "disconnect": "Disconnect & Restart",
         "invalid_address": "Enter a host and port as ip:port (e.g. 192.168.1.100:8088)."
       }
@@ -106,8 +106,8 @@
       "copy_button": "Copy to Clipboard",
       "clear_button": "Clear",
       "empty": "No log entries",
-      "hide_log": "▾ Hide Log",
-      "show_log": "▸ Show Log"
+      "hide_log": "\u25be Hide Log",
+      "show_log": "\u25b8 Show Log"
     },
     "upload_history": {
       "title": "Upload history",
@@ -119,12 +119,12 @@
     },
     "datamap_backup": {
       "title": "Datamap backup",
-      "description": "Datamaps are the only key to re-download your uploaded files. They live only on this device — back them up before reinstalling, formatting, or moving to a new computer, or your uploads can't be recovered.",
+      "description": "Datamaps are the only key to re-download your uploaded files. They live only on this device \u2014 back them up before reinstalling, formatting, or moving to a new computer, or your uploads can't be recovered.",
       "security_note": "Anyone with this backup can access your files. Store it somewhere secure.",
       "count_one": "{count} datamap",
       "count_many": "{count} datamaps",
-      "export_button": "Export…",
-      "import_button": "Import…",
+      "export_button": "Export\u2026",
+      "import_button": "Import\u2026",
       "export_title": "Export datamaps",
       "import_title": "Import datamaps"
     },
@@ -134,7 +134,7 @@
       "node_version_label": "Node version",
       "last_checked": "Last checked {label}",
       "check_button": "Check for Updates",
-      "checking": "Checking…"
+      "checking": "Checking\u2026"
     },
     "about": {
       "title": "About"
@@ -151,7 +151,7 @@
       "downloads_title": "Select Downloads Directory"
     },
     "error": {
-      "private_key_invalid": "Invalid private key — must be 64 hex characters",
+      "private_key_invalid": "Invalid private key \u2014 must be 64 hex characters",
       "invalid_eth_address": "Invalid EVM address format"
     },
     "toast": {
@@ -186,7 +186,8 @@
     "nodes": "Nodes",
     "files": "Files",
     "wallet": "Wallet",
-    "settings": "Settings"
+    "settings": "Settings",
+    "uploads": "Uploads"
   },
   "header": {
     "title": "Autonomi",
@@ -195,8 +196,8 @@
     "connecting_tooltip": "Connecting to the Autonomi network",
     "connected": "Network",
     "connected_tooltip": "Connected to the Autonomi network",
-    "offline": "Offline · Retry",
-    "offline_tooltip": "Connection failed — click to retry",
+    "offline": "Offline \u00b7 Retry",
+    "offline_tooltip": "Connection failed \u2014 click to retry",
     "connect_wallet": "Connect Wallet"
   },
   "sidebar": {
@@ -226,11 +227,11 @@
     "evicted_count": "{count} evicted",
     "filter_placeholder": "Filter...",
     "filter_aria_label": "Filter nodes",
-    "starting_daemon": "Starting node daemon…",
-    "restarting_daemon": "Restarting node daemon…",
+    "starting_daemon": "Starting node daemon\u2026",
+    "restarting_daemon": "Restarting node daemon\u2026",
     "nodes_keep_running": "Your nodes keep running.",
     "daemon_disconnected": "Cannot connect to node daemon",
-    "daemon_retrying": "Retrying automatically…",
+    "daemon_retrying": "Retrying automatically\u2026",
     "empty_title": "No nodes yet",
     "empty_hint": "Click \"+ Add Nodes\" to get started",
     "confirm_action": "Confirm action",
@@ -264,9 +265,9 @@
       "title": "Add Nodes",
       "number_label": "Number of nodes",
       "range_hint": "Between 1 and 50",
-      "min_size_info": "Each node needs at least 20 GB of free disk space. Nodes that drop below this minimum are treated as full and risk being shunned by the network — taking them offline and losing rewards. This minimum will likely change over time as the network grows, so allow extra headroom.",
+      "min_size_info": "Each node needs at least 20 GB of free disk space. Nodes that drop below this minimum are treated as full and risk being shunned by the network \u2014 taking them offline and losing rewards. This minimum will likely change over time as the network grows, so allow extra headroom.",
       "no_earnings_warning": "No earnings address configured. Set one in the Wallet page before adding nodes.",
-      "below_minimum_warning": "Only {available} free on this drive — below the {required} recommended for {count} node(s). Nodes started without enough space risk being treated as full and shunned by the network.",
+      "below_minimum_warning": "Only {available} free on this drive \u2014 below the {required} recommended for {count} node(s). Nodes started without enough space risk being treated as full and shunned by the network.",
       "submit_one": "Add 1 Node",
       "submit_many": "Add {count} Nodes"
     },
@@ -313,11 +314,11 @@
       "actions": "Actions"
     },
     "row": {
-      "free_already_stored": "Free — already stored",
+      "free_already_stored": "Free \u2014 already stored",
       "gas_suffix": "+ {gas} gas",
       "public_badge": "Public",
-      "retry": "↻ Retry",
-      "public_tooltip": "Public upload — click to copy the shareable network address",
+      "retry": "\u21bb Retry",
+      "public_tooltip": "Public upload \u2014 click to copy the shareable network address",
       "reveal_datamap_tooltip": "Reveal datamap file in Finder/Explorer",
       "copy_datamap_tooltip": "Copy datamap file path",
       "copy_address_tooltip": "Copy network address",
@@ -325,16 +326,16 @@
       "remove_tooltip": "Remove from list"
     },
     "stage": {
-      "encrypting": "Encrypting…",
+      "encrypting": "Encrypting\u2026",
       "approve_in_wallet": "Open your wallet app and confirm the payment transaction",
-      "quoting_pct": "Quoting · {pct}%",
-      "quoting_indeterminate": "Quoting…",
-      "storing_pct": "Storing · {pct}%",
-      "storing_indeterminate": "Storing…",
-      "resolving_pct": "Resolving datamap · {pct}%",
-      "resolving_indeterminate": "Resolving datamap…",
-      "downloading_pct": "Downloading · {pct}%",
-      "downloading_indeterminate": "Downloading…"
+      "quoting_pct": "Quoting \u00b7 {pct}%",
+      "quoting_indeterminate": "Quoting\u2026",
+      "storing_pct": "Storing \u00b7 {pct}%",
+      "storing_indeterminate": "Storing\u2026",
+      "resolving_pct": "Resolving datamap \u00b7 {pct}%",
+      "resolving_indeterminate": "Resolving datamap\u2026",
+      "downloading_pct": "Downloading \u00b7 {pct}%",
+      "downloading_indeterminate": "Downloading\u2026"
     },
     "picker": {
       "upload_title": "Select files to upload",
@@ -347,15 +348,15 @@
       "download_requires_network": "Download requires network connection",
       "open_folder_failed": "Could not open folder",
       "address_copied": "Address copied to clipboard",
-      "public_address_copied": "Public address copied — share to let others download this file",
+      "public_address_copied": "Public address copied \u2014 share to let others download this file",
       "datamap_path_copied": "Datamap path copied to clipboard",
-      "already_stored_one": "1 file already stored — saving datamap",
-      "already_stored_many": "{count} files already stored — saving datamap",
+      "already_stored_one": "1 file already stored \u2014 saving datamap",
+      "already_stored_many": "{count} files already stored \u2014 saving datamap",
       "upload_complete": "Upload complete: {name}",
-      "upload_failed": "Upload failed: {name} — {error}",
+      "upload_failed": "Upload failed: {name} \u2014 {error}",
       "payment_failed": "Payment failed: {error}",
       "download_complete": "Download complete: {name}",
-      "download_failed": "Download failed: {name} — {error}",
+      "download_failed": "Download failed: {name} \u2014 {error}",
       "datamap_missing": "Cannot download: datamap file missing or unreadable",
       "datamap_read_failed": "Could not read datamap: {error}"
     },
@@ -364,11 +365,11 @@
       "not_connected_to_network": "Not connected to network"
     },
     "network": {
-      "unavailable": "Not connected to the Autonomi network — cost estimate unavailable.",
+      "unavailable": "Not connected to the Autonomi network \u2014 cost estimate unavailable.",
       "retry_connection": "Retry connection",
-      "connecting": "Connecting to the Autonomi network…",
-      "obtaining_quote": "Obtaining quote from network…",
-      "obtaining_quotes": "Obtaining quotes from network…"
+      "connecting": "Connecting to the Autonomi network\u2026",
+      "obtaining_quote": "Obtaining quote from network\u2026",
+      "obtaining_quotes": "Obtaining quotes from network\u2026"
     },
     "datamap_saveas": {
       "title": "Save downloaded file as",
@@ -378,11 +379,11 @@
     "download_dialog": {
       "title": "Download File",
       "subtitle": "Fetch a file from the Autonomi Network",
-      "address_placeholder": "0x… address, autonomi:// link, or datamap path / URL",
+      "address_placeholder": "0x\u2026 address, autonomi:// link, or datamap path / URL",
       "paste_intro": "You can paste in any of the following:",
-      "accept_address": "A network address (0x… / 64 hex chars)",
+      "accept_address": "A network address (0x\u2026 / 64 hex chars)",
       "accept_link": "An autonomi:// share link (carries the filename)",
-      "accept_datamap": "A datamap — paste a local path or URL, or drop / browse below",
+      "accept_datamap": "A datamap \u2014 paste a local path or URL, or drop / browse below",
       "drop_datamap": "Drop a .datamap file here, or click to browse",
       "filename_label": "Save as filename",
       "filename_placeholder": "myfile.dat"
@@ -390,11 +391,11 @@
     "datamap_picker": {
       "description": "Pick a previous upload to re-download, or browse for a datamap file you received from elsewhere.",
       "empty": "No previous uploads with a saved datamap yet.",
-      "browse_button": "Browse for datamap file…"
+      "browse_button": "Browse for datamap file\u2026"
     },
     "cost_estimate": {
       "title": "Upload Cost Estimate",
-      "loading": "Estimating cost…",
+      "loading": "Estimating cost\u2026",
       "no_files": "No files selected",
       "footnote": "Costs queried from the Autonomi network. Gas fees (ETH) apply on top of storage costs."
     },
@@ -404,23 +405,23 @@
       "already_stored_badge": "Already stored",
       "payment_label": "Payment",
       "payment_mixed": "Mixed",
-      "payment_mixed_detail": "{regular} regular, {merkle} merkle — paid per file.",
+      "payment_mixed_detail": "{regular} regular, {merkle} merkle \u2014 paid per file.",
       "payment_merkle": "Merkle tree",
       "payment_regular": "Regular",
-      "payment_merkle_detail": "Single transaction for {count} chunks — lower gas.",
+      "payment_merkle_detail": "Single transaction for {count} chunks \u2014 lower gas.",
       "payment_regular_detail_one": "Per-batch payment for 1 chunk.",
       "payment_regular_detail_many": "Per-batch payment for {count} chunks.",
-      "free_title": "Already stored on the network — free",
+      "free_title": "Already stored on the network \u2014 free",
       "free_detail": "Every chunk is already present. No ANT or gas will be spent.",
       "cost_label": "Network storage cost",
       "gas_label": "Estimated gas",
-      "some_already_stored": "Some files are already stored — that portion costs nothing.",
+      "some_already_stored": "Some files are already stored \u2014 that portion costs nothing.",
       "visibility_label": "Visibility",
       "visibility_private": "Private",
       "visibility_private_desc": "Encrypted and only accessible with your data map. Only you can retrieve the file.",
       "visibility_public": "Public",
       "visibility_public_desc": "Data map is published to the network. Share a single address so anyone can retrieve the file.",
-      "regular_footnote": "Estimated from a single network quote — final cost may vary slightly. Gas fees apply on top.",
+      "regular_footnote": "Estimated from a single network quote \u2014 final cost may vary slightly. Gas fees apply on top.",
       "cancel_upload": "Cancel Upload",
       "ready_count": "Ready: {ready} of {total}",
       "approve_button_one": "Approve Upload",
@@ -441,7 +442,7 @@
     "managed_storage_org": "Storage managed by {org}",
     "managed_storage_description": "Uploads are routed through your organisation's Indelible gateway. No local wallet required.",
     "payment_wallet_heading": "Payment Wallet",
-    "payment_optional_hint": "Optional — required for file uploads",
+    "payment_optional_hint": "Optional \u2014 required for file uploads",
     "connect_prompt": "Connect a wallet to pay for file storage",
     "network_arbitrum_sepolia": "Arbitrum Sepolia testnet",
     "network_arbitrum_one": "Arbitrum One network required",
@@ -472,11 +473,11 @@
       "download_size": "Download size: {size}",
       "release_notes": "Release Notes",
       "no_release_notes": "No release notes available for this version.",
-      "downloading": "Downloading…",
+      "downloading": "Downloading\u2026",
       "download_complete": "Download succeeded, the app will restart shortly",
       "auto_restart_hint": "The app will restart automatically when complete.",
       "cancel_download": "Cancel Download",
-      "installing_tooltip": "Installing — please wait",
+      "installing_tooltip": "Installing \u2014 please wait",
       "not_now": "Not Now",
       "update_restart": "Update & Restart"
     },
@@ -498,7 +499,7 @@
       "stopped": "Stopped",
       "starting": "Starting",
       "stopping": "Stopping",
-      "adding": "Adding…",
+      "adding": "Adding\u2026",
       "errored": "Error",
       "upgrade_scheduled": "Upgrading",
       "evicted": "Evicted"
@@ -506,25 +507,25 @@
     "file": {
       "pending": "Pending",
       "quoting": "Quoting",
-      "encrypting": "Encrypting…",
+      "encrypting": "Encrypting\u2026",
       "resolving_datamap": "Resolving datamap",
       "queued_quoting": "Queued: quoting",
       "queued_uploading": "Queued: uploading",
-      "connecting_to_network": "Connecting to network…",
-      "obtaining_quote": "Obtaining quote…",
-      "saving_datamap": "Saving datamap…",
+      "connecting_to_network": "Connecting to network\u2026",
+      "obtaining_quote": "Obtaining quote\u2026",
+      "saving_datamap": "Saving datamap\u2026",
       "network_unavailable": "Network unavailable",
       "ready_to_approve": "Ready to approve",
       "awaiting_approval": "Approve in your wallet",
       "uploading": "Uploading",
       "downloading": "Downloading",
       "done": "Done",
-      "downloaded": "Downloaded — click to open"
+      "downloaded": "Downloaded \u2014 click to open"
     }
   },
   "banners": {
     "cjk_font_missing": {
-      "script_label": "日本語",
+      "script_label": "\u65e5\u672c\u8a9e",
       "message": "Japanese text may not render correctly on this system. To fix, install the Noto CJK fonts and restart the app:",
       "distro_arch": "Arch",
       "distro_debian": "Debian / Ubuntu",
