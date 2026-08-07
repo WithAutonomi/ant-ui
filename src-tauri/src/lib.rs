@@ -1076,6 +1076,15 @@ fn import_datamaps(src_zip: String) -> Result<datamap_backup::ImportSummary, Str
     datamap_backup::import_datamaps(&src_zip)
 }
 
+/// Sink for frontend diagnostics that would otherwise die in the webview
+/// console — production builds ship without devtools, so errors the frontend
+/// only `console.error`s leave no artifact. Routed into tracing so they land
+/// in the rolling log file alongside the Rust events.
+#[tauri::command]
+fn log_frontend_error(context: String, detail: String) {
+    tracing::error!(target: "ant_gui::frontend", "[{context}] {detail}");
+}
+
 pub fn run() {
     // WebKitGTK's DMA-BUF renderer (default since 2.42) trips over recent Mesa
     // and proprietary NVIDIA drivers, surfacing as "Could not create default
@@ -1103,11 +1112,49 @@ pub fn run() {
     let filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
         tracing_subscriber::EnvFilter::new("ant_core=info,ant_node=warn,ant_gui=info,warn")
     });
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(filter)
-        .with_target(true)
-        .with_writer(std::io::stderr)
-        .try_init();
+    // Mirror everything to a rolling file as well: production builds have no
+    // stderr (windowed app) and no devtools, so without this a field failure
+    // leaves no artifact at all — payment errors in particular used to
+    // survive only as user screenshots. Daily rotation, 7 files kept.
+    let file_layer = match tracing_appender::rolling::Builder::new()
+        .rotation(tracing_appender::rolling::Rotation::DAILY)
+        .filename_prefix("ant-gui")
+        .filename_suffix("log")
+        .max_log_files(7)
+        .build(config::config_path().join("logs"))
+    {
+        Ok(appender) => {
+            let (writer, guard) = tracing_appender::non_blocking(appender);
+            // The guard flushes the writer on drop; park it for the app's
+            // lifetime or nothing is ever written.
+            static LOG_GUARD: std::sync::OnceLock<tracing_appender::non_blocking::WorkerGuard> =
+                std::sync::OnceLock::new();
+            let _ = LOG_GUARD.set(guard);
+            Some(
+                tracing_subscriber::fmt::layer()
+                    .with_target(true)
+                    .with_ansi(false)
+                    .with_writer(writer),
+            )
+        }
+        Err(e) => {
+            eprintln!("log file unavailable ({e}), stderr only");
+            None
+        }
+    };
+    {
+        use tracing_subscriber::layer::SubscriberExt;
+        use tracing_subscriber::util::SubscriberInitExt;
+        let _ = tracing_subscriber::registry()
+            .with(filter)
+            .with(
+                tracing_subscriber::fmt::layer()
+                    .with_target(true)
+                    .with_writer(std::io::stderr),
+            )
+            .with(file_layer)
+            .try_init();
+    }
 
     // `mut` is used only under the Windows/Linux single-instance cfg below.
     #[allow(unused_mut)]
@@ -1214,6 +1261,7 @@ pub fn run() {
             save_upload_history,
             export_datamaps,
             import_datamaps,
+            log_frontend_error,
             take_pending_deep_links,
             discover_daemon_url,
             ensure_daemon_running,
