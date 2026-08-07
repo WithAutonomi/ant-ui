@@ -2,6 +2,7 @@ import { createAppKit } from '@reown/appkit/vue'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { arbitrumSepolia } from '@reown/appkit/networks'
 import type { AppKitNetwork } from '@reown/appkit/networks'
+import { http } from '@wagmi/core'
 import { invoke } from '@tauri-apps/api/core'
 import {
   WALLETCONNECT_PROJECT_ID,
@@ -71,6 +72,18 @@ export default defineNuxtPlugin(async () => {
       projectId: WALLETCONNECT_PROJECT_ID,
       networks,
       connectors: [browserBridge()],
+      // Without an explicit transport, the adapter routes every read and
+      // gas estimate through Reown's RPC proxy (rpc.walletconnect.org),
+      // which 403s any request body over 16KB — large payForMerkleTree /
+      // payForQuotes estimates exceed that. Its own "fallback" is the same
+      // proxy URL again (extendCaipNetwork rewrites rpcUrls.default), so
+      // the chain's real RPC was never tried. Pinning the canonical
+      // Arbitrum endpoints makes them primary; the adapter keeps the Reown
+      // proxy as an automatic fallback leg behind each.
+      transports: {
+        [SUPPORTED_CHAIN.id]: http('https://arb1.arbitrum.io/rpc'),
+        [arbitrumSepolia.id]: http('https://sepolia-rollup.arbitrum.io/rpc'),
+      },
     })
 
     const appkit = createAppKit({
