@@ -22,6 +22,8 @@ vi.mock('@wagmi/core', () => ({
   writeContract: vi.fn(),
   waitForTransactionReceipt: vi.fn(),
   getBalance: vi.fn(),
+  switchChain: vi.fn(),
+  getPublicClient: vi.fn(),
 }))
 
 vi.mock('viem/accounts', () => ({
