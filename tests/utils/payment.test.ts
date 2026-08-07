@@ -11,6 +11,7 @@ import {
   GAS_LIMIT_CAP,
   approvalAmountFor,
   boundedGasLimit,
+  merkleMaxCharge,
   payForQuotes,
   type RawPayment,
 } from '~/utils/payment'
@@ -36,6 +37,36 @@ describe('payment', () => {
     it('approves the full amount for quotes above the standing amount', () => {
       const large = STANDING_ALLOWANCE * 3n + 7n
       expect(approvalAmountFor(large)).toBe(large)
+    })
+  })
+
+  describe('merkleMaxCharge', () => {
+    // 16 candidates like the contract's fixed pool size, amounts 1..16.
+    const pool = (amounts: number[]) => ({
+      candidates: amounts.map(a => ({ amount: BigInt(a) })),
+    })
+    const AMOUNTS = Array.from({ length: 16 }, (_, i) => i + 1)
+
+    it('mirrors the contract: median (index 8 of sorted 16) × 2^depth', () => {
+      // sorted[8] = 9; depth 7 → 9 × 128 = 1152
+      expect(merkleMaxCharge(7, [pool(AMOUNTS)])).toBe(1152n)
+    })
+
+    it('exceeds the old max-pool-sum bound for deep trees (the 0xfb8f41b2 regression)', () => {
+      // Pool sum is 136 — the allowance the old code verified. The vault
+      // actually pulls 1152 at depth 7; anything between reverted on-chain.
+      const sum = AMOUNTS.reduce((a, b) => a + b, 0)
+      expect(merkleMaxCharge(7, [pool(AMOUNTS)])).toBeGreaterThan(BigInt(sum))
+    })
+
+    it('takes the worst case across pools', () => {
+      const cheap = pool(AMOUNTS)
+      const dear = pool(AMOUNTS.map(a => a * 100))
+      expect(merkleMaxCharge(5, [cheap, dear])).toBe(900n * 32n)
+    })
+
+    it('handles empty pools without throwing', () => {
+      expect(merkleMaxCharge(7, [{ candidates: [] }])).toBe(0n)
     })
   })
 

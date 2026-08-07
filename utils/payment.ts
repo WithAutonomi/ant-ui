@@ -234,6 +234,31 @@ export async function payForQuotes(
  * Pay for merkle tree via the PaymentVault contract (merkle path).
  * Single transaction for all chunks — lower gas for large uploads.
  */
+/** Upper bound of what PaymentVaultV2.payForMerkleTree will actually pull:
+ *  the vault charges `median(winner pool's 16 candidate amounts) × 2^depth`
+ *  (median16 = element 8 of the sorted 16), and picks the winner pool
+ *  on-chain from sender+timestamp — unknowable here, so take the worst
+ *  case across pools. The previous bound — the largest pool's SUM — is
+ *  ≈16×median, which UNDERSHOOTS the real charge by 2^depth/16 for
+ *  depth ≥ 5 (8× at depth 7). Wallets whose remaining allowance fell in
+ *  that gap skipped the approve and then reverted every retry with
+ *  ERC20InsufficientAllowance (0xfb8f41b2). */
+export function merkleMaxCharge(
+  depth: number,
+  pools: { candidates: { amount: bigint }[] }[],
+): bigint {
+  return pools.reduce((max, pool) => {
+    const amounts = pool.candidates
+      .map(c => c.amount)
+      .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+    if (amounts.length === 0) return max
+    // Contract's median16 selects index 8 of its fixed 16-slot array.
+    const median = amounts[Math.min(8, amounts.length - 1)]!
+    const charge = median * (1n << BigInt(depth))
+    return charge > max ? charge : max
+  }, 0n)
+}
+
 export async function payForMerkleTree(
   wagmiConfig: any,
   depth: number,
@@ -250,12 +275,7 @@ export async function payForMerkleTree(
     })),
   }))
 
-  const maxPoolCost = commitments.reduce((max, pc) => {
-    const poolTotal = pc.candidates.reduce((sum, c) => sum + c.amount, 0n)
-    return poolTotal > max ? poolTotal : max
-  }, 0n)
-
-  let gasSpent = await ensureAllowance(wagmiConfig, maxPoolCost)
+  let gasSpent = await ensureAllowance(wagmiConfig, merkleMaxCharge(depth, commitments))
 
   const call = {
     abi: paymentVaultAbi,
