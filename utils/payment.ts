@@ -109,9 +109,13 @@ const PREFLIGHT_ATTEMPTS = 3
 const PREFLIGHT_RETRY_DELAY_MS = 1_000
 
 /** One-line failure reason — same field preference the stores use to render
- *  payment errors (viem's `message` is a multi-line diagnostic dump). */
+ *  payment errors (viem's `message` is a multi-line diagnostic dump). viem
+ *  puts the payload of a revert — the custom-error selector or reason
+ *  string — on a SECOND line of `shortMessage`; flatten so downstream
+ *  one-line renderers (status label, toast) can't lose it. */
 function shortReason(e: any): string {
-  return e?.shortMessage ?? String(e?.message ?? e).split('\n')[0]
+  const s = e?.shortMessage ?? String(e?.message ?? e).split('\n')[0]
+  return String(s).replace(/\s*\n\s*/g, ' ').trim()
 }
 
 /** True when the estimate never reached the chain: the RPC transport failed

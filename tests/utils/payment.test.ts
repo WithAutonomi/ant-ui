@@ -125,6 +125,25 @@ describe('payment', () => {
       expect(writeContract).not.toHaveBeenCalled()
     })
 
+    it('keeps the revert selector when viem puts it on a second line', async () => {
+      vi.useFakeTimers()
+      // viem formats unknown custom errors as "…the following signature:\n0x…"
+      // — the selector is the only clue to WHY the contract reverts, and
+      // one-line renderers used to truncate at the newline (field report
+      // 2026-08-07 arrived as a screenshot ending at the colon).
+      const revert = Object.assign(new Error('long\nviem\ndump'), {
+        shortMessage:
+          'The contract function "payForMerkleTree" reverted with the following signature:\n0x1fb3b5a2',
+      })
+      estimateContractGas.mockRejectedValue(revert)
+
+      const assertion = expect(payForQuotes({} as any, PAYMENTS)).rejects.toThrow(
+        'Payment would fail on-chain: The contract function "payForMerkleTree" reverted with the following signature: 0x1fb3b5a2',
+      )
+      await vi.advanceTimersByTimeAsync(3_000)
+      await assertion
+    })
+
     it('reports a transport failure as an unreachable RPC, not an on-chain verdict', async () => {
       vi.useFakeTimers()
       // Shape of a real failure: viem wraps the transport error, keeping it

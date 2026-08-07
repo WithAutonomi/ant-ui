@@ -152,19 +152,35 @@ const ACTIVE_STATUSES: FileStatus[] = [
 // stalls (they don't need progress bars or spinners in the header).
 const IN_FLIGHT_STATUSES: FileStatus[] = ['quoting', 'paying', 'uploading', 'downloading']
 
+/** Full error dump for the log file: message + stack of every layer of the
+ *  cause chain, so the viem diagnostics (revert selector, calldata, request
+ *  args) survive even when wrapped in a plain Error by the preflight. */
+function paymentErrorDump(e: any): string {
+  const parts: string[] = []
+  for (let err = e, depth = 0; err && depth < 5; err = err.cause, depth++) {
+    parts.push(String(err?.stack ?? err?.message ?? err))
+  }
+  return parts.join('\n--- caused by ---\n')
+}
+
 /** One-line summary of a wallet payment error. viem's `.message` is a
  *  multi-line diagnostic dump (request args, calldata, docs link) meant for
- *  the console, not the UI; `shortMessage` carries the human sentence. A
- *  4001 rejection — the code survives WalletConnect and the browser-bridge
- *  relay alike — gets its own friendlier line. */
+ *  the log, not the UI; `shortMessage` carries the human sentence — though
+ *  even that puts a revert's selector/reason on a second line, so flatten
+ *  before rendering. A 4001 rejection — the code survives WalletConnect and
+ *  the browser-bridge relay alike — gets its own friendlier line. */
 function paymentErrorSummary(e: any): string {
-  console.error('[payment]', e) // full dump stays available in devtools
+  console.error('[payment]', e)
+  // Production builds have no devtools console — mirror the full dump into
+  // the Rust rolling log so field failures are diagnosable after the fact.
+  invoke('log_frontend_error', { context: 'payment', detail: paymentErrorDump(e) }).catch(() => {})
   const rejected =
     typeof e?.walk === 'function'
       ? Boolean(e.walk((c: any) => c?.code === 4001))
       : e?.code === 4001
   if (rejected) return 'Cancelled in your wallet'
-  return e?.shortMessage ?? String(e?.message ?? e).split('\n')[0]
+  const s = e?.shortMessage ?? String(e?.message ?? e).split('\n')[0]
+  return String(s).replace(/\s*\n\s*/g, ' ').trim()
 }
 
 /** Shape persisted to upload_history.json (kept for backwards compat) */
