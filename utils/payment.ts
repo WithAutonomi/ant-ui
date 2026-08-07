@@ -1,4 +1,4 @@
-import { readContract, writeContract, waitForTransactionReceipt, getAccount, switchChain } from '@wagmi/core'
+import { readContract, writeContract, waitForTransactionReceipt, getAccount, switchChain, getPublicClient } from '@wagmi/core'
 import { getTokenAddress, getVaultAddress, getActiveChainId } from '~/utils/wallet-config'
 import paymentVaultAbi from '~/assets/abi/IPaymentVault.json'
 import paymentTokenAbi from '~/assets/abi/PaymentToken.json'
@@ -79,6 +79,68 @@ function accountOpt(): { account: any } | {} {
   return devnetAccount ? { account: devnetAccount } : {}
 }
 
+// A transaction sent without a `gas` limit makes the wallet run its own
+// eth_estimateGas — and when that estimation reverts (a lagging RPC node that
+// hasn't seen the approve yet, a drained allowance, an insufficient token
+// balance), MetaMask doesn't surface the revert: it falls back to a fraction
+// of the block gas limit (metamask-extension#19692), which Arbitrum reports
+// as 2^50 (~1.1e15). At our 1 gwei fee cap that renders as a quoted fee of
+// hundreds of thousands of ETH. Estimating here and passing an explicit
+// limit keeps the wallet's quote at gas × fee cap, and turns a genuine
+// would-revert into a readable app error before any wallet prompt opens.
+const GAS_HEADROOM_NUM = 3n
+const GAS_HEADROOM_DEN = 2n
+
+/** Ceiling on any gas limit we hand the wallet: quoted fee stays ≤ 0.1 ETH
+ *  at the 1 gwei cap. Far above real use — a full 256-payment batch
+ *  estimates in the low millions even with Arbitrum's L1 data component
+ *  folded into the figure. */
+export const GAS_LIMIT_CAP = 100_000_000n
+
+/** Estimate + 50% headroom, capped. Headroom because Arbitrum folds the L1
+ *  data fee into gas units, so the true need moves with L1 prices between
+ *  estimation and inclusion. */
+export function boundedGasLimit(estimate: bigint): bigint {
+  const withHeadroom = (estimate * GAS_HEADROOM_NUM) / GAS_HEADROOM_DEN
+  return withHeadroom > GAS_LIMIT_CAP ? GAS_LIMIT_CAP : withHeadroom
+}
+
+const PREFLIGHT_ATTEMPTS = 3
+const PREFLIGHT_RETRY_DELAY_MS = 1_000
+
+/** One-line failure reason — same field preference the stores use to render
+ *  payment errors (viem's `message` is a multi-line diagnostic dump). */
+function shortReason(e: any): string {
+  return e?.shortMessage ?? String(e?.message ?? e).split('\n')[0]
+}
+
+/**
+ * Estimate the gas limit for a contract write on our own transport, with
+ * retries: right after an approve receipt, a load-balanced public RPC can
+ * serve pre-approve state for a block or two, making a healthy payment
+ * simulate as a revert.
+ */
+async function preflightGasLimit(
+  wagmiConfig: any,
+  call: { address: `0x${string}`; abi: any; functionName: string; args: any },
+  label: string,
+): Promise<bigint> {
+  const client = getPublicClient(wagmiConfig, { chainId: getActiveChainId() as any })
+  const account = getSignerAccount(wagmiConfig)
+  let lastError: unknown
+  for (let attempt = 1; attempt <= PREFLIGHT_ATTEMPTS; attempt++) {
+    try {
+      return boundedGasLimit(await client!.estimateContractGas({ ...call, account }))
+    } catch (e) {
+      lastError = e
+      if (attempt < PREFLIGHT_ATTEMPTS) {
+        await new Promise(resolve => setTimeout(resolve, PREFLIGHT_RETRY_DELAY_MS))
+      }
+    }
+  }
+  throw new Error(`${label} would fail on-chain: ${shortReason(lastError)}`, { cause: lastError })
+}
+
 /**
  * Pay for store quotes via the PaymentVault contract (wave-batch path).
  * Handles ERC20 approval and batching (max 256 per tx).
@@ -110,12 +172,16 @@ export async function payForQuotes(
       quoteHash,
     ])
 
-    const hash = await writeContract(wagmiConfig, {
+    const call = {
       abi: paymentVaultAbi,
       address: getVaultAddress(),
       functionName: 'payForQuotes',
       args: [input],
+    }
+    const hash = await writeContract(wagmiConfig, {
+      ...call,
       chainId: getActiveChainId(),
+      gas: await preflightGasLimit(wagmiConfig, call, 'Payment'),
       // V2-231: override both EIP-1559 fees explicitly. viem only
       // auto-estimates the side that's missing, so passing only one
       // produces an invalid pair (maxFee=baseFee < maxPriority).
@@ -169,12 +235,16 @@ export async function payForMerkleTree(
 
   let gasSpent = await ensureAllowance(wagmiConfig, maxPoolCost)
 
-  const hash = await writeContract(wagmiConfig, {
+  const call = {
     abi: paymentVaultAbi,
     address: getVaultAddress(),
     functionName: 'payForMerkleTree',
     args: [depth, commitments, merkleTimestamp],
+  }
+  const hash = await writeContract(wagmiConfig, {
+    ...call,
     chainId: getActiveChainId(),
+    gas: await preflightGasLimit(wagmiConfig, call, 'Payment'),
     // V2-231: override BOTH fees so EIP-1559's maxFee >= maxPriority holds.
     maxFeePerGas: 1_000_000_000n,
     maxPriorityFeePerGas: 100_000_000n,
@@ -242,12 +312,16 @@ async function ensureAllowance(wagmiConfig: any, needed: bigint): Promise<bigint
 
   if (currentAllowance >= needed) return 0n
 
-  const hash = await writeContract(wagmiConfig, {
+  const call = {
     abi: paymentTokenAbi,
     address: getTokenAddress(),
     functionName: 'approve',
     args: [getVaultAddress(), approvalAmountFor(needed)],
+  }
+  const hash = await writeContract(wagmiConfig, {
+    ...call,
     chainId: getActiveChainId(),
+    gas: await preflightGasLimit(wagmiConfig, call, 'Token approval'),
     // V2-231: override BOTH fees so EIP-1559's maxFee >= maxPriority holds.
     maxFeePerGas: 1_000_000_000n,
     maxPriorityFeePerGas: 100_000_000n,
