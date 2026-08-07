@@ -114,6 +114,17 @@ function shortReason(e: any): string {
   return e?.shortMessage ?? String(e?.message ?? e).split('\n')[0]
 }
 
+/** True when the estimate never reached the chain: the RPC transport failed
+ *  (HTTP error, timeout) rather than the node simulating a revert. viem
+ *  nests the transport error inside the `cause` chain of the wrapper that
+ *  estimateContractGas throws. */
+function isTransportError(e: any): boolean {
+  for (let err = e, depth = 0; err && depth < 10; err = err.cause, depth++) {
+    if (err.name === 'HttpRequestError' || err.name === 'TimeoutError') return true
+  }
+  return false
+}
+
 /**
  * Estimate the gas limit for a contract write on our own transport, with
  * retries: right after an approve receipt, a load-balanced public RPC can
@@ -137,6 +148,13 @@ async function preflightGasLimit(
         await new Promise(resolve => setTimeout(resolve, PREFLIGHT_RETRY_DELAY_MS))
       }
     }
+  }
+  if (isTransportError(lastError)) {
+    // Not an on-chain verdict — we never got one. Say so instead of
+    // implying the payment itself is doomed.
+    throw new Error(`Couldn't reach the Arbitrum RPC to estimate gas: ${shortReason(lastError)}`, {
+      cause: lastError,
+    })
   }
   throw new Error(`${label} would fail on-chain: ${shortReason(lastError)}`, { cause: lastError })
 }

@@ -125,6 +125,29 @@ describe('payment', () => {
       expect(writeContract).not.toHaveBeenCalled()
     })
 
+    it('reports a transport failure as an unreachable RPC, not an on-chain verdict', async () => {
+      vi.useFakeTimers()
+      // Shape of a real failure: viem wraps the transport error, keeping it
+      // in the cause chain (e.g. Reown's RPC proxy 403ing a >16KB estimate).
+      const httpError = Object.assign(new Error('HTTP request failed.\nURL: …'), {
+        name: 'HttpRequestError',
+        shortMessage: 'HTTP request failed.',
+      })
+      const wrapped = Object.assign(new Error('Gas estimation failed'), {
+        shortMessage: 'HTTP request failed.',
+        cause: httpError,
+      })
+      estimateContractGas.mockRejectedValue(wrapped)
+
+      const assertion = expect(payForQuotes({} as any, PAYMENTS)).rejects.toThrow(
+        "Couldn't reach the Arbitrum RPC to estimate gas: HTTP request failed.",
+      )
+      await vi.advanceTimersByTimeAsync(3_000)
+      await assertion
+
+      expect(writeContract).not.toHaveBeenCalled()
+    })
+
     it('preflights the approve tx too when an approval is needed', async () => {
       vi.mocked(readContract).mockResolvedValue(0n)
       estimateContractGas.mockResolvedValue(60_000n)
