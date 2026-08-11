@@ -805,8 +805,7 @@ dependencies = [
 [[package]]
 name = "ant-core"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0775831873cdc25210621f1215009d921b48cbe02638c6e12146f1558d7c513"
+source = "git+https://github.com/WithAutonomi/ant-client?branch=feat%2Fmerkle-external-multi-batch#dbc9ca0071467c1e5f6c57b7343aa029d4ecc7cc"
 dependencies = [
  "ant-protocol",
  "async-stream",

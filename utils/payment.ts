@@ -324,6 +324,27 @@ export async function payForMerkleTree(
   throw new Error('MerklePaymentMade event not found in transaction receipt')
 }
 
+/** One up-front allowance covering every sub-batch of a multi-batch merkle
+ *  payment (ADR-0003 in ant-client): sums the per-batch worst-case charges
+ *  and tops the allowance up once, so the wallet prompts for at most one
+ *  approve before the N payment transactions. Each subsequent
+ *  `payForMerkleTree` call still checks the allowance, but finds it already
+ *  sufficient and skips straight to the payment. Returns approve gas spent
+ *  (0 when the standing allowance already covers the total). */
+export async function ensureAllowanceForMerkleBatches(
+  wagmiConfig: any,
+  batches: { depth: number; pool_commitments: SerializedPoolCommitment[] }[],
+): Promise<bigint> {
+  await ensureActiveChain(wagmiConfig)
+  const total = batches.reduce((sum, b) => {
+    const commitments = b.pool_commitments.map(pc => ({
+      candidates: pc.candidates.map(c => ({ amount: BigInt(c.amount) })),
+    }))
+    return sum + merkleMaxCharge(b.depth, commitments)
+  }, 0n)
+  return ensureAllowance(wagmiConfig, total)
+}
+
 /** Standing ERC20 allowance granted to the PaymentVault: 1 ANT (18 decimals).
  *  Approving the exact quote amount would be consumed in full by the payment
  *  that follows, forcing a fresh approve — and a second wallet prompt — on

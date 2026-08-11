@@ -5,13 +5,15 @@ import { useFilesStore } from '~/stores/files'
 // The store imports the on-chain payment helpers at module scope; mock them so
 // upload-flow tests can drive the merkle path without a wallet. Formatters are
 // identity functions — tests assert flow, not display formatting.
+const mockPayForMerkleTree = vi.fn(async () => ({
+  winnerPoolHash: `0x${'ab'.repeat(32)}`,
+  totalPaid: BigInt(1000),
+  gasSpent: BigInt(21),
+}))
 vi.mock('~/utils/payment', () => ({
   payForQuotes: vi.fn(),
-  payForMerkleTree: vi.fn(async () => ({
-    winnerPoolHash: `0x${'ab'.repeat(32)}`,
-    totalPaid: BigInt(1000),
-    gasSpent: BigInt(21),
-  })),
+  payForMerkleTree: (...args: unknown[]) => mockPayForMerkleTree(...(args as [])),
+  ensureAllowanceForMerkleBatches: vi.fn(async () => BigInt(0)),
   formatNanoTokens: (v: string) => v,
   formatGasCost: (v: string) => v,
 }))
@@ -21,6 +23,7 @@ describe('files store — upload history persistence', () => {
 
   beforeEach(() => {
     resetTauriMocks()
+    mockPayForMerkleTree.mockClear()
     store = useFilesStore()
     store.$reset()
   })
@@ -163,18 +166,111 @@ describe('files store — upload history persistence', () => {
     })
   })
 
-  describe('merkle storage failure after successful payment', () => {
-    it('marks the row failed with the storage error, not as a payment failure', async () => {
+  describe('merkle multi-batch payments', () => {
+    const pushRow = () => {
       store.files.push({
         id: 1,
         kind: 'upload',
         name: 'big.bin',
-        size_bytes: 300 * 1024 * 1024,
+        size_bytes: 2200 * 1024 * 1024,
         path: 'C:/tmp/big.bin',
         status: 'queued_for_upload',
         date: '2026-08-11T00:00:00Z',
       } as any)
+    }
 
+    const twoBatchQuote = (uploadId: string) => ({
+      upload_id: uploadId,
+      payment_mode: 'merkle',
+      payments: [],
+      total_cost: '0',
+      payment_required: true,
+      merkle_batches: [
+        { depth: 8, pool_commitments: [], timestamp: 1754870400 },
+        { depth: 6, pool_commitments: [], timestamp: 1754870400 },
+      ],
+    })
+
+    it('pays one transaction per batch and confirms with all winner hashes', async () => {
+      pushRow()
+      let quoteCb: ((event: any) => void) | null = null
+      mockListen.mockImplementation(((event: string, cb: any) => {
+        if (event === 'upload-quote') quoteCb = cb
+        return Promise.resolve(vi.fn())
+      }) as any)
+
+      let confirmArgs: any = null
+      setMockInvokeHandler((cmd, args) => {
+        if (cmd === 'start_upload') {
+          quoteCb?.({ payload: twoBatchQuote(args.request.upload_id) })
+        }
+        if (cmd === 'confirm_upload_merkle') {
+          confirmArgs = args
+          return {
+            upload_id: args.uploadId,
+            data_map_json: '{}',
+            address: '0xdead',
+            chunks_stored: 555,
+            data_map_file: '/cfg/big.bin.datamap',
+            public_address: null,
+          }
+        }
+      })
+
+      await store.startRealUpload(1, {}, { visibility: 'private', paymentMode: 'merkle' })
+
+      expect(mockPayForMerkleTree).toHaveBeenCalledTimes(2)
+      expect(confirmArgs.winnerPoolHashes).toEqual([
+        `0x${'ab'.repeat(32)}`,
+        `0x${'ab'.repeat(32)}`,
+      ])
+      expect(store.findById(1)?.status).toBe('complete')
+    })
+
+    it('finalizes paid batches when the user abandons a later payment', async () => {
+      pushRow()
+      let quoteCb: ((event: any) => void) | null = null
+      mockListen.mockImplementation(((event: string, cb: any) => {
+        if (event === 'upload-quote') quoteCb = cb
+        return Promise.resolve(vi.fn())
+      }) as any)
+
+      // First payment succeeds, second is rejected in the wallet.
+      mockPayForMerkleTree
+        .mockResolvedValueOnce({
+          winnerPoolHash: `0x${'ab'.repeat(32)}`,
+          totalPaid: BigInt(1000),
+          gasSpent: BigInt(21),
+        })
+        .mockRejectedValueOnce(new Error('User rejected the request'))
+
+      const incomplete =
+        'Upload incomplete: 256 of 555 chunks reached the network (299 failed after retries), so the file is not retrievable yet.'
+      let confirmArgs: any = null
+      setMockInvokeHandler((cmd, args) => {
+        if (cmd === 'start_upload') {
+          quoteCb?.({ payload: twoBatchQuote(args.request.upload_id) })
+        }
+        if (cmd === 'confirm_upload_merkle') {
+          confirmArgs = args
+          throw new Error(incomplete)
+        }
+      })
+
+      await store.startRealUpload(1, {}, { visibility: 'private', paymentMode: 'merkle' })
+
+      // The paid batch is still finalized (its chunks store; a later retry
+      // only re-pays the remainder), and the row reports the incomplete
+      // upload — not a payment failure and not silent success.
+      expect(confirmArgs.winnerPoolHashes).toEqual([`0x${'ab'.repeat(32)}`, null])
+      const entry = store.findById(1)
+      expect(entry?.status).toBe('failed')
+      expect(entry?.error).toContain('Upload incomplete')
+      expect(entry?.error).not.toContain('Payment failed')
+    })
+
+    it('marks the row failed with the storage error, not as a payment failure', async () => {
+      pushRow()
       let quoteCb: ((event: any) => void) | null = null
       mockListen.mockImplementation(((event: string, cb: any) => {
         if (event === 'upload-quote') quoteCb = cb
@@ -187,18 +283,7 @@ describe('files store — upload history persistence', () => {
         'Upload incomplete: 97 of 100 chunks reached the network (3 failed after retries), so the file is not retrievable yet.'
       setMockInvokeHandler((cmd, args) => {
         if (cmd === 'start_upload') {
-          quoteCb?.({
-            payload: {
-              upload_id: args.request.upload_id,
-              payment_mode: 'merkle',
-              payments: [],
-              total_cost: '0',
-              payment_required: true,
-              merkle_depth: 7,
-              merkle_pool_commitments: [],
-              merkle_timestamp: 1754870400,
-            },
-          })
+          quoteCb?.({ payload: twoBatchQuote(args.request.upload_id) })
         }
         if (cmd === 'confirm_upload_merkle') {
           throw new Error(incomplete)

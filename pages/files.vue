@@ -507,7 +507,17 @@ function stageDetail(file: FileEntry): string | null {
   // the wallet app is always accurate here. Already-stored rows pass
   // through `paying` in milliseconds with a zero-cost payment and no
   // wallet prompt — don't flash the instruction for those.
-  if (file.status === 'paying' && !file.alreadyStored) return t('files.stage.approve_in_wallet')
+  if (file.status === 'paying' && !file.alreadyStored) {
+    // Multi-batch merkle uploads pay one transaction per sub-batch and set
+    // stageDone/stageTotal so the user knows how many approvals remain.
+    if (file.stageTotal && file.stageTotal > 1) {
+      return t('files.stage.approve_payment_n_of_m', {
+        n: (file.stageDone ?? 0) + 1,
+        m: file.stageTotal,
+      })
+    }
+    return t('files.stage.approve_in_wallet')
+  }
   if (!file.stage) return null
   const done = file.stageDone ?? 0
   const total = file.stageTotal

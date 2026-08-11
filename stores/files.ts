@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { useToastStore } from './toasts'
 import { useSettingsStore } from './settings'
-import { payForQuotes, payForMerkleTree, formatNanoTokens, formatGasCost, type RawPayment, type SerializedPoolCommitment } from '~/utils/payment'
+import { payForQuotes, payForMerkleTree, ensureAllowanceForMerkleBatches, formatNanoTokens, formatGasCost, type RawPayment, type SerializedPoolCommitment } from '~/utils/payment'
 import { indelibleApi } from '~/utils/indelible-api'
 import { i18n } from '~/plugins/i18n.client'
 
@@ -24,6 +24,14 @@ export interface UploadCostEstimate {
 
 // ── Pre-obtained quote from network ──
 
+/** One prepared merkle sub-batch: paid with a single payForMerkleTree tx.
+ *  Uploads above the 256-chunk tree limit quote as several (ADR-0003). */
+export interface MerkleBatch {
+  depth: number
+  pool_commitments: SerializedPoolCommitment[]
+  timestamp: number
+}
+
 export interface UploadQuote {
   upload_id: string
   payment_mode: 'wave-batch' | 'merkle'
@@ -32,10 +40,8 @@ export interface UploadQuote {
   total_cost: string
   total_cost_display: string
   payment_required: boolean
-  // Merkle fields
-  merkle_depth?: number
-  merkle_pool_commitments?: SerializedPoolCommitment[]
-  merkle_timestamp?: number
+  // Merkle field: one entry per sub-batch, paid in order
+  merkle_batches?: MerkleBatch[]
   // Gas estimate
   estimated_gas?: string | null
 }
@@ -606,9 +612,7 @@ export const useFilesStore = defineStore('files', {
           total_cost: quote.total_cost,
           total_cost_display: quote.payment_mode === 'merkle' ? 'Determined on-chain' : formatNanoTokens(quote.total_cost),
           payment_required: quote.payment_required,
-          merkle_depth: quote.merkle_depth,
-          merkle_pool_commitments: quote.merkle_pool_commitments,
-          merkle_timestamp: quote.merkle_timestamp,
+          merkle_batches: quote.merkle_batches,
         }
       } catch {
         return null
@@ -722,37 +726,65 @@ export const useFilesStore = defineStore('files', {
         this.updateEntry(id, { status: 'paying' })
 
         if (quote.payment_mode === 'merkle') {
-          // Merkle path: single tx for all chunks. Only the on-chain payment
-          // is wrapped here — confirm_upload_merkle rejections are storage
-          // failures, not payment failures, so they fall through to the
-          // outer catch and surface as an upload failure (mirroring the
-          // wave-batch path below).
-          let winnerPoolHash!: string
+          // Merkle path: one payForMerkleTree transaction per prepared
+          // sub-batch (uploads above the 256-chunk tree limit quote as
+          // several — ADR-0003), preceded by a single allowance approval
+          // covering the summed worst case, so the wallet prompts once for
+          // the approve and then once per payment. Only the on-chain
+          // payments are wrapped here — confirm_upload_merkle rejections
+          // are storage failures, not payment failures, so they fall
+          // through to the outer catch (mirroring the wave-batch path).
+          const batches = quote.merkle_batches ?? []
+          if (batches.length === 0) throw new Error('Merkle quote carried no payment batches')
+          const winnerPoolHashes: (string | null)[] = batches.map(() => null)
+          let totalPaid = 0n
+          let gasTotal = 0n
           try {
-            const payResult = await withTimeout(
-              payForMerkleTree(
-                wagmiConfig,
-                quote.merkle_depth!,
-                quote.merkle_pool_commitments!,
-                BigInt(quote.merkle_timestamp!),
-              ),
-              300_000,
-              'Payment timed out — wallet approval took too long',
-            )
-            winnerPoolHash = payResult.winnerPoolHash
-
-            this.updateEntry(id, {
-              status: 'uploading',
-              progress: 0,
-              cost: formatNanoTokens(payResult.totalPaid.toString()),
-              gas_cost: formatGasCost(payResult.gasSpent.toString()),
-            })
+            gasTotal += await ensureAllowanceForMerkleBatches(wagmiConfig, batches)
+            for (let i = 0; i < batches.length; i++) {
+              const batch = batches[i]!
+              // stageDone/stageTotal drive the "payment i of N" wallet
+              // instruction while status is `paying` (see pages/files.vue).
+              this.updateEntry(id, { stageDone: i, stageTotal: batches.length })
+              const payResult = await withTimeout(
+                payForMerkleTree(
+                  wagmiConfig,
+                  batch.depth,
+                  batch.pool_commitments,
+                  BigInt(batch.timestamp),
+                ),
+                300_000,
+                'Payment timed out — wallet approval took too long',
+              )
+              winnerPoolHashes[i] = payResult.winnerPoolHash
+              totalPaid += payResult.totalPaid
+              gasTotal += payResult.gasSpent
+              this.updateEntry(id, {
+                cost: formatNanoTokens(totalPaid.toString()),
+                gas_cost: formatGasCost(gasTotal.toString()),
+              })
+            }
           } catch (e: any) {
-            const summary = paymentErrorSummary(e)
-            this.updateEntry(id, { status: 'failed', error: `Payment failed: ${summary}` })
-            toasts.add(t('files.toast.payment_failed', { error: summary }), 'error')
-            return
+            const paidCount = winnerPoolHashes.filter(Boolean).length
+            if (paidCount === 0) {
+              // Nothing spent yet — a clean payment failure.
+              const summary = paymentErrorSummary(e)
+              this.updateEntry(id, { status: 'failed', error: `Payment failed: ${summary}` })
+              toasts.add(t('files.toast.payment_failed', { error: summary }), 'error')
+              return
+            }
+            // k-of-N batches already paid on-chain: finalize what was paid so
+            // those chunks are stored and a later retry only re-pays the
+            // remainder. The backend reports the shortfall as an incomplete
+            // upload through the confirm call below.
           }
+          this.updateEntry(id, {
+            status: 'uploading',
+            progress: 0,
+            stage: undefined,
+            stageDone: undefined,
+            stageTotal: undefined,
+          })
 
           // No frontend timeout: the backend drives chunk storage, which
           // can legitimately take many minutes for larger files. The CLI
@@ -760,7 +792,7 @@ export const useFilesStore = defineStore('files', {
           // surface through invoke's rejection.
           const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number; data_map_file: string; public_address: string | null }>('confirm_upload_merkle', {
             uploadId,
-            winnerPoolHash,
+            winnerPoolHashes,
           })
 
           const duration = entry.transferStartedAt
