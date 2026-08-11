@@ -722,6 +722,31 @@ pub async fn estimate_file_cost(
         .map_err(|e| format!("Failed to estimate upload cost: {e}"))
 }
 
+/// Reject a finalize result that stored fewer chunks than the file needs.
+///
+/// ant-core's external-signer merkle path reports quorum shortfalls via
+/// `chunks_failed` on an `Ok` result instead of an error
+/// (WithAutonomi/ant-client#166), so without this check a partially stored —
+/// and unretrievable — file would be reported to the user as complete.
+/// Called after the DataMap is persisted: payment has already happened, and
+/// re-uploading the same file skips chunks that are already stored.
+fn ensure_all_chunks_stored(
+    chunks_stored: usize,
+    chunks_failed: usize,
+    total_chunks: usize,
+    data_map_file: &str,
+) -> Result<(), String> {
+    if chunks_failed == 0 && chunks_stored >= total_chunks {
+        return Ok(());
+    }
+    Err(format!(
+        "Upload incomplete: {chunks_stored} of {total_chunks} chunks reached the network \
+         ({chunks_failed} failed after retries), so the file is not retrievable yet. \
+         Payment was made and the DataMap was saved to {data_map_file}; uploading the \
+         same file again will store only the missing chunks."
+    ))
+}
+
 /// Confirm wave-batch upload after frontend has paid on-chain.
 /// Accepts tx hashes from the external signer and uploads chunks.
 #[tauri::command]
@@ -786,6 +811,12 @@ pub async fn confirm_upload(
     let data_map_file = crate::config::write_datamap_for(&file_name, &result.data_map)?
         .to_string_lossy()
         .into_owned();
+    ensure_all_chunks_stored(
+        result.chunks_stored,
+        result.chunks_failed,
+        result.total_chunks,
+        &data_map_file,
+    )?;
     let public_address = result
         .data_map_address
         .map(|addr| format!("0x{}", hex::encode(addr)));
@@ -852,6 +883,12 @@ pub async fn confirm_upload_merkle(
     let data_map_file = crate::config::write_datamap_for(&file_name, &result.data_map)?
         .to_string_lossy()
         .into_owned();
+    ensure_all_chunks_stored(
+        result.chunks_stored,
+        result.chunks_failed,
+        result.total_chunks,
+        &data_map_file,
+    )?;
     let public_address = result
         .data_map_address
         .map(|addr| format!("0x{}", hex::encode(addr)));
@@ -993,6 +1030,12 @@ pub async fn wallet_upload(
     let data_map_file = crate::config::write_datamap_for(&file_name, &result.data_map)?
         .to_string_lossy()
         .into_owned();
+    ensure_all_chunks_stored(
+        result.chunks_stored,
+        result.chunks_failed,
+        result.total_chunks,
+        &data_map_file,
+    )?;
     let public_address = result
         .data_map_address
         .map(|addr| format!("0x{}", hex::encode(addr)));
@@ -1222,4 +1265,30 @@ pub async fn read_datamap_url(url: String) -> Result<String, String> {
 pub async fn is_autonomi_connected(state: tauri::State<'_, AutonomiState>) -> Result<bool, String> {
     let client_lock = state.client.read().await;
     Ok(client_lock.is_some())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ensure_all_chunks_stored;
+
+    #[test]
+    fn complete_upload_passes() {
+        assert!(ensure_all_chunks_stored(100, 0, 100, "/cfg/a.datamap").is_ok());
+    }
+
+    #[test]
+    fn quorum_shortfall_is_rejected_with_counts_and_datamap_path() {
+        let err = ensure_all_chunks_stored(97, 3, 100, "/cfg/a.datamap").unwrap_err();
+        assert!(err.contains("97 of 100"), "unexpected message: {err}");
+        assert!(err.contains("3 failed"), "unexpected message: {err}");
+        assert!(err.contains("/cfg/a.datamap"), "unexpected message: {err}");
+    }
+
+    #[test]
+    fn shortfall_with_zero_failed_count_is_still_rejected() {
+        // chunks_failed can be 0 while chunks_stored still falls short (a core
+        // path that aborts without accounting every chunk) — never report
+        // such an upload as complete.
+        assert!(ensure_all_chunks_stored(99, 0, 100, "/cfg/a.datamap").is_err());
+    }
 }

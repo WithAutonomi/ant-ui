@@ -2,6 +2,20 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mockInvoke, mockListen, resetTauriMocks, setMockInvokeHandler } from '../mocks/tauri'
 import { useFilesStore } from '~/stores/files'
 
+// The store imports the on-chain payment helpers at module scope; mock them so
+// upload-flow tests can drive the merkle path without a wallet. Formatters are
+// identity functions — tests assert flow, not display formatting.
+vi.mock('~/utils/payment', () => ({
+  payForQuotes: vi.fn(),
+  payForMerkleTree: vi.fn(async () => ({
+    winnerPoolHash: `0x${'ab'.repeat(32)}`,
+    totalPaid: BigInt(1000),
+    gasSpent: BigInt(21),
+  })),
+  formatNanoTokens: (v: string) => v,
+  formatGasCost: (v: string) => v,
+}))
+
 describe('files store — upload history persistence', () => {
   let store: ReturnType<typeof useFilesStore>
 
@@ -146,6 +160,57 @@ describe('files store — upload history persistence', () => {
       expect(store.findById(1)).toBeUndefined()
       expect(invoked).toContain('start_upload')
       expect(invoked).not.toContain('confirm_upload')
+    })
+  })
+
+  describe('merkle storage failure after successful payment', () => {
+    it('marks the row failed with the storage error, not as a payment failure', async () => {
+      store.files.push({
+        id: 1,
+        kind: 'upload',
+        name: 'big.bin',
+        size_bytes: 300 * 1024 * 1024,
+        path: 'C:/tmp/big.bin',
+        status: 'queued_for_upload',
+        date: '2026-08-11T00:00:00Z',
+      } as any)
+
+      let quoteCb: ((event: any) => void) | null = null
+      mockListen.mockImplementation(((event: string, cb: any) => {
+        if (event === 'upload-quote') quoteCb = cb
+        return Promise.resolve(vi.fn())
+      }) as any)
+
+      // Backend guard message for a partial merkle store (ant-client#166):
+      // payment succeeded on-chain but chunks fell short of quorum.
+      const incomplete =
+        'Upload incomplete: 97 of 100 chunks reached the network (3 failed after retries), so the file is not retrievable yet.'
+      setMockInvokeHandler((cmd, args) => {
+        if (cmd === 'start_upload') {
+          quoteCb?.({
+            payload: {
+              upload_id: args.request.upload_id,
+              payment_mode: 'merkle',
+              payments: [],
+              total_cost: '0',
+              payment_required: true,
+              merkle_depth: 7,
+              merkle_pool_commitments: [],
+              merkle_timestamp: 1754870400,
+            },
+          })
+        }
+        if (cmd === 'confirm_upload_merkle') {
+          throw new Error(incomplete)
+        }
+      })
+
+      await store.startRealUpload(1, {}, { visibility: 'private', paymentMode: 'merkle' })
+
+      const entry = store.findById(1)
+      expect(entry?.status).toBe('failed')
+      expect(entry?.error).toContain('Upload incomplete')
+      expect(entry?.error).not.toContain('Payment failed')
     })
   })
 })

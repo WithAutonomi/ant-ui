@@ -722,7 +722,12 @@ export const useFilesStore = defineStore('files', {
         this.updateEntry(id, { status: 'paying' })
 
         if (quote.payment_mode === 'merkle') {
-          // Merkle path: single tx for all chunks
+          // Merkle path: single tx for all chunks. Only the on-chain payment
+          // is wrapped here — confirm_upload_merkle rejections are storage
+          // failures, not payment failures, so they fall through to the
+          // outer catch and surface as an upload failure (mirroring the
+          // wave-batch path below).
+          let winnerPoolHash!: string
           try {
             const payResult = await withTimeout(
               payForMerkleTree(
@@ -734,6 +739,7 @@ export const useFilesStore = defineStore('files', {
               300_000,
               'Payment timed out — wallet approval took too long',
             )
+            winnerPoolHash = payResult.winnerPoolHash
 
             this.updateEntry(id, {
               status: 'uploading',
@@ -741,35 +747,35 @@ export const useFilesStore = defineStore('files', {
               cost: formatNanoTokens(payResult.totalPaid.toString()),
               gas_cost: formatGasCost(payResult.gasSpent.toString()),
             })
-
-            // No frontend timeout: the backend drives chunk storage, which
-            // can legitimately take many minutes for larger files. The CLI
-            // (which works) also has no timeout here. Backend errors still
-            // surface through invoke's rejection.
-            const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number; data_map_file: string; public_address: string | null }>('confirm_upload_merkle', {
-              uploadId,
-              winnerPoolHash: payResult.winnerPoolHash,
-            })
-
-            const duration = entry.transferStartedAt
-              ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
-              : 0
-            this.updateEntry(id, {
-              status: 'complete',
-              progress: 100,
-              address: result.address,
-              public_address: result.public_address ?? undefined,
-              data_map_json: result.data_map_json,
-              data_map_file: result.data_map_file,
-              duration,
-              transferStartedAt: undefined,
-            })
           } catch (e: any) {
             const summary = paymentErrorSummary(e)
             this.updateEntry(id, { status: 'failed', error: `Payment failed: ${summary}` })
             toasts.add(t('files.toast.payment_failed', { error: summary }), 'error')
             return
           }
+
+          // No frontend timeout: the backend drives chunk storage, which
+          // can legitimately take many minutes for larger files. The CLI
+          // (which works) also has no timeout here. Backend errors still
+          // surface through invoke's rejection.
+          const result = await invoke<{ upload_id: string; data_map_json: string; address: string; chunks_stored: number; data_map_file: string; public_address: string | null }>('confirm_upload_merkle', {
+            uploadId,
+            winnerPoolHash,
+          })
+
+          const duration = entry.transferStartedAt
+            ? Math.round((Date.now() - entry.transferStartedAt) / 1000)
+            : 0
+          this.updateEntry(id, {
+            status: 'complete',
+            progress: 100,
+            address: result.address,
+            public_address: result.public_address ?? undefined,
+            data_map_json: result.data_map_json,
+            data_map_file: result.data_map_file,
+            duration,
+            transferStartedAt: undefined,
+          })
         } else {
           // Wave-batch path: pay per batch then finalize
           let txHashes: Record<string, string> = {}
