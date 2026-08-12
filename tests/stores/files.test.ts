@@ -269,6 +269,78 @@ describe('files store — upload history persistence', () => {
       expect(entry?.error).not.toContain('Payment failed')
     })
 
+    it('waits out a slow receipt instead of misclassifying the batch as unpaid', async () => {
+      pushRow()
+      let quoteCb: ((event: any) => void) | null = null
+      mockListen.mockImplementation(((event: string, cb: any) => {
+        if (event === 'upload-quote') quoteCb = cb
+        return Promise.resolve(vi.fn())
+      }) as any)
+
+      vi.useFakeTimers()
+      try {
+        // First batch: the tx broadcasts but its receipt lands only after
+        // 400 s. The old 300 s withTimeout raced this whole span, so a slow
+        // receipt discarded the winner hash, reported "Payment failed"
+        // (paidCount 0), and a retry could pay the same batch again — the
+        // #213 review blocker. No timer may fire in the payment loop.
+        mockPayForMerkleTree.mockImplementationOnce(
+          () =>
+            new Promise((resolve) =>
+              setTimeout(
+                () =>
+                  resolve({
+                    winnerPoolHash: `0x${'cd'.repeat(32)}`,
+                    totalPaid: BigInt(1000),
+                    gasSpent: BigInt(21),
+                  }),
+                400_000,
+              ),
+            ),
+        )
+
+        let confirmArgs: any = null
+        setMockInvokeHandler((cmd, args) => {
+          if (cmd === 'start_upload') {
+            quoteCb?.({ payload: twoBatchQuote(args.request.upload_id) })
+          }
+          if (cmd === 'confirm_upload_merkle') {
+            confirmArgs = args
+            return {
+              upload_id: args.uploadId,
+              data_map_json: '{}',
+              address: '0xdead',
+              chunks_stored: 555,
+              data_map_file: '/cfg/big.bin.datamap',
+              public_address: null,
+            }
+          }
+        })
+
+        const run = store.startRealUpload(1, {}, { visibility: 'private', paymentMode: 'merkle' })
+
+        // At +300 s the removed timeout would have fired: the row must still
+        // be waiting on the receipt, not failed, and batch 1 not re-attempted.
+        await vi.advanceTimersByTimeAsync(300_000)
+        expect(store.findById(1)?.status).toBe('paying')
+        expect(mockPayForMerkleTree).toHaveBeenCalledTimes(1)
+
+        // Receipt arrives: the preserved hash is used, batch 2 pays normally,
+        // and no batch is ever paid twice.
+        await vi.advanceTimersByTimeAsync(100_000)
+        await run
+
+        expect(mockPayForMerkleTree).toHaveBeenCalledTimes(2)
+        expect(confirmArgs.winnerPoolHashes).toEqual([
+          `0x${'cd'.repeat(32)}`,
+          `0x${'ab'.repeat(32)}`,
+        ])
+        expect(store.findById(1)?.status).toBe('complete')
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
     it('marks the row failed with the storage error, not as a payment failure', async () => {
       pushRow()
       let quoteCb: ((event: any) => void) | null = null

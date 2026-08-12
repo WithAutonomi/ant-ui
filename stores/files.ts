@@ -746,15 +746,18 @@ export const useFilesStore = defineStore('files', {
               // stageDone/stageTotal drive the "payment i of N" wallet
               // instruction while status is `paying` (see pages/files.vue).
               this.updateEntry(id, { stageDone: i, stageTotal: batches.length })
-              const payResult = await withTimeout(
-                payForMerkleTree(
-                  wagmiConfig,
-                  batch.depth,
-                  batch.pool_commitments,
-                  BigInt(batch.timestamp),
-                ),
-                300_000,
-                'Payment timed out — wallet approval took too long',
+              // No timeout here: payForMerkleTree spans broadcast AND receipt
+              // polling, and a timer firing between the two discards a winner
+              // hash the chain already accepted — the batch then reads as
+              // unpaid (a clean "payment failure" if it was the first batch)
+              // and a retry pays it again. The wallet's own reject is the
+              // cancel path; a slow receipt must be waited out, like chunk
+              // storage below.
+              const payResult = await payForMerkleTree(
+                wagmiConfig,
+                batch.depth,
+                batch.pool_commitments,
+                BigInt(batch.timestamp),
               )
               winnerPoolHashes[i] = payResult.winnerPoolHash
               totalPaid += payResult.totalPaid
