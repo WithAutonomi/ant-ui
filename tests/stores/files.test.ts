@@ -5,8 +5,13 @@ import { useFilesStore } from '~/stores/files'
 // The store imports the on-chain payment helpers at module scope; mock them so
 // upload-flow tests can drive the merkle path without a wallet. Formatters are
 // identity functions — tests assert flow, not display formatting.
+const mockPayForQuotes = vi.fn(async () => ({
+  txHashMap: { '0xquote1': '0xtxhash1' },
+  totalPaid: BigInt(500),
+  gasSpent: BigInt(21),
+}))
 vi.mock('~/utils/payment', () => ({
-  payForQuotes: vi.fn(),
+  payForQuotes: (...args: unknown[]) => mockPayForQuotes(...(args as [])),
   payForMerkleTree: vi.fn(async () => ({
     winnerPoolHash: `0x${'ab'.repeat(32)}`,
     totalPaid: BigInt(1000),
@@ -21,6 +26,7 @@ describe('files store — upload history persistence', () => {
 
   beforeEach(() => {
     resetTauriMocks()
+    mockPayForQuotes.mockClear()
     store = useFilesStore()
     store.$reset()
   })
@@ -211,6 +217,94 @@ describe('files store — upload history persistence', () => {
       expect(entry?.status).toBe('failed')
       expect(entry?.error).toContain('Upload incomplete')
       expect(entry?.error).not.toContain('Payment failed')
+    })
+  })
+
+  describe('wave-batch payment with a slow receipt', () => {
+    it('waits out a slow receipt instead of misclassifying the payment as failed', async () => {
+      store.files.push({
+        id: 1,
+        kind: 'upload',
+        name: 'a.bin',
+        size_bytes: 10 * 1024 * 1024,
+        path: 'C:/tmp/a.bin',
+        status: 'queued_for_upload',
+        date: '2026-08-12T00:00:00Z',
+      } as any)
+
+      let quoteCb: ((event: any) => void) | null = null
+      mockListen.mockImplementation(((event: string, cb: any) => {
+        if (event === 'upload-quote') quoteCb = cb
+        return Promise.resolve(vi.fn())
+      }) as any)
+
+      vi.useFakeTimers()
+      try {
+        // The tx broadcasts but its receipt lands only after 400 s. The old
+        // 300 s withTimeout raced the whole payForQuotes span, so a slow
+        // receipt discarded the tx hashes, reported "Payment failed", and a
+        // retry could pay the same quotes again (V2-964, reproduced in the
+        // #212 review). No timer may race the payment.
+        mockPayForQuotes.mockImplementationOnce(
+          () =>
+            new Promise((resolve) =>
+              setTimeout(
+                () =>
+                  resolve({
+                    txHashMap: { '0xquote1': '0xtxhash1' },
+                    totalPaid: BigInt(500),
+                    gasSpent: BigInt(21),
+                  }),
+                400_000,
+              ),
+            ),
+        )
+
+        let confirmArgs: any = null
+        setMockInvokeHandler((cmd, args) => {
+          if (cmd === 'start_upload') {
+            quoteCb?.({
+              payload: {
+                upload_id: args.request.upload_id,
+                payment_mode: 'regular',
+                payments: [],
+                total_cost: '0',
+                payment_required: true,
+              },
+            })
+          }
+          if (cmd === 'confirm_upload') {
+            confirmArgs = args
+            return {
+              upload_id: args.uploadId,
+              data_map_json: '{}',
+              address: '0xdead',
+              chunks_stored: 3,
+              data_map_file: '/cfg/a.bin.datamap',
+              public_address: null,
+            }
+          }
+        })
+
+        const run = store.startRealUpload(1, {}, { visibility: 'private', paymentMode: 'regular' })
+
+        // At +300 s the removed timeout would have fired: the row must still
+        // be waiting on the receipt, not failed.
+        await vi.advanceTimersByTimeAsync(300_000)
+        expect(store.findById(1)?.status).toBe('paying')
+        expect(mockPayForQuotes).toHaveBeenCalledTimes(1)
+
+        // Receipt arrives: the tx hashes are preserved and passed to
+        // confirm_upload — nothing is ever paid twice.
+        await vi.advanceTimersByTimeAsync(100_000)
+        await run
+
+        expect(mockPayForQuotes).toHaveBeenCalledTimes(1)
+        expect(confirmArgs.txHashes).toEqual({ '0xquote1': '0xtxhash1' })
+        expect(store.findById(1)?.status).toBe('complete')
+      } finally {
+        vi.useRealTimers()
+      }
     })
   })
 })
