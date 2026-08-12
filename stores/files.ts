@@ -729,15 +729,17 @@ export const useFilesStore = defineStore('files', {
           // wave-batch path below).
           let winnerPoolHash!: string
           try {
-            const payResult = await withTimeout(
-              payForMerkleTree(
-                wagmiConfig,
-                quote.merkle_depth!,
-                quote.merkle_pool_commitments!,
-                BigInt(quote.merkle_timestamp!),
-              ),
-              300_000,
-              'Payment timed out — wallet approval took too long',
+            // No timeout here: payForMerkleTree spans broadcast AND receipt
+            // polling, and a timer firing between the two discards a winner
+            // hash the chain already accepted — the payment then reads as a
+            // clean failure and a retry pays again. The wallet's own reject
+            // is the cancel path; a slow receipt must be waited out, like
+            // chunk storage below.
+            const payResult = await payForMerkleTree(
+              wagmiConfig,
+              quote.merkle_depth!,
+              quote.merkle_pool_commitments!,
+              BigInt(quote.merkle_timestamp!),
             )
             winnerPoolHash = payResult.winnerPoolHash
 
@@ -781,11 +783,11 @@ export const useFilesStore = defineStore('files', {
           let txHashes: Record<string, string> = {}
           if (quote.payment_required) {
             try {
-              const payResult = await withTimeout(
-                payForQuotes(wagmiConfig, quote.payments),
-                300_000,
-                'Payment timed out — wallet approval took too long',
-              )
+              // No timeout — same rationale as the merkle payment above:
+              // payForQuotes broadcasts one tx per batch and polls each
+              // receipt, so expiring mid-flight discards tx hashes already
+              // accepted on-chain and a retry pays those batches again.
+              const payResult = await payForQuotes(wagmiConfig, quote.payments)
               txHashes = payResult.txHashMap
               this.updateEntry(id, { gas_cost: formatGasCost(payResult.gasSpent.toString()) })
             } catch (e: any) {
@@ -1096,13 +1098,4 @@ async function sha256Hex(text: string): Promise<string> {
 
 function normalizeAddress(address: string): string {
   return address.trim().toLowerCase().replace(/^0x/, '')
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(message)), ms)
-    promise
-      .then((val) => { clearTimeout(timer); resolve(val) })
-      .catch((err) => { clearTimeout(timer); reject(err) })
-  })
 }
