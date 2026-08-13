@@ -290,7 +290,8 @@
       "resolving_pct": "Розв'язання datamap · {pct}%",
       "resolving_indeterminate": "Розв'язання datamap…",
       "downloading_pct": "Скачування · {pct}%",
-      "downloading_indeterminate": "Скачування…"
+      "downloading_indeterminate": "Скачування…",
+      "approve_payment_n_of_m": "Відкрийте гаманець і підтвердьте платіж {n} з {m}"
     },
     "picker": {
       "upload_title": "Виберіть файли для завантаження",

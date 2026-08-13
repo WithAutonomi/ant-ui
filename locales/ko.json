@@ -290,7 +290,8 @@
       "resolving_pct": "데이터맵 확인 중 · {pct}%",
       "resolving_indeterminate": "데이터맵 확인 중…",
       "downloading_pct": "다운로드 중 · {pct}%",
-      "downloading_indeterminate": "다운로드 중…"
+      "downloading_indeterminate": "다운로드 중…",
+      "approve_payment_n_of_m": "지갑을 열어 결제 {n}/{m}을(를) 승인하세요"
     },
     "picker": {
       "upload_title": "업로드할 파일 선택",

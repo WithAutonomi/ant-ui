@@ -290,7 +290,8 @@
       "resolving_pct": "פותר datamap · {pct}%",
       "resolving_indeterminate": "פותר datamap…",
       "downloading_pct": "מוריד · {pct}%",
-      "downloading_indeterminate": "מוריד…"
+      "downloading_indeterminate": "מוריד…",
+      "approve_payment_n_of_m": "פתח את הארנק שלך ואשר תשלום {n} מתוך {m}"
     },
     "picker": {
       "upload_title": "בחר קבצים להעלאה",

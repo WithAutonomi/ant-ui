@@ -290,7 +290,8 @@
       "resolving_pct": "データマップを解決中 · {pct}%",
       "resolving_indeterminate": "データマップを解決中…",
       "downloading_pct": "ダウンロード中 · {pct}%",
-      "downloading_indeterminate": "ダウンロード中…"
+      "downloading_indeterminate": "ダウンロード中…",
+      "approve_payment_n_of_m": "ウォレットを開いて支払い {n}/{m} を承認してください"
     },
     "picker": {
       "upload_title": "アップロードするファイルを選択",

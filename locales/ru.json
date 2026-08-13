@@ -290,7 +290,8 @@
       "resolving_pct": "Обработка DataMap… · {pct}%",
       "resolving_indeterminate": "Обработка DataMap…",
       "downloading_pct": "Скачивание… · {pct}%",
-      "downloading_indeterminate": "Скачивание…"
+      "downloading_indeterminate": "Скачивание…",
+      "approve_payment_n_of_m": "Откройте кошелёк и подтвердите платёж {n} из {m}"
     },
     "picker": {
       "upload_title": "Выберите файлы для загрузки в сеть",

@@ -290,7 +290,8 @@
       "resolving_pct": "جارٍ تحليل datamap · {pct}%",
       "resolving_indeterminate": "جارٍ تحليل datamap…",
       "downloading_pct": "تنزيل · {pct}%",
-      "downloading_indeterminate": "جارٍ التنزيل…"
+      "downloading_indeterminate": "جارٍ التنزيل…",
+      "approve_payment_n_of_m": "افتح محفظتك وأكد الدفعة {n} من {m}"
     },
     "picker": {
       "upload_title": "اختر الملفات للرفع",

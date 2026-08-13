@@ -290,7 +290,8 @@
       "resolving_pct": "Решаване на DataMap · {pct}%",
       "resolving_indeterminate": "Решаване на DataMap…",
       "downloading_pct": "Изтегляне · {pct}%",
-      "downloading_indeterminate": "Изтегляне…"
+      "downloading_indeterminate": "Изтегляне…",
+      "approve_payment_n_of_m": "Отворете портфейла си и потвърдете плащане {n} от {m}"
     },
     "picker": {
       "upload_title": "Избор на файлове за качване",

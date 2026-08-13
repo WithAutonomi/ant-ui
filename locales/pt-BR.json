@@ -290,7 +290,8 @@
       "resolving_pct": "Resolvendo datamap · {pct}%",
       "resolving_indeterminate": "Resolvendo datamap…",
       "downloading_pct": "Baixando · {pct}%",
-      "downloading_indeterminate": "Baixando…"
+      "downloading_indeterminate": "Baixando…",
+      "approve_payment_n_of_m": "Abra sua carteira e confirme o pagamento {n} de {m}"
     },
     "picker": {
       "upload_title": "Selecione arquivos para enviar",

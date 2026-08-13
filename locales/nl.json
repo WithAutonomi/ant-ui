@@ -290,7 +290,8 @@
       "resolving_pct": "DataMap oplossen · {pct}%",
       "resolving_indeterminate": "DataMap oplossen…",
       "downloading_pct": "Downloaden · {pct}%",
-      "downloading_indeterminate": "Downloaden…"
+      "downloading_indeterminate": "Downloaden…",
+      "approve_payment_n_of_m": "Open je portemonnee en bevestig betaling {n} van {m}"
     },
     "picker": {
       "upload_title": "Bestanden om te uploaden selecteren",

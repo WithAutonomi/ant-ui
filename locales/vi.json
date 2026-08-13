@@ -290,7 +290,8 @@
       "resolving_pct": "Đang phân giải datamap · {pct}%",
       "resolving_indeterminate": "Đang phân giải datamap…",
       "downloading_pct": "Đang tải xuống · {pct}%",
-      "downloading_indeterminate": "Đang tải xuống…"
+      "downloading_indeterminate": "Đang tải xuống…",
+      "approve_payment_n_of_m": "Mở ví của bạn và xác nhận thanh toán {n} trong số {m}"
     },
     "picker": {
       "upload_title": "Chọn tệp để tải lên",
