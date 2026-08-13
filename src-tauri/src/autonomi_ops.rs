@@ -140,6 +140,17 @@ pub struct SerializedPoolCommitment {
     pub candidates: Vec<SerializedCandidateNode>,
 }
 
+/// One prepared merkle sub-batch the external signer pays with a single
+/// `payForMerkleTree` transaction (ADR-0003 in ant-client). Uploads above
+/// `MAX_LEAVES` chunks prepare as several of these; the frontend collects
+/// one winner hash per batch, in order.
+#[derive(Serialize, Clone)]
+pub struct SerializedMerkleBatch {
+    pub depth: u8,
+    pub pool_commitments: Vec<SerializedPoolCommitment>,
+    pub timestamp: u64,
+}
+
 #[derive(Serialize, Clone)]
 pub struct UploadQuoteEvent {
     pub upload_id: String,
@@ -149,10 +160,8 @@ pub struct UploadQuoteEvent {
     pub payments: Vec<RawPayment>,
     pub total_cost: String,
     pub payment_required: bool,
-    // ── Merkle fields (None for wave-batch) ──
-    pub merkle_depth: Option<u8>,
-    pub merkle_pool_commitments: Option<Vec<SerializedPoolCommitment>>,
-    pub merkle_timestamp: Option<u64>,
+    // ── Merkle field (None for wave-batch): one entry per sub-batch ──
+    pub merkle_batches: Option<Vec<SerializedMerkleBatch>>,
 }
 
 #[derive(Serialize)]
@@ -620,29 +629,32 @@ pub async fn start_upload(
                 payments,
                 total_cost,
                 payment_required,
-                merkle_depth: None,
-                merkle_pool_commitments: None,
-                merkle_timestamp: None,
+                merkle_batches: None,
             }
         }
         ExternalPaymentInfo::Merkle {
-            prepared_batch,
-            chunk_contents: _,
-            chunk_addresses: _,
+            prepared_batches, ..
         } => {
-            let pool_commitments: Vec<SerializedPoolCommitment> = prepared_batch
-                .pool_commitments
+            let batches: Vec<SerializedMerkleBatch> = prepared_batches
                 .iter()
-                .map(|pc| SerializedPoolCommitment {
-                    pool_hash: format!("0x{}", hex::encode(pc.pool_hash)),
-                    candidates: pc
-                        .candidates
+                .map(|batch| SerializedMerkleBatch {
+                    depth: batch.depth,
+                    pool_commitments: batch
+                        .pool_commitments
                         .iter()
-                        .map(|c| SerializedCandidateNode {
-                            rewards_address: format!("{}", c.rewards_address),
-                            amount: c.price.to_string(),
+                        .map(|pc| SerializedPoolCommitment {
+                            pool_hash: format!("0x{}", hex::encode(pc.pool_hash)),
+                            candidates: pc
+                                .candidates
+                                .iter()
+                                .map(|c| SerializedCandidateNode {
+                                    rewards_address: format!("{}", c.rewards_address),
+                                    amount: c.price.to_string(),
+                                })
+                                .collect(),
                         })
                         .collect(),
+                    timestamp: batch.merkle_payment_timestamp,
                 })
                 .collect();
 
@@ -652,9 +664,7 @@ pub async fn start_upload(
                 payments: vec![],
                 total_cost: "0".into(),
                 payment_required: true,
-                merkle_depth: Some(prepared_batch.depth),
-                merkle_pool_commitments: Some(pool_commitments),
-                merkle_timestamp: Some(prepared_batch.merkle_payment_timestamp),
+                merkle_batches: Some(batches),
             }
         }
     };
@@ -842,13 +852,17 @@ pub async fn confirm_upload(
 }
 
 /// Confirm merkle upload after frontend has paid on-chain.
-/// Accepts the winner pool hash from the MerklePaymentMade event.
+/// Accepts one winner pool hash (from each `MerklePaymentMade` event) per
+/// prepared sub-batch, in batch order; `None` marks a batch the user never
+/// paid (abandoned mid-flow). Paid batches store; unpaid batches' chunks are
+/// reported through the incomplete-upload error, so partial payments still
+/// make forward progress (ADR-0003 in ant-client).
 #[tauri::command]
 pub async fn confirm_upload_merkle(
     app: AppHandle,
     state: tauri::State<'_, AutonomiState>,
     upload_id: String,
-    winner_pool_hash: String,
+    winner_pool_hashes: Vec<Option<String>>,
 ) -> Result<UploadResult, String> {
     let client_lock = state.client.read().await;
     let client = client_lock
@@ -866,14 +880,25 @@ pub async fn confirm_upload_merkle(
         .remove(&upload_id)
         .ok_or("No pending upload found for this ID")?;
 
-    let hash_bytes: [u8; 32] = hex::decode(winner_pool_hash.trim_start_matches("0x"))
-        .map_err(|e| format!("Invalid winner pool hash: {e}"))?
-        .try_into()
-        .map_err(|_| "Winner pool hash must be exactly 32 bytes".to_string())?;
+    let hashes: Vec<Option<[u8; 32]>> = winner_pool_hashes
+        .iter()
+        .map(|entry| {
+            entry
+                .as_ref()
+                .map(|hash| {
+                    let bytes: [u8; 32] = hex::decode(hash.trim_start_matches("0x"))
+                        .map_err(|e| format!("Invalid winner pool hash: {e}"))?
+                        .try_into()
+                        .map_err(|_| "Winner pool hash must be exactly 32 bytes".to_string())?;
+                    Ok::<[u8; 32], String>(bytes)
+                })
+                .transpose()
+        })
+        .collect::<Result<_, _>>()?;
 
     let progress_tx = spawn_upload_progress_forwarder(app.clone(), upload_id.clone());
     let result = client
-        .finalize_upload_merkle_with_progress(prepared, hash_bytes, Some(progress_tx))
+        .finalize_upload_merkle_multi_with_progress(prepared, hashes, Some(progress_tx))
         .await
         .map_err(|e| format!("Merkle upload failed: {e}"))?;
 

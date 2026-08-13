@@ -290,7 +290,8 @@
       "resolving_pct": "Résolution du DataMap · {pct}%",
       "resolving_indeterminate": "Résolution du DataMap…",
       "downloading_pct": "Téléchargement · {pct}%",
-      "downloading_indeterminate": "Téléchargement…"
+      "downloading_indeterminate": "Téléchargement…",
+      "approve_payment_n_of_m": "Ouvrez votre portefeuille et confirmez le paiement {n} sur {m}"
     },
     "picker": {
       "upload_title": "Sélectionner les fichiers à téléverser",

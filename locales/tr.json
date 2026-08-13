@@ -290,7 +290,8 @@
       "resolving_pct": "datamap çözülüyor · {pct}%",
       "resolving_indeterminate": "datamap çözülüyor…",
       "downloading_pct": "İndiriliyor · {pct}%",
-      "downloading_indeterminate": "İndiriliyor…"
+      "downloading_indeterminate": "İndiriliyor…",
+      "approve_payment_n_of_m": "Cüzdanınızı açın ve ödemeyi onaylayın ({n}/{m})"
     },
     "picker": {
       "upload_title": "Yüklenecek dosyaları seçin",

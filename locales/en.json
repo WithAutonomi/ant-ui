@@ -334,7 +334,8 @@
       "resolving_pct": "Resolving datamap · {pct}%",
       "resolving_indeterminate": "Resolving datamap…",
       "downloading_pct": "Downloading · {pct}%",
-      "downloading_indeterminate": "Downloading…"
+      "downloading_indeterminate": "Downloading…",
+      "approve_payment_n_of_m": "Open your wallet and confirm payment {n} of {m}"
     },
     "picker": {
       "upload_title": "Select files to upload",

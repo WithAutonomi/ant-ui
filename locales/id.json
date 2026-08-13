@@ -290,7 +290,8 @@
       "resolving_pct": "Menyelesaikan datamap · {pct}%",
       "resolving_indeterminate": "Menyelesaikan datamap…",
       "downloading_pct": "Mengunduh · {pct}%",
-      "downloading_indeterminate": "Mengunduh…"
+      "downloading_indeterminate": "Mengunduh…",
+      "approve_payment_n_of_m": "Buka dompet Anda dan konfirmasi pembayaran {n} dari {m}"
     },
     "picker": {
       "upload_title": "Pilih file untuk diunggah",

@@ -290,7 +290,8 @@
       "resolving_pct": "解析 datamap · {pct}%",
       "resolving_indeterminate": "解析 datamap…",
       "downloading_pct": "下载中 · {pct}%",
-      "downloading_indeterminate": "下载中…"
+      "downloading_indeterminate": "下载中…",
+      "approve_payment_n_of_m": "请打开钱包并确认第 {n}/{m} 笔支付"
     },
     "picker": {
       "upload_title": "选择要上传的文件",

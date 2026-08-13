@@ -290,7 +290,8 @@
       "resolving_pct": "Datamap auflösen · {pct}%",
       "resolving_indeterminate": "Datamap auflösen…",
       "downloading_pct": "Herunterladen · {pct}%",
-      "downloading_indeterminate": "Herunterladen…"
+      "downloading_indeterminate": "Herunterladen…",
+      "approve_payment_n_of_m": "Öffnen Sie Ihre Wallet-App und bestätigen Sie Zahlung {n} von {m}"
     },
     "picker": {
       "upload_title": "Dateien zum Hochladen auswählen",
