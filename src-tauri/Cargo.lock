@@ -849,7 +849,7 @@ dependencies = [
 
 [[package]]
 name = "ant-gui"
-version = "0.9.7"
+version = "0.9.8-rc.1"
 dependencies = [
  "ant-core",
  "axum",
