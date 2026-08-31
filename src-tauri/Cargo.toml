@@ -28,7 +28,7 @@ tauri-plugin-updater = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-appender = "0.2"
-ant-core = "0.6.0"
+ant-core = "0.7.0"
 evmlib = "0.9"
 hex = "0.4"
 sha2 = "0.10"
