@@ -6,14 +6,46 @@ import {
   writeContract,
   waitForTransactionReceipt,
 } from '@wagmi/core'
+// `viem/utils` is unmocked (tests/mocks/appkit.ts shims only `viem`), so the
+// event encoders here are real — logs round-trip through the real decoder
+// inside utils/payment.ts. This viem version has no encodeEventLog in
+// viem/utils, so compose logs from topics + data encoding.
+import { encodeAbiParameters, encodeEventTopics } from 'viem/utils'
+import paymentVaultAbi from '~/assets/abi/IPaymentVault.json'
+
+/** Real encoded MerklePaymentMade log — what an actual receipt carries. */
+function encodeMerklePaymentLog(
+  winnerPoolHash: `0x${string}`,
+  depth: number,
+  totalAmount: bigint,
+  merklePaymentTimestamp: bigint,
+): { data: `0x${string}`; topics: [`0x${string}`, ...`0x${string}`[]] } {
+  const topics = encodeEventTopics({
+    abi: paymentVaultAbi as any,
+    eventName: 'MerklePaymentMade',
+    args: { winnerPoolHash },
+  }) as [`0x${string}`, ...`0x${string}`[]]
+  const data = encodeAbiParameters(
+    [{ type: 'uint8' }, { type: 'uint256' }, { type: 'uint64' }],
+    [depth, totalAmount, merklePaymentTimestamp],
+  )
+  return { data, topics }
+}
 import {
   STANDING_ALLOWANCE,
   GAS_LIMIT_CAP,
+  MERKLE_TREES_PER_PAYMENT,
   approvalAmountFor,
   boundedGasLimit,
   merkleMaxCharge,
+  merklePaymentGroups,
+  extractMerklePaymentEvents,
   payForQuotes,
+  payForMerkleTrees,
+  batchedMerkleTreesPerTx,
+  _resetBatchedVaultSupportCache,
   type RawPayment,
+  type MerkleBatchPaymentInput,
 } from '~/utils/payment'
 
 const ACCOUNT = '0x1111111111111111111111111111111111111111'
@@ -211,6 +243,165 @@ describe('payment', () => {
       const payTx = vi.mocked(writeContract).mock.calls[1][1] as any
       expect(payTx.functionName).toBe('payForQuotes')
       expect(payTx.gas).toBe(90_000n)
+    })
+  })
+
+  describe('merklePaymentGroups', () => {
+    it('chunks contiguously at the cap with the remainder last', () => {
+      const groups = merklePaymentGroups([1, 2, 3, 4, 5], 4)
+      expect(groups).toEqual([[1, 2, 3, 4], [5]])
+    })
+
+    it('degenerates to singleton groups at cap ≤ 1 (legacy loop shape)', () => {
+      expect(merklePaymentGroups([1, 2, 3], 1)).toEqual([[1], [2], [3]])
+      expect(merklePaymentGroups([1, 2, 3], 0)).toEqual([[1], [2], [3]])
+    })
+
+    it('handles an empty batch list', () => {
+      expect(merklePaymentGroups([], 4)).toEqual([])
+    })
+  })
+
+  describe('extractMerklePaymentEvents', () => {
+    const HASH_A = `0x${'aa'.repeat(32)}` as const
+    const HASH_B = `0x${'bb'.repeat(32)}` as const
+    const merkleLog = (winnerPoolHash: `0x${string}`, totalAmount: bigint) =>
+      encodeMerklePaymentLog(winnerPoolHash, 8, totalAmount, 1_754_870_400n)
+
+    it('returns every MerklePaymentMade in log order, skipping foreign logs', () => {
+      const logs = [
+        { data: '0x' as const, topics: [] as any }, // not decodable — skipped
+        merkleLog(HASH_B, 2n),
+        merkleLog(HASH_A, 1n),
+      ]
+      const events = extractMerklePaymentEvents(logs)
+      // Log order, NOT sorted: index i must belong to tree i.
+      expect(events.map(e => e.winnerPoolHash)).toEqual([HASH_B, HASH_A])
+      expect(events.map(e => e.totalAmount)).toEqual([2n, 1n])
+    })
+  })
+
+  describe('payForMerkleTrees', () => {
+    const estimateContractGas = vi.fn()
+    const HASH_A = `0x${'aa'.repeat(32)}` as const
+    const HASH_B = `0x${'bb'.repeat(32)}` as const
+    const merkleLog = (winnerPoolHash: `0x${string}`, totalAmount: bigint) =>
+      encodeMerklePaymentLog(winnerPoolHash, 3, totalAmount, 1_754_870_400n)
+
+    const BATCHES: MerkleBatchPaymentInput[] = [
+      {
+        depth: 3,
+        pool_commitments: [
+          {
+            pool_hash: `0x${'11'.repeat(32)}`,
+            candidates: [{ rewards_address: `0x${'22'.repeat(20)}`, amount: '5' }],
+          },
+        ],
+        timestamp: 1_754_870_400,
+      },
+      {
+        depth: 3,
+        pool_commitments: [
+          {
+            pool_hash: `0x${'33'.repeat(32)}`,
+            candidates: [{ rewards_address: `0x${'44'.repeat(20)}`, amount: '7' }],
+          },
+        ],
+        timestamp: 1_754_870_401,
+      },
+    ]
+
+    beforeEach(() => {
+      vi.mocked(getAccount).mockReturnValue({ address: ACCOUNT, chainId: 42161 } as any)
+      vi.mocked(getPublicClient).mockReturnValue({ estimateContractGas } as any)
+      // Standing allowance already covers the group — no approve tx.
+      vi.mocked(readContract).mockResolvedValue(STANDING_ALLOWANCE)
+      vi.mocked(writeContract).mockResolvedValue('0xtxhash' as any)
+      estimateContractGas.mockResolvedValue(2_000_000n)
+      vi.mocked(waitForTransactionReceipt).mockResolvedValue({
+        gasUsed: 100_000n,
+        effectiveGasPrice: 20_000_000n,
+        logs: [merkleLog(HASH_A, 111n), merkleLog(HASH_B, 222n)],
+      } as any)
+    })
+
+    afterEach(() => {
+      vi.clearAllMocks()
+      estimateContractGas.mockReset()
+    })
+
+    it('pays the whole group in one transaction and aligns hashes to input order', async () => {
+      const result = await payForMerkleTrees({} as any, BATCHES)
+
+      expect(writeContract).toHaveBeenCalledTimes(1)
+      const tx = vi.mocked(writeContract).mock.calls[0][1] as any
+      expect(tx.functionName).toBe('payForMerkleTrees')
+      const trees = tx.args[0]
+      expect(trees).toHaveLength(2)
+      expect(trees[0].merklePaymentTimestamp).toBe(1_754_870_400n)
+      expect(trees[1].merklePaymentTimestamp).toBe(1_754_870_401n)
+
+      expect(result.winnerPoolHashes).toEqual([HASH_A, HASH_B])
+      expect(result.totalPaid).toBe(333n)
+      expect(result.gasSpent).toBe(100_000n * 20_000_000n)
+    })
+
+    it('throws when the event count does not match the tree count', async () => {
+      vi.mocked(waitForTransactionReceipt).mockResolvedValue({
+        gasUsed: 100_000n,
+        effectiveGasPrice: 20_000_000n,
+        logs: [merkleLog(HASH_A, 111n)],
+      } as any)
+
+      await expect(payForMerkleTrees({} as any, BATCHES)).rejects.toThrow(
+        'emitted 1 MerklePaymentMade event(s) for 2 trees',
+      )
+    })
+  })
+
+  describe('batchedMerkleTreesPerTx', () => {
+    beforeEach(() => {
+      _resetBatchedVaultSupportCache()
+      vi.mocked(getAccount).mockReturnValue({ address: ACCOUNT, chainId: 42161 } as any)
+    })
+
+    afterEach(() => {
+      vi.clearAllMocks()
+    })
+
+    it('clamps the on-chain max to the client cap and caches the answer', async () => {
+      vi.mocked(readContract).mockResolvedValue(16n)
+
+      expect(await batchedMerkleTreesPerTx({} as any)).toBe(MERKLE_TREES_PER_PAYMENT)
+      expect(await batchedMerkleTreesPerTx({} as any)).toBe(MERKLE_TREES_PER_PAYMENT)
+      expect(readContract).toHaveBeenCalledTimes(1)
+    })
+
+    it('honors a lower on-chain cap', async () => {
+      vi.mocked(readContract).mockResolvedValue(2n)
+      expect(await batchedMerkleTreesPerTx({} as any)).toBe(2)
+    })
+
+    it('reads a revert as a legacy vault and caches that verdict', async () => {
+      vi.mocked(readContract).mockRejectedValue(
+        Object.assign(new Error('function does not exist'), {
+          shortMessage: 'The contract function "MAX_TREES_PER_PAYMENT" reverted.',
+        }),
+      )
+
+      expect(await batchedMerkleTreesPerTx({} as any)).toBe(0)
+      expect(await batchedMerkleTreesPerTx({} as any)).toBe(0)
+      expect(readContract).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not cache a transport failure — the next upload re-probes', async () => {
+      vi.mocked(readContract).mockRejectedValue(
+        Object.assign(new Error('fetch failed'), { name: 'HttpRequestError' }),
+      )
+
+      expect(await batchedMerkleTreesPerTx({} as any)).toBe(0)
+      expect(await batchedMerkleTreesPerTx({} as any)).toBe(0)
+      expect(readContract).toHaveBeenCalledTimes(2)
     })
   })
 })

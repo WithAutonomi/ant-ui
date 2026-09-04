@@ -10,6 +10,14 @@ const mockPayForMerkleTree = vi.fn(async () => ({
   totalPaid: BigInt(1000),
   gasSpent: BigInt(21),
 }))
+// Distinct hash per position so alignment mistakes can't cancel out.
+const mockPayForMerkleTrees = vi.fn(async (_config: unknown, group: unknown[]) => ({
+  winnerPoolHashes: group.map((_, i) => `0x${(0x10 + i).toString(16).repeat(32)}`),
+  totalPaid: BigInt(1000) * BigInt(group.length),
+  gasSpent: BigInt(21),
+}))
+// Legacy vault by default: existing tests drive the per-tree loop.
+const mockBatchedMerkleTreesPerTx = vi.fn(async () => 0)
 const mockPayForQuotes = vi.fn(async () => ({
   txHashMap: { '0xquote1': '0xtxhash1' },
   totalPaid: BigInt(500),
@@ -18,6 +26,16 @@ const mockPayForQuotes = vi.fn(async () => ({
 vi.mock('~/utils/payment', () => ({
   payForQuotes: (...args: unknown[]) => mockPayForQuotes(...(args as [])),
   payForMerkleTree: (...args: unknown[]) => mockPayForMerkleTree(...(args as [])),
+  payForMerkleTrees: (...args: unknown[]) => mockPayForMerkleTrees(...(args as [unknown, unknown[]])),
+  batchedMerkleTreesPerTx: (...args: unknown[]) => mockBatchedMerkleTreesPerTx(...(args as [])),
+  // Real grouping semantics: the loop's index math is what the store tests
+  // are exercising.
+  merklePaymentGroups: <T,>(batches: T[], perTx: number): T[][] => {
+    const size = Math.max(1, Math.floor(perTx))
+    const groups: T[][] = []
+    for (let i = 0; i < batches.length; i += size) groups.push(batches.slice(i, i + size))
+    return groups
+  },
   ensureAllowanceForMerkleBatches: vi.fn(async () => BigInt(0)),
   formatNanoTokens: (v: string) => v,
   formatGasCost: (v: string) => v,
@@ -29,6 +47,8 @@ describe('files store — upload history persistence', () => {
   beforeEach(() => {
     resetTauriMocks()
     mockPayForMerkleTree.mockClear()
+    mockPayForMerkleTrees.mockClear()
+    mockBatchedMerkleTreesPerTx.mockClear()
     mockPayForQuotes.mockClear()
     store = useFilesStore()
     store.$reset()
@@ -228,6 +248,67 @@ describe('files store — upload history persistence', () => {
       expect(mockPayForMerkleTree).toHaveBeenCalledTimes(2)
       expect(confirmArgs.winnerPoolHashes).toEqual([
         `0x${'ab'.repeat(32)}`,
+        `0x${'ab'.repeat(32)}`,
+      ])
+      expect(store.findById(1)?.status).toBe('complete')
+    })
+
+    it('settles groups of the probed cap in one batched transaction each (V2-949)', async () => {
+      pushRow()
+      let quoteCb: ((event: any) => void) | null = null
+      mockListen.mockImplementation(((event: string, cb: any) => {
+        if (event === 'upload-quote') quoteCb = cb
+        return Promise.resolve(vi.fn())
+      }) as any)
+
+      // Vault supports batching: 5 trees → a batched group of 4 plus a
+      // legacy singleton — two wallet confirmations instead of five.
+      mockBatchedMerkleTreesPerTx.mockResolvedValueOnce(4)
+      const fiveBatchQuote = (uploadId: string) => ({
+        upload_id: uploadId,
+        payment_mode: 'merkle',
+        payments: [],
+        total_cost: '0',
+        payment_required: true,
+        merkle_batches: Array.from({ length: 5 }, (_, i) => ({
+          depth: 8 - (i % 2),
+          pool_commitments: [],
+          timestamp: 1754870400,
+        })),
+      })
+
+      let confirmArgs: any = null
+      setMockInvokeHandler((cmd, args) => {
+        if (cmd === 'start_upload') {
+          quoteCb?.({ payload: fiveBatchQuote(args.request.upload_id) })
+        }
+        if (cmd === 'confirm_upload_merkle') {
+          confirmArgs = args
+          return {
+            upload_id: args.uploadId,
+            data_map_json: '{}',
+            address: '0xdead',
+            chunks_stored: 1280,
+            data_map_file: '/cfg/big.bin.datamap',
+            public_address: null,
+          }
+        }
+      })
+
+      await store.startRealUpload(1, {}, { visibility: 'private', paymentMode: 'merkle' })
+
+      // One batched call carrying the 4-tree group…
+      expect(mockPayForMerkleTrees).toHaveBeenCalledTimes(1)
+      expect(mockPayForMerkleTrees.mock.calls[0]![1]).toHaveLength(4)
+      // …and the trailing singleton stays on the legacy entry point.
+      expect(mockPayForMerkleTree).toHaveBeenCalledTimes(1)
+      // Winner hashes land on their tree's position: batched group hashes
+      // in order, then the legacy singleton's.
+      expect(confirmArgs.winnerPoolHashes).toEqual([
+        `0x${(0x10).toString(16).repeat(32)}`,
+        `0x${(0x11).toString(16).repeat(32)}`,
+        `0x${(0x12).toString(16).repeat(32)}`,
+        `0x${(0x13).toString(16).repeat(32)}`,
         `0x${'ab'.repeat(32)}`,
       ])
       expect(store.findById(1)?.status).toBe('complete')

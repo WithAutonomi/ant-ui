@@ -31,6 +31,31 @@ export interface MerklePaymentResult {
   gasSpent: bigint
 }
 
+export interface MerkleTreesPaymentResult {
+  /** One winner pool hash per input tree, aligned to input order (the
+   *  contract emits one MerklePaymentMade per tree, in input order). */
+  winnerPoolHashes: string[]
+  /** Total amount paid across all trees in the transaction */
+  totalPaid: bigint
+  /** Total gas cost in wei (ETH) across all transactions (payment + approval) */
+  gasSpent: bigint
+}
+
+/** One prepared merkle sub-batch as the quote carries it (stores/files.ts
+ *  `MerkleBatch`) — everything one tree needs on-chain. */
+export interface MerkleBatchPaymentInput {
+  depth: number
+  pool_commitments: SerializedPoolCommitment[]
+  timestamp: number
+}
+
+/** Trees per batched `payForMerkleTrees` transaction. Mirrors evmlib's
+ *  `MERKLE_TREES_PER_PAYMENT` (src/merkle_batch_payment.rs) — the client-side
+ *  cap derived from Arbitrum's ~95 KB `TxMaxDataSize` (a depth-8 tree is
+ *  ≈17 KiB of calldata). The on-chain `MAX_TREES_PER_PAYMENT` (16) leaves
+ *  headroom; `batchedMerkleTreesPerTx` clamps to whichever is lower. */
+export const MERKLE_TREES_PER_PAYMENT = 4
+
 /** Serialized pool commitment from Rust backend */
 export interface SerializedPoolCommitment {
   pool_hash: string
@@ -259,6 +284,42 @@ export function merkleMaxCharge(
   }, 0n)
 }
 
+/** Serialized pool commitments → the tuple shape the vault ABI takes. */
+function toContractCommitments(poolCommitments: SerializedPoolCommitment[]) {
+  return poolCommitments.map(pc => ({
+    poolHash: pc.pool_hash as `0x${string}`,
+    candidates: pc.candidates.map(c => ({
+      rewardsAddress: c.rewards_address as `0x${string}`,
+      amount: BigInt(c.amount),
+    })),
+  }))
+}
+
+/** All MerklePaymentMade events of a receipt, in log order. The contract
+ *  emits exactly one per tree, in input order, so index i belongs to tree i —
+ *  the property the batched path relies on to align winner hashes. */
+export function extractMerklePaymentEvents(
+  logs: { data: any; topics: any }[],
+): { winnerPoolHash: string; totalAmount: bigint }[] {
+  const events: { winnerPoolHash: string; totalAmount: bigint }[] = []
+  for (const log of logs) {
+    try {
+      const decoded = decodeEventLog({
+        abi: paymentVaultAbi,
+        data: log.data,
+        topics: log.topics,
+      })
+      if (decoded.eventName === 'MerklePaymentMade') {
+        const args = decoded.args as unknown as { winnerPoolHash: string; totalAmount: bigint }
+        events.push({ winnerPoolHash: args.winnerPoolHash, totalAmount: args.totalAmount })
+      }
+    } catch {
+      // Not our event, skip
+    }
+  }
+  return events
+}
+
 export async function payForMerkleTree(
   wagmiConfig: any,
   depth: number,
@@ -267,13 +328,7 @@ export async function payForMerkleTree(
 ): Promise<MerklePaymentResult> {
   await ensureActiveChain(wagmiConfig)
 
-  const commitments = poolCommitments.map(pc => ({
-    poolHash: pc.pool_hash as `0x${string}`,
-    candidates: pc.candidates.map(c => ({
-      rewardsAddress: c.rewards_address as `0x${string}`,
-      amount: BigInt(c.amount),
-    })),
-  }))
+  const commitments = toContractCommitments(poolCommitments)
 
   let gasSpent = await ensureAllowance(wagmiConfig, merkleMaxCharge(depth, commitments))
 
@@ -301,27 +356,126 @@ export async function payForMerkleTree(
   gasSpent += receiptGasCost(receipt)
 
   // Extract winnerPoolHash from MerklePaymentMade event
-  for (const log of receipt.logs) {
-    try {
-      const decoded = decodeEventLog({
-        abi: paymentVaultAbi,
-        data: log.data,
-        topics: log.topics,
-      })
-      if (decoded.eventName === 'MerklePaymentMade') {
-        const args = decoded.args as unknown as { winnerPoolHash: string; totalAmount: bigint }
-        return {
-          winnerPoolHash: args.winnerPoolHash,
-          totalPaid: args.totalAmount,
-          gasSpent,
-        }
-      }
-    } catch {
-      // Not our event, skip
-    }
+  const [event] = extractMerklePaymentEvents(receipt.logs)
+  if (!event) throw new Error('MerklePaymentMade event not found in transaction receipt')
+  return {
+    winnerPoolHash: event.winnerPoolHash,
+    totalPaid: event.totalAmount,
+    gasSpent,
   }
+}
 
-  throw new Error('MerklePaymentMade event not found in transaction receipt')
+/**
+ * Pay for several merkle trees in ONE `payForMerkleTrees` transaction — a
+ * single wallet confirmation for the whole group (V2-949). The call is
+ * atomic: either every tree in the group is paid or none is. Requires a
+ * vault deployment carrying the batched entry point (probe with
+ * `batchedMerkleTreesPerTx` first).
+ */
+export async function payForMerkleTrees(
+  wagmiConfig: any,
+  batches: MerkleBatchPaymentInput[],
+): Promise<MerkleTreesPaymentResult> {
+  await ensureActiveChain(wagmiConfig)
+
+  // Per-call allowance top-up mirrors payForMerkleTree's self-contained
+  // behavior; when the caller already ran ensureAllowanceForMerkleBatches
+  // over the whole upload this finds the allowance sufficient and only
+  // costs a readContract.
+  let gasSpent = await ensureAllowanceForMerkleBatches(wagmiConfig, batches)
+
+  const trees = batches.map(b => ({
+    depth: b.depth,
+    merklePaymentTimestamp: BigInt(b.timestamp),
+    poolCommitments: toContractCommitments(b.pool_commitments),
+  }))
+
+  const call = {
+    abi: paymentVaultAbi,
+    address: getVaultAddress(),
+    functionName: 'payForMerkleTrees',
+    args: [trees],
+  }
+  const hash = await writeContract(wagmiConfig, {
+    ...call,
+    chainId: getActiveChainId(),
+    gas: await preflightGasLimit(wagmiConfig, call, 'Payment'),
+    // V2-231: override BOTH fees so EIP-1559's maxFee >= maxPriority holds.
+    maxFeePerGas: 1_000_000_000n,
+    maxPriorityFeePerGas: 100_000_000n,
+    ...accountOpt(),
+  })
+
+  const receipt = await waitForTransactionReceipt(wagmiConfig, {
+    hash,
+    chainId: getActiveChainId(),
+    pollingInterval: RECEIPT_POLL_INTERVAL_MS,
+  })
+  gasSpent += receiptGasCost(receipt)
+
+  const events = extractMerklePaymentEvents(receipt.logs)
+  if (events.length !== batches.length) {
+    throw new Error(
+      `Batched merkle payment emitted ${events.length} MerklePaymentMade event(s) for ${batches.length} trees`,
+    )
+  }
+  return {
+    winnerPoolHashes: events.map(e => e.winnerPoolHash),
+    totalPaid: events.reduce((sum, e) => sum + e.totalAmount, 0n),
+    gasSpent,
+  }
+}
+
+/** Definitive probe answers per chain+vault; transport failures are not
+ *  cached so a flaky RPC only degrades the current upload to the legacy
+ *  path instead of pinning the vault as legacy for the whole session. */
+const batchedVaultSupport = new Map<string, number>()
+
+/** Test seam: forget cached probe answers. */
+export function _resetBatchedVaultSupportCache(): void {
+  batchedVaultSupport.clear()
+}
+
+/**
+ * Feature-probe the active vault for the batched entry point: old vault
+ * deployments have no `MAX_TREES_PER_PAYMENT()` getter, so the read reverts
+ * and the caller keeps the legacy per-tree loop. Returns the trees-per-
+ * transaction cap to use — `min(MERKLE_TREES_PER_PAYMENT, on-chain max)` —
+ * or 0 when the vault doesn't support batching (or the RPC couldn't say).
+ */
+export async function batchedMerkleTreesPerTx(wagmiConfig: any): Promise<number> {
+  const key = `${getActiveChainId()}:${getVaultAddress()}`
+  const cached = batchedVaultSupport.get(key)
+  if (cached !== undefined) return cached
+
+  try {
+    const onChainMax = (await readContract(wagmiConfig, {
+      abi: paymentVaultAbi,
+      address: getVaultAddress(),
+      functionName: 'MAX_TREES_PER_PAYMENT',
+      chainId: getActiveChainId(),
+    })) as number | bigint
+    const perTx = Math.min(MERKLE_TREES_PER_PAYMENT, Number(onChainMax))
+    batchedVaultSupport.set(key, perTx)
+    return perTx
+  } catch (e) {
+    if (isTransportError(e)) return 0
+    // On-chain verdict: the getter isn't there. Definitive for this vault.
+    batchedVaultSupport.set(key, 0)
+    return 0
+  }
+}
+
+/** Contiguous groups of up to `perTx` sub-batches — one on-chain transaction
+ *  (one wallet confirmation) per group. `perTx` ≤ 1 degenerates to the
+ *  legacy one-tree-per-transaction shape. */
+export function merklePaymentGroups<T>(batches: T[], perTx: number): T[][] {
+  const size = Math.max(1, Math.floor(perTx))
+  const groups: T[][] = []
+  for (let i = 0; i < batches.length; i += size) {
+    groups.push(batches.slice(i, i + size))
+  }
+  return groups
 }
 
 /** One up-front allowance covering every sub-batch of a multi-batch merkle
