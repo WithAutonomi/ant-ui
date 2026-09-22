@@ -337,7 +337,7 @@ export const useNodesStore = defineStore('nodes', {
       }
     },
 
-    /** Enrich nodes with storage usage from the LMDB payload file. */
+    /** Enrich nodes with on-disk storage usage of their chunk store(s). */
     async enrichNodeDetails() {
       for (const node of this.nodes) {
         if (node.id < 0) continue // skip placeholders
@@ -367,16 +367,16 @@ export const useNodesStore = defineStore('nodes', {
         }
 
         if (dataDir) {
-          // ant-node uses LMDB's default subdir layout: `chunks.mdb/` is a
-          // directory containing `data.mdb` (the real payload) and a small
-          // `lock.mdb`. `get_disk_usage` reports the filesystem-allocated
-          // bytes of `data.mdb` (not its logical size), so a sparse LMDB map
-          // reports real chunks-stored rather than the configured map size.
-          // Upstream follow-up: expose this via the daemon status endpoint
-          // so we don't depend on the on-disk file layout at all.
+          // ant-node 0.19.0 migrates the chunk store from LMDB (`chunks.mdb/`)
+          // to one file per chunk (`chunks/`) and deletes the LMDB env once
+          // the copy completes. `get_node_storage_usage` sizes whichever of
+          // the two is present (both, mid-migration) as filesystem-allocated
+          // bytes, so a sparse LMDB map reports real chunks-stored rather
+          // than the configured map size. Upstream follow-up: expose this via
+          // the daemon status endpoint so we don't depend on the on-disk
+          // layout at all.
           try {
-            const raw = await invoke<number>('get_disk_usage', { path: `${dataDir}/chunks.mdb/data.mdb` })
-            node.storage_bytes = raw
+            node.storage_bytes = await invoke<number>('get_node_storage_usage', { dataDir })
           } catch {
             node.storage_bytes = 0
           }

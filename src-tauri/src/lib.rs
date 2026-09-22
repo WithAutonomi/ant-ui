@@ -719,13 +719,14 @@ fn get_file_size(path: String) -> Result<u64, String> {
     Ok(meta.len())
 }
 
-/// Report the actual on-disk bytes consumed by a file, not its logical size.
+/// Bytes the filesystem has actually allocated for a file, not its logical
+/// size.
 ///
 /// This matters for LMDB's `data.mdb`: when ant-node grows its store, the file
 /// may be sparse — a logical size equal to the configured `map_size` (dozens
 /// of MB to many GB) backed by only the pages that actually hold chunks.
-/// `get_file_size` returns the logical size, which would over-report storage
-/// used; this command returns the bytes the filesystem has actually allocated.
+/// `metadata.len()` would over-report storage used; this returns what `du`
+/// reports.
 ///
 /// - **Unix (Linux / macOS):** `stat.st_blocks * 512`. Matches `du -B1`. Works
 ///   on all UNIX filesystems, including APFS, ext4, btrfs, ZFS.
@@ -734,20 +735,91 @@ fn get_file_size(path: String) -> Result<u64, String> {
 ///   are written, so logical == on-disk in practice. If that changes we'll
 ///   need `GetCompressedFileSizeW` via `windows-sys` (tracked as upstream
 ///   TODO: expose node storage via the daemon status endpoint instead).
-#[tauri::command]
-fn get_disk_usage(path: String) -> Result<u64, String> {
-    let meta = std::fs::metadata(&path).map_err(|e| format!("{e}"))?;
-
+fn allocated_bytes(meta: &std::fs::Metadata) -> u64 {
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
-        Ok(meta.blocks() * 512)
+        meta.blocks() * 512
     }
 
     #[cfg(not(unix))]
     {
-        Ok(meta.len())
+        meta.len()
     }
+}
+
+/// Directory holding ant-node's file-per-chunk store (one file per chunk,
+/// spread over 256 subdirs). `CHUNKS_DIR_NAME` in ant-node.
+const NODE_CHUNKS_DIR: &str = "chunks";
+/// LMDB environment used by ant-node < 0.19.0. `LEGACY_ENV_DIR` in ant-node.
+/// LMDB's default subdir layout puts the payload in `data.mdb` next to a
+/// small `lock.mdb`.
+const NODE_LEGACY_ENV_DIR: &str = "chunks.mdb";
+const NODE_LEGACY_DATA_FILE: &str = "data.mdb";
+
+/// On-disk bytes consumed by a node's chunk storage under `root`.
+///
+/// ant-node 0.19.0 migrates from the LMDB store (`chunks.mdb/`) to a
+/// file-per-chunk store (`chunks/`). While the copy is in progress both
+/// exist; once it completes the LMDB environment is deleted. Summing whichever
+/// of the two is present gives the right answer for every phase: legacy-only,
+/// mid-migration, and migrated. Neither present (a node that has never
+/// started) is simply 0.
+///
+/// Sizes are allocated bytes (see [`allocated_bytes`]) so the LMDB map's
+/// sparse tail isn't counted and the two stores are measured the same way.
+/// Entries that can't be stat'd are skipped rather than failing the whole
+/// walk — a chunk being written or deleted mid-scan shouldn't blank the
+/// reading.
+fn node_storage_bytes(root: &std::path::Path) -> u64 {
+    let mut total: u64 = 0;
+
+    if let Ok(meta) = std::fs::metadata(root.join(NODE_LEGACY_ENV_DIR).join(NODE_LEGACY_DATA_FILE))
+    {
+        total += allocated_bytes(&meta);
+    }
+
+    let chunks = root.join(NODE_CHUNKS_DIR);
+    if chunks.is_dir() {
+        let mut stack = vec![chunks];
+        while let Some(dir) = stack.pop() {
+            let entries = match std::fs::read_dir(&dir) {
+                Ok(e) => e,
+                Err(_) => continue,
+            };
+            for entry in entries.flatten() {
+                // `DirEntry::metadata` doesn't follow symlinks, so a stray
+                // link is counted as itself rather than walked.
+                let meta = match entry.metadata() {
+                    Ok(m) => m,
+                    Err(_) => continue,
+                };
+                if meta.is_dir() {
+                    stack.push(entry.path());
+                } else if meta.is_file() {
+                    total += allocated_bytes(&meta);
+                }
+            }
+        }
+    }
+
+    total
+}
+
+/// On-disk bytes used by the node whose root dir is `data_dir` — see
+/// [`node_storage_bytes`]. The walk over `chunks/` is ~5–12k stats per node,
+/// so it runs on a blocking thread.
+#[tauri::command]
+async fn get_node_storage_usage(data_dir: String) -> Result<u64, String> {
+    let root = tokio::fs::canonicalize(&data_dir)
+        .await
+        .map_err(|e| format!("Invalid node data dir {data_dir}: {e}"))?;
+    if !root.is_dir() {
+        return Err(format!("Not a directory: {data_dir}"));
+    }
+    tokio::task::spawn_blocking(move || node_storage_bytes(&root))
+        .await
+        .map_err(|e| format!("Node storage scan failed: {e}"))
 }
 
 #[derive(serde::Serialize)]
@@ -1249,7 +1321,7 @@ pub fn run() {
             daemon_request,
             get_file_sizes,
             get_file_size,
-            get_disk_usage,
+            get_node_storage_usage,
             get_drive_space,
             get_node_volumes,
             get_dir_size,
@@ -1292,4 +1364,139 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod node_storage_tests {
+    use super::*;
+    use std::path::Path;
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    static COUNTER: AtomicU32 = AtomicU32::new(0);
+
+    /// Unique temp dir, no external crate. Best-effort; left on disk if a test
+    /// panics, which is fine for CI ephemerality.
+    fn temp_node_root(tag: &str) -> PathBuf {
+        let n = COUNTER.fetch_add(1, Ordering::SeqCst);
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "ant-ui-node-storage-{tag}-{}-{n}-{nanos}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// Write `len` non-zero bytes so the file is fully allocated (a zero-filled
+    /// file could legitimately be stored sparse on some filesystems).
+    fn write_file(path: &Path, len: usize) {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, vec![0xA5u8; len]).unwrap();
+    }
+
+    fn expected(paths: &[&Path]) -> u64 {
+        paths
+            .iter()
+            .map(|p| allocated_bytes(&std::fs::metadata(p).unwrap()))
+            .sum()
+    }
+
+    #[test]
+    fn empty_root_is_zero() {
+        let root = temp_node_root("empty");
+        assert_eq!(node_storage_bytes(&root), 0);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn legacy_lmdb_only_counts_data_mdb_not_lock() {
+        let root = temp_node_root("legacy");
+        let data = root.join(NODE_LEGACY_ENV_DIR).join(NODE_LEGACY_DATA_FILE);
+        let lock = root.join(NODE_LEGACY_ENV_DIR).join("lock.mdb");
+        write_file(&data, 64 * 1024);
+        write_file(&lock, 8 * 1024);
+
+        assert_eq!(node_storage_bytes(&root), expected(&[&data]));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn file_per_chunk_only_walks_nested_subdirs() {
+        let root = temp_node_root("chunks");
+        let a = root.join(NODE_CHUNKS_DIR).join("00").join("chunk-a");
+        let b = root.join(NODE_CHUNKS_DIR).join("00").join("chunk-b");
+        let c = root.join(NODE_CHUNKS_DIR).join("ff").join("chunk-c");
+        write_file(&a, 4 * 1024);
+        write_file(&b, 12 * 1024);
+        write_file(&c, 32 * 1024);
+        // An empty subdir contributes nothing and mustn't break the walk.
+        std::fs::create_dir_all(root.join(NODE_CHUNKS_DIR).join("7f")).unwrap();
+
+        assert_eq!(node_storage_bytes(&root), expected(&[&a, &b, &c]));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn mid_migration_sums_both_stores() {
+        let root = temp_node_root("both");
+        let data = root.join(NODE_LEGACY_ENV_DIR).join(NODE_LEGACY_DATA_FILE);
+        let a = root.join(NODE_CHUNKS_DIR).join("01").join("chunk-a");
+        let b = root.join(NODE_CHUNKS_DIR).join("02").join("chunk-b");
+        write_file(&data, 128 * 1024);
+        write_file(&a, 16 * 1024);
+        write_file(&b, 20 * 1024);
+
+        assert_eq!(node_storage_bytes(&root), expected(&[&data, &a, &b]));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn ignores_unrelated_files_in_root() {
+        let root = temp_node_root("unrelated");
+        let chunk = root.join(NODE_CHUNKS_DIR).join("10").join("chunk");
+        write_file(&chunk, 8 * 1024);
+        // Logs, secret keys, etc. live beside the stores and aren't storage.
+        write_file(&root.join("secret-key"), 1024);
+        write_file(&root.join("logs").join("antnode.log"), 256 * 1024);
+
+        assert_eq!(node_storage_bytes(&root), expected(&[&chunk]));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[tokio::test]
+    async fn command_rejects_missing_dir() {
+        let missing = std::env::temp_dir().join("ant-ui-node-storage-does-not-exist");
+        let err = get_node_storage_usage(missing.to_string_lossy().into_owned())
+            .await
+            .unwrap_err();
+        assert!(err.contains("Invalid node data dir"), "{err}");
+    }
+
+    #[tokio::test]
+    async fn command_rejects_file_path() {
+        let root = temp_node_root("file");
+        let file = root.join("not-a-dir");
+        write_file(&file, 16);
+        let err = get_node_storage_usage(file.to_string_lossy().into_owned())
+            .await
+            .unwrap_err();
+        assert!(err.contains("Not a directory"), "{err}");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[tokio::test]
+    async fn command_reports_migrated_node() {
+        let root = temp_node_root("migrated");
+        let chunk = root.join(NODE_CHUNKS_DIR).join("ab").join("chunk");
+        write_file(&chunk, 40 * 1024);
+
+        let got = get_node_storage_usage(root.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        assert_eq!(got, expected(&[&chunk]));
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }

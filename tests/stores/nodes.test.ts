@@ -292,4 +292,69 @@ describe('nodes store', () => {
       expect(locs[0].nodeCount).toBe(1)
     })
   })
+  describe('enrichNodeDetails', () => {
+    it('sizes each node via get_node_storage_usage with its data dir', async () => {
+      const { daemonApi } = await import('~/utils/daemon-api')
+      nodesStore.nodes = [
+        { id: 1, name: 'n1', status: 'running', version: '', data_dir: '/home/me/ant/node-1' },
+        { id: 2, name: 'n2', status: 'running', version: '', data_dir: '/home/me/ant/node-2' },
+      ]
+
+      const sized: string[] = []
+      setMockInvokeHandler((cmd, args) => {
+        if (cmd === 'get_node_storage_usage') {
+          sized.push(args.dataDir)
+          return args.dataDir.endsWith('node-1') ? 1024 : 4096
+        }
+        if (cmd === 'get_drive_space') return { total: 1000, available: 500 }
+        if (cmd === 'get_node_volumes') return { volumes: [], current_root: '', current_dir: '' }
+        return undefined
+      })
+
+      await nodesStore.enrichNodeDetails()
+
+      // data_dir is already known, so the detail endpoint isn't consulted.
+      expect(daemonApi.nodeDetail).not.toHaveBeenCalled()
+      expect(sized).toEqual(['/home/me/ant/node-1', '/home/me/ant/node-2'])
+      expect(nodesStore.nodes[0].storage_bytes).toBe(1024)
+      expect(nodesStore.nodes[1].storage_bytes).toBe(4096)
+      expect(nodesStore.totalStorage).toBe(5120)
+    })
+
+    it('reports 0 bytes when the storage scan fails', async () => {
+      nodesStore.nodes = [
+        { id: 1, name: 'n1', status: 'running', version: '', data_dir: '/home/me/ant/node-1' },
+      ]
+      setMockInvokeHandler((cmd) => {
+        if (cmd === 'get_node_storage_usage') throw new Error('Invalid node data dir')
+        if (cmd === 'get_node_volumes') return { volumes: [], current_root: '', current_dir: '' }
+        return undefined
+      })
+
+      await nodesStore.enrichNodeDetails()
+
+      expect(nodesStore.nodes[0].storage_bytes).toBe(0)
+    })
+
+    it('skips placeholder nodes and nodes without a resolvable data dir', async () => {
+      const { daemonApi } = await import('~/utils/daemon-api')
+      vi.mocked(daemonApi.nodeDetail).mockRejectedValue(new Error('404'))
+      nodesStore.nodes = [
+        { id: -1, name: 'placeholder', status: 'running', version: '' },
+        { id: 7, name: 'n7', status: 'running', version: '' },
+      ]
+      const invoked: string[] = []
+      setMockInvokeHandler((cmd) => {
+        invoked.push(cmd)
+        if (cmd === 'get_node_data_dir') throw new Error('unknown node')
+        return undefined
+      })
+
+      await nodesStore.enrichNodeDetails()
+
+      expect(invoked).not.toContain('get_node_storage_usage')
+      expect(nodesStore.nodes[0].storage_bytes).toBeUndefined()
+      expect(nodesStore.nodes[1].storage_bytes).toBeUndefined()
+    })
+  })
 })
