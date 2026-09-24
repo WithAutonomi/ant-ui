@@ -11,9 +11,31 @@ use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::{mpsc, RwLock};
 
-#[derive(Deserialize)]
-struct BootstrapPeersFile {
-    peers: Vec<String>,
+/// Parse the contents of a `bootstrap_peers.toml` into socket addresses.
+///
+/// Delegates to ant-core's own parser so the app accepts exactly what the
+/// daemon accepts. ant-cli 0.3.8 changed the file from `peers = ["ip:port"]`
+/// to `quic = ["/ip4/<ip>/udp/<port>/quic"]` multiaddresses (plus a `webrtc`
+/// list the native client ignores); ant-core keeps `peers` as a legacy alias,
+/// so both shapes parse. A `peers`-only reader against the new file fails
+/// with "missing field `peers`" and the app reports Offline on every launch.
+///
+/// Peer-id pins (`/p2p/…` suffixes) are dropped — `Client::connect` takes bare
+/// socket addresses, matching ant-core's own `config::load_bootstrap_peers`.
+fn parse_bootstrap_peers(contents: &str) -> Result<Vec<std::net::SocketAddr>, String> {
+    let seeds = ant_core::network_defaults::parse_bootstrap_seeds(contents)
+        .map_err(|e| format!("Failed to parse bootstrap_peers.toml: {e}"))?;
+
+    let peers: Vec<std::net::SocketAddr> = seeds
+        .quic
+        .iter()
+        .filter_map(|addr| addr.socket_addr())
+        .collect();
+
+    if peers.is_empty() {
+        return Err("Bundled bootstrap_peers.toml has no parseable peers".into());
+    }
+    Ok(peers)
 }
 
 /// Read the bundled `bootstrap_peers.toml` shipped as a Tauri resource.
@@ -37,16 +59,7 @@ fn load_bundled_bootstrap_peers(app: &AppHandle) -> Result<Vec<std::net::SocketA
         )
     })?;
 
-    let parsed: BootstrapPeersFile = toml::from_str(&contents)
-        .map_err(|e| format!("Failed to parse bootstrap_peers.toml: {e}"))?;
-
-    let peers: Vec<std::net::SocketAddr> =
-        parsed.peers.iter().filter_map(|s| s.parse().ok()).collect();
-
-    if peers.is_empty() {
-        return Err("Bundled bootstrap_peers.toml has no parseable peers".into());
-    }
-    Ok(peers)
+    parse_bootstrap_peers(&contents)
 }
 
 // ── Shared state managed by Tauri ──
@@ -1294,7 +1307,66 @@ pub async fn is_autonomi_connected(state: tauri::State<'_, AutonomiState>) -> Re
 
 #[cfg(test)]
 mod tests {
-    use super::ensure_all_chunks_stored;
+    use super::{ensure_all_chunks_stored, parse_bootstrap_peers};
+
+    /// The shape shipped in ant-cli ≤ 0.3.7 archives.
+    const LEGACY_PEERS_TOML: &str = r#"
+# Format: "ip:port" socket addresses.
+peers = [
+    "207.148.94.42:10000",
+    "45.77.50.10:10000",
+]
+"#;
+
+    /// The shape shipped from ant-cli 0.3.8: QUIC multiaddresses plus an
+    /// (empty) WebRTC list. This is the file CI copies into the bundle.
+    const MULTIADDR_TOML: &str = r#"
+# Preserve optional /p2p/<peer-id> suffixes on QUIC addresses.
+quic = [
+    "/ip4/207.148.94.42/udp/10000/quic",
+    "/ip4/45.77.50.10/udp/10000/quic",
+]
+webrtc = []
+"#;
+
+    #[test]
+    fn bootstrap_legacy_peers_format_parses() {
+        let peers = parse_bootstrap_peers(LEGACY_PEERS_TOML).unwrap();
+        assert_eq!(peers.len(), 2);
+        assert_eq!(peers[0].to_string(), "207.148.94.42:10000");
+    }
+
+    #[test]
+    fn bootstrap_quic_multiaddr_format_parses() {
+        // Regression: v0.9.8-rc.2 bundled the 0.3.8 file and a `peers`-only
+        // reader failed with "missing field `peers`" → Offline on launch.
+        let peers = parse_bootstrap_peers(MULTIADDR_TOML).unwrap();
+        assert_eq!(peers.len(), 2);
+        assert_eq!(peers[0].to_string(), "207.148.94.42:10000");
+        assert_eq!(peers[1].to_string(), "45.77.50.10:10000");
+    }
+
+    #[test]
+    fn bootstrap_quic_with_peer_id_pin_still_yields_socket_addr() {
+        let pin = format!(
+            "quic = [\"/ip4/5.161.25.133/udp/10000/quic/p2p/{}\"]",
+            "ab".repeat(32)
+        );
+        let peers = parse_bootstrap_peers(&pin).unwrap();
+        assert_eq!(peers, vec!["5.161.25.133:10000".parse().unwrap()]);
+    }
+
+    #[test]
+    fn bootstrap_empty_lists_are_rejected() {
+        let err = parse_bootstrap_peers("quic = []\nwebrtc = []").unwrap_err();
+        assert!(err.contains("no parseable peers"), "unexpected: {err}");
+    }
+
+    #[test]
+    fn bootstrap_garbage_is_a_parse_error() {
+        let err = parse_bootstrap_peers("quic = [\"not-an-address\"]").unwrap_err();
+        assert!(err.starts_with("Failed to parse"), "unexpected: {err}");
+    }
 
     #[test]
     fn complete_upload_passes() {
