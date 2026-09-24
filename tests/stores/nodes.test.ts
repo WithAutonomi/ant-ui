@@ -10,6 +10,7 @@ vi.mock('~/utils/daemon-api', () => ({
     status: vi.fn(),
     nodesStatus: vi.fn(),
     nodeDetail: vi.fn(),
+    startNode: vi.fn(),
   },
   connectSSE: vi.fn(() => Promise.resolve(vi.fn())),
   disconnectSSE: vi.fn(() => Promise.resolve()),
@@ -189,6 +190,51 @@ describe('nodes store', () => {
 
       expect(nodesStore.nodes[0].status).toBe('errored')
       expect(nodesStore.nodes[0].pid).toBeUndefined()
+    })
+  })
+
+  describe('startNode', () => {
+    it('shows the already-running hint when the chunk store is held by another process', async () => {
+      const { daemonApi } = await import('~/utils/daemon-api')
+      const { useToastStore } = await import('~/stores/toasts')
+      const toasts = useToastStore()
+      toasts.$reset()
+      nodesStore.nodes = [
+        { id: 35, name: 'node35', status: 'stopped', version: '0.20.0' },
+      ]
+      vi.mocked(daemonApi.startNode).mockRejectedValueOnce(
+        new Error(
+          'Process spawn failed: Node 35 exited immediately: node startup failed: ' +
+            'Failed to create LMDB storage: storage error: Another process already has the ' +
+            'chunk store at D:\\Autonomi\\node-35\\chunks open (os error 33). Stop the other node first.',
+        ),
+      )
+
+      await nodesStore.startNode(35)
+
+      expect(nodesStore.nodes[0].status).toBe('errored')
+      expect(toasts.toasts).toHaveLength(1)
+      expect(toasts.toasts[0].level).toBe('error')
+      expect(toasts.toasts[0].message).toContain('already running')
+      expect(toasts.toasts[0].message).toContain('D:\\Autonomi\\node-35\\chunks')
+      expect(toasts.toasts[0].message).not.toContain('LMDB')
+    })
+
+    it('falls back to the generic start_failed toast for other errors', async () => {
+      const { daemonApi } = await import('~/utils/daemon-api')
+      const { useToastStore } = await import('~/stores/toasts')
+      const toasts = useToastStore()
+      toasts.$reset()
+      nodesStore.nodes = [
+        { id: 2, name: 'node2', status: 'stopped', version: '0.20.0' },
+      ]
+      vi.mocked(daemonApi.startNode).mockRejectedValueOnce(new Error('Binary not found at path: /x/antnode'))
+
+      await nodesStore.startNode(2)
+
+      expect(toasts.toasts).toHaveLength(1)
+      expect(toasts.toasts[0].message).toContain('Failed to start node 2')
+      expect(toasts.toasts[0].message).toContain('Binary not found')
     })
   })
 

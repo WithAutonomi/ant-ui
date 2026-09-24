@@ -232,6 +232,7 @@
       "add_failed": "Hinzufügen der Knoten fehlgeschlagen: {error}",
       "started": "Knoten {id} gestartet",
       "start_failed": "Start des Knotens {id} fehlgeschlagen: {error}",
+      "start_failed_already_running": "Node {id} läuft bereits im Hintergrund — sein Datenordner ({path}) ist durch einen anderen Prozess gesperrt. Beende diesen Prozess und klicke erneut auf Starten.",
       "stopped": "Knoten {id} gestoppt",
       "stop_failed": "Stopp des Knotens {id} fehlgeschlagen: {error}",
       "removed": "Knoten {id} entfernt",

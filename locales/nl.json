@@ -232,6 +232,7 @@
       "add_failed": "Nodes toevoegen mislukt: {error}",
       "started": "Node {id} gestart",
       "start_failed": "Node {id} starten mislukt: {error}",
+      "start_failed_already_running": "Node {id} draait al op de achtergrond — de datamap ({path}) is vergrendeld door een ander proces. Stop dat proces en klik opnieuw op Starten.",
       "stopped": "Node {id} gestopt",
       "stop_failed": "Node {id} stoppen mislukt: {error}",
       "removed": "Node {id} verwijderd",

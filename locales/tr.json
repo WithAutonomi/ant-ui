@@ -232,6 +232,7 @@
       "add_failed": "Düğüm eklenemedi: {error}",
       "started": "{id} düğümü başlatıldı",
       "start_failed": "{id} düğümü başlatılamadı: {error}",
+      "start_failed_already_running": "Düğüm {id} zaten arka planda çalışıyor — veri klasörü ({path}) başka bir işlem tarafından kilitlenmiş. O işlemi durdurup Başlat'a tekrar basın.",
       "stopped": "{id} düğümü durduruldu",
       "stop_failed": "{id} düğümü durdurulamadı: {error}",
       "removed": "{id} düğümü kaldırıldı",

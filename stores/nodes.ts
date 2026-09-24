@@ -5,6 +5,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { daemonApi, connectSSE, disconnectSSE, type NodeEvent } from '~/utils/daemon-api'
 import type { NodeStatusSummary, ApiNodeStatus, DaemonStatus, FleetHealth, EvictionRecord } from '~/utils/daemon-api'
 import { POLL_INTERVAL, DETAIL_POLL_INTERVAL, MIN_NODE_SIZE_BYTES } from '~/utils/constants'
+import { detectNodeAlreadyRunning } from '~/utils/daemon-error'
 import type { UnlistenFn } from '@tauri-apps/api/event'
 import { i18n } from '~/plugins/i18n.client'
 
@@ -683,7 +684,17 @@ export const useNodesStore = defineStore('nodes', {
       } catch (e: any) {
         const node = this.nodes.find(n => n.id === id)
         if (node) node.status = 'errored'
-        toasts.add(t('nodes.toast.start_failed', { id, error: e.message }), 'error')
+        // The node's chunk store is held by another process: an earlier
+        // instance of this node is still alive (an auto-upgrade restart that
+        // raced — upstream V2-1181) and the daemon has lost track of it. The
+        // raw report is a wall of text that says nothing about what to do;
+        // replace it with the one actionable fact.
+        const running = detectNodeAlreadyRunning(e.message ?? '')
+        if (running) {
+          toasts.add(t('nodes.toast.start_failed_already_running', { id, path: running.path }), 'error')
+        } else {
+          toasts.add(t('nodes.toast.start_failed', { id, error: e.message }), 'error')
+        }
       }
     },
 

@@ -232,6 +232,7 @@
       "add_failed": "Không thể thêm nút: {error}",
       "started": "Nút {id} đã khởi động",
       "start_failed": "Không thể khởi động nút {id}: {error}",
+      "start_failed_already_running": "Nút {id} đã đang chạy ở chế độ nền — thư mục dữ liệu của nó ({path}) đang bị một tiến trình khác khóa. Hãy dừng tiến trình đó rồi nhấn Bắt đầu lại.",
       "stopped": "Nút {id} đã dừng",
       "stop_failed": "Không thể dừng nút {id}: {error}",
       "removed": "Nút {id} đã xóa",

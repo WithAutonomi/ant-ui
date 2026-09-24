@@ -232,6 +232,7 @@
       "add_failed": "新增節點失敗:{error}",
       "started": "節點 {id} 已啟動",
       "start_failed": "啟動節點 {id} 失敗:{error}",
+      "start_failed_already_running": "節點 {id} 已在背景執行 — 其資料資料夾（{path}）被另一個程序鎖定。請停止該程序，然後再次點選「啟動」。",
       "stopped": "節點 {id} 已停止",
       "stop_failed": "停止節點 {id} 失敗:{error}",
       "removed": "節點 {id} 已移除",

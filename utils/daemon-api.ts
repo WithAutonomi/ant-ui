@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { useSettingsStore } from '~/stores/settings'
+import { sanitizeDaemonError } from '~/utils/daemon-error'
 
 // ── Types matching ant-core/src/node/types.rs ──
 
@@ -216,13 +217,16 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 /** Try to extract `.error` from a daemon JSON envelope. Falls back to the raw
  *  string when the body isn't JSON or doesn't have the expected shape, so
- *  network / Tauri errors pass through unchanged. */
+ *  network / Tauri errors pass through unchanged. Either way the result is
+ *  passed through `sanitizeDaemonError`, which strips the ANSI colour and
+ *  repeated color-eyre reports a spawned node's stderr can carry. */
 function unwrapDaemonError(raw: string): string {
+  let message = raw
   try {
     const parsed = JSON.parse(raw)
-    if (parsed && typeof parsed.error === 'string') return parsed.error
+    if (parsed && typeof parsed.error === 'string') message = parsed.error
   } catch { /* not JSON — use raw */ }
-  return raw
+  return sanitizeDaemonError(message)
 }
 
 export const daemonApi = {

@@ -232,6 +232,7 @@
       "add_failed": "添加节点失败:{error}",
       "started": "节点 {id} 已启动",
       "start_failed": "启动节点 {id} 失败:{error}",
+      "start_failed_already_running": "节点 {id} 已在后台运行 — 其数据文件夹（{path}）被另一个进程锁定。请停止该进程，然后再次点击“启动”。",
       "stopped": "节点 {id} 已停止",
       "stop_failed": "停止节点 {id} 失败:{error}",
       "removed": "节点 {id} 已移除",

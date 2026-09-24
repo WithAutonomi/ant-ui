@@ -275,6 +275,7 @@
       "add_failed": "Failed to add nodes: {error}",
       "started": "Node {id} started",
       "start_failed": "Failed to start node {id}: {error}",
+      "start_failed_already_running": "Node {id} is already running in the background — its data folder ({path}) is locked by another process. Stop that process, then press Start again.",
       "stopped": "Node {id} stopped",
       "stop_failed": "Failed to stop node {id}: {error}",
       "removed": "Node {id} removed",

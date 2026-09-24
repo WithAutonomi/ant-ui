@@ -232,6 +232,7 @@
       "add_failed": "Gagal menambah node: {error}",
       "started": "Node {id} dimulai",
       "start_failed": "Gagal memulai node {id}: {error}",
+      "start_failed_already_running": "Node {id} sudah berjalan di latar belakang — folder datanya ({path}) dikunci oleh proses lain. Hentikan proses tersebut, lalu tekan Mulai lagi.",
       "stopped": "Node {id} dihentikan",
       "stop_failed": "Gagal menghentikan node {id}: {error}",
       "removed": "Node {id} dihapus",

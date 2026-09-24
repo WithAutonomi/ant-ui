@@ -232,6 +232,7 @@
       "add_failed": "노드 추가 실패: {error}",
       "started": "노드 {id} 시작됨",
       "start_failed": "노드 {id} 시작 실패: {error}",
+      "start_failed_already_running": "노드 {id}이(가) 이미 백그라운드에서 실행 중입니다 — 데이터 폴더({path})가 다른 프로세스에 의해 잠겨 있습니다. 해당 프로세스를 중지한 후 다시 시작을 누르세요.",
       "stopped": "노드 {id} 중지됨",
       "stop_failed": "노드 {id} 중지 실패: {error}",
       "removed": "노드 {id} 제거됨",
