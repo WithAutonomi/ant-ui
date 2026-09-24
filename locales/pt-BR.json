@@ -232,6 +232,7 @@
       "add_failed": "Falha ao adicionar nós: {error}",
       "started": "Nó {id} iniciado",
       "start_failed": "Falha ao iniciar o nó {id}: {error}",
+      "start_failed_already_running": "O nó {id} já está em execução em segundo plano — sua pasta de dados ({path}) está bloqueada por outro processo. Encerre esse processo e clique em Iniciar novamente.",
       "stopped": "Nó {id} parado",
       "stop_failed": "Falha ao parar o nó {id}: {error}",
       "removed": "Nó {id} removido",

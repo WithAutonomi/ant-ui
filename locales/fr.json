@@ -232,6 +232,7 @@
       "add_failed": "Échec de l'ajout de nœuds : {error}",
       "started": "Nœud {id} démarré",
       "start_failed": "Échec du démarrage du nœud {id} : {error}",
+      "start_failed_already_running": "Le nœud {id} est déjà en cours d'exécution en arrière-plan — son dossier de données ({path}) est verrouillé par un autre processus. Arrêtez ce processus, puis cliquez à nouveau sur Démarrer.",
       "stopped": "Nœud {id} arrêté",
       "stop_failed": "Échec de l'arrêt du nœud {id} : {error}",
       "removed": "Nœud {id} supprimé",

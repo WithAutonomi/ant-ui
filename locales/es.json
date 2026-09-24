@@ -232,6 +232,7 @@
       "add_failed": "No se pudieron añadir los nodos: {error}",
       "started": "Nodo {id} iniciado",
       "start_failed": "No se pudo iniciar el nodo {id}: {error}",
+      "start_failed_already_running": "El nodo {id} ya se está ejecutando en segundo plano: otro proceso tiene bloqueada su carpeta de datos ({path}). Detén ese proceso y vuelve a pulsar Iniciar.",
       "stopped": "Nodo {id} detenido",
       "stop_failed": "No se pudo detener el nodo {id}: {error}",
       "removed": "Nodo {id} eliminado",

@@ -232,6 +232,7 @@
       "add_failed": "הוספת הצמתים נכשלה: {error}",
       "started": "צומת {id} הופעל",
       "start_failed": "הפעלת צומת {id} נכשלה: {error}",
+      "start_failed_already_running": "צומת {id} כבר פועל ברקע — תיקיית הנתונים שלו ({path}) נעולה על ידי תהליך אחר. עצור את התהליך הזה ולחץ שוב על התחל.",
       "stopped": "צומת {id} נעצר",
       "stop_failed": "עצירת צומת {id} נכשלה: {error}",
       "removed": "צומת {id} הוסר",
