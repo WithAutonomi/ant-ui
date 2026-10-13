@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { useToastStore } from './toasts'
 import { useSettingsStore } from './settings'
-import { payForQuotes, payForMerkleTree, ensureAllowanceForMerkleBatches, formatNanoTokens, formatGasCost, type RawPayment, type SerializedPoolCommitment } from '~/utils/payment'
+import { payForQuotes, payForMerkleTree, payForMerkleTrees, batchedMerkleTreesPerTx, merklePaymentGroups, ensureAllowanceForMerkleBatches, formatNanoTokens, formatGasCost, type RawPayment, type SerializedPoolCommitment } from '~/utils/payment'
 import { indelibleApi } from '~/utils/indelible-api'
 import { i18n } from '~/plugins/i18n.client'
 
@@ -726,14 +726,17 @@ export const useFilesStore = defineStore('files', {
         this.updateEntry(id, { status: 'paying' })
 
         if (quote.payment_mode === 'merkle') {
-          // Merkle path: one payForMerkleTree transaction per prepared
-          // sub-batch (uploads above the 256-chunk tree limit quote as
-          // several — ADR-0003), preceded by a single allowance approval
-          // covering the summed worst case, so the wallet prompts once for
-          // the approve and then once per payment. Only the on-chain
-          // payments are wrapped here — confirm_upload_merkle rejections
-          // are storage failures, not payment failures, so they fall
-          // through to the outer catch (mirroring the wave-batch path).
+          // Merkle path: sub-batches (uploads above the 256-chunk tree limit
+          // quote as several — ADR-0003) settle in GROUPS of up to
+          // MERKLE_TREES_PER_PAYMENT trees, one payForMerkleTrees transaction
+          // — and one wallet confirmation — per group (V2-949): ~4 GiB per
+          // confirmation instead of ~1 GiB. A single allowance approval
+          // covering the summed worst case still precedes the payments. Old
+          // vault deployments fail the feature probe and keep the legacy
+          // per-tree loop. Only the on-chain payments are wrapped here —
+          // confirm_upload_merkle rejections are storage failures, not
+          // payment failures, so they fall through to the outer catch
+          // (mirroring the wave-batch path).
           const batches = quote.merkle_batches ?? []
           if (batches.length === 0) throw new Error('Merkle quote carried no payment batches')
           const winnerPoolHashes: (string | null)[] = batches.map(() => null)
@@ -741,27 +744,48 @@ export const useFilesStore = defineStore('files', {
           let gasTotal = 0n
           try {
             gasTotal += await ensureAllowanceForMerkleBatches(wagmiConfig, batches)
-            for (let i = 0; i < batches.length; i++) {
-              const batch = batches[i]!
+            // Probe once per upload; a single-tree upload skips the probe
+            // RPC entirely — it's one transaction and one confirmation on
+            // either path.
+            const perTx = batches.length > 1 ? await batchedMerkleTreesPerTx(wagmiConfig) : 0
+            const groups = merklePaymentGroups(batches, perTx)
+            let start = 0
+            for (let g = 0; g < groups.length; g++) {
+              const group = groups[g]!
               // stageDone/stageTotal drive the "payment i of N" wallet
               // instruction while status is `paying` (see pages/files.vue).
-              this.updateEntry(id, { stageDone: i, stageTotal: batches.length })
-              // No timeout here: payForMerkleTree spans broadcast AND receipt
-              // polling, and a timer firing between the two discards a winner
-              // hash the chain already accepted — the batch then reads as
-              // unpaid (a clean "payment failure" if it was the first batch)
+              // With batching, N counts wallet confirmations, not trees.
+              this.updateEntry(id, { stageDone: g, stageTotal: groups.length })
+              // No timeout here: payment spans broadcast AND receipt
+              // polling, and a timer firing between the two discards winner
+              // hashes the chain already accepted — the group then reads as
+              // unpaid (a clean "payment failure" if it was the first group)
               // and a retry pays it again. The wallet's own reject is the
               // cancel path; a slow receipt must be waited out, like chunk
               // storage below.
-              const payResult = await payForMerkleTree(
-                wagmiConfig,
-                batch.depth,
-                batch.pool_commitments,
-                BigInt(batch.timestamp),
-              )
-              winnerPoolHashes[i] = payResult.winnerPoolHash
-              totalPaid += payResult.totalPaid
-              gasTotal += payResult.gasSpent
+              if (group.length > 1) {
+                // Atomic batched payment: one tx, one event per tree in
+                // input order — winner hashes land back on the group's
+                // positions. A mid-group failure pays nothing for the group.
+                const payResult = await payForMerkleTrees(wagmiConfig, group)
+                payResult.winnerPoolHashes.forEach((hash, j) => {
+                  winnerPoolHashes[start + j] = hash
+                })
+                totalPaid += payResult.totalPaid
+                gasTotal += payResult.gasSpent
+              } else {
+                const batch = group[0]!
+                const payResult = await payForMerkleTree(
+                  wagmiConfig,
+                  batch.depth,
+                  batch.pool_commitments,
+                  BigInt(batch.timestamp),
+                )
+                winnerPoolHashes[start] = payResult.winnerPoolHash
+                totalPaid += payResult.totalPaid
+                gasTotal += payResult.gasSpent
+              }
+              start += group.length
               this.updateEntry(id, {
                 cost: formatNanoTokens(totalPaid.toString()),
                 gas_cost: formatGasCost(gasTotal.toString()),
@@ -776,10 +800,12 @@ export const useFilesStore = defineStore('files', {
               toasts.add(t('files.toast.payment_failed', { error: summary }), 'error')
               return
             }
-            // k-of-N batches already paid on-chain: finalize what was paid so
-            // those chunks are stored and a later retry only re-pays the
-            // remainder. The backend reports the shortfall as an incomplete
-            // upload through the confirm call below.
+            // Groups already paid on-chain: finalize what was paid so those
+            // chunks are stored and a later retry only re-pays the
+            // remainder. A failed group paid nothing (the batched call is
+            // atomic), so its trees stay null. The backend reports the
+            // shortfall as an incomplete upload through the confirm call
+            // below.
           }
           this.updateEntry(id, {
             status: 'uploading',

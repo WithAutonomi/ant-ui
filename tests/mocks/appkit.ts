@@ -30,10 +30,18 @@ vi.mock('viem/accounts', () => ({
   privateKeyToAccount: vi.fn(() => ({ address: '0xmock' })),
 }))
 
-vi.mock('viem', () => ({
-  defineChain: vi.fn((c: any) => c),
-  formatEther: vi.fn((v: any) => String(v)),
-  parseEther: vi.fn((v: any) => BigInt(v)),
-  parseUnits: vi.fn((v: any) => BigInt(v)),
-  formatUnits: vi.fn((v: any) => String(v)),
-}))
+// Identity shims for the formatters (tests assert flow, not formatting), but
+// real ABI event codecs: utils/payment.ts decodes MerklePaymentMade events
+// from receipts, and tests feed it real encoded logs. `viem/utils` is not
+// mocked, so importing from it inside the factory avoids self-recursion.
+vi.mock('viem', async () => {
+  const { decodeEventLog } = await import('viem/utils')
+  return {
+    defineChain: vi.fn((c: any) => c),
+    formatEther: vi.fn((v: any) => String(v)),
+    parseEther: vi.fn((v: any) => BigInt(v)),
+    parseUnits: vi.fn((v: any) => BigInt(v)),
+    formatUnits: vi.fn((v: any) => String(v)),
+    decodeEventLog,
+  }
+})
