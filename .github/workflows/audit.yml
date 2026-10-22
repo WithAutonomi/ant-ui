@@ -1,0 +1,91 @@
+name: audit
+
+# RustSec advisories against src-tauri/Cargo.lock.
+#
+# A new advisory lands against an unchanged lockfile, so this runs daily as
+# well as on every PR and push to main. It lives in its own workflow so the
+# cron doesn't run ci.yml's build jobs, and it deliberately has none of
+# ci.yml's docs:/ci:/release-bump skips: a PR title prefix says nothing about
+# whether the lockfile has a vulnerable crate in it.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "23 6 * * *"
+  workflow_dispatch:
+
+env:
+  # Same Node-24 opt-in as ci.yml and release.yml.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    env:
+      # Advisories this job tolerates. Every entry must say why it doesn't
+      # reach this app and what removes it. The "no stale ignores" step below
+      # fails once an ignored ID stops being reported, so an entry can't
+      # outlive the problem it covers.
+      #
+      # RUSTSEC-2026-0367, -0368, -0369 (zip 2.4.2 and zip 4.6.1). All three
+      # are in ZipArchive::extract / ZipStreamReader::extract.
+      # - zip 2.4.2, the direct dependency and ant-core 0.10.0's: neither calls
+      #   extract(). datamap_backup.rs writes with ZipWriter and reads entries
+      #   one at a time (by_name / by_index) behind enclosed_name(); ant-core's
+      #   node-binary unpacking also reads by_index and writes only the base
+      #   file name.
+      # - zip 4.6.1, tauri-plugin-updater 2.10.1 (Windows only): extract() runs
+      #   only after download() has checked the update's minisign signature
+      #   against this app's public key, and only when the signed payload is a
+      #   zip. This app's releases publish the Windows update as a plain .msi,
+      #   so reaching it would take a zip signed with the release key.
+      # Removed by V2-1635: zip >= 9 for the direct dependency, an ant-core
+      # release on zip 9 (V2-1632), and a tauri-plugin-updater release on
+      # zip >= 9.
+      IGNORED_ADVISORIES: RUSTSEC-2026-0367 RUSTSEC-2026-0368 RUSTSEC-2026-0369
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          # The crate lives in src-tauri, not at the repo root.
+          workspaces: "./src-tauri -> target"
+          # Nothing is built here: keep only the cargo-audit binary and the
+          # registry, under a key of their own so ci.yml's cache is untouched.
+          cache-targets: false
+          key: cargo-audit-tool
+
+      - name: install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      # Vulnerabilities fail the job; warnings (unmaintained, unsound, yanked)
+      # are printed but don't, which is cargo audit's default.
+      - name: cargo audit
+        run: |
+          args=()
+          for id in $IGNORED_ADVISORIES; do args+=(--ignore "$id"); done
+          cargo audit --file src-tauri/Cargo.lock "${args[@]}"
+
+      - name: no stale ignores
+        run: |
+          set -o pipefail
+          # --no-fetch: judge against the database the step above just used.
+          reported=$(cargo audit --no-fetch --file src-tauri/Cargo.lock --json \
+            | jq -r '.vulnerabilities.list[].advisory.id' | sort -u) \
+            || [ -n "$reported" ]
+          stale=0
+          for id in $IGNORED_ADVISORIES; do
+            if ! grep -qx "$id" <<<"$reported"; then
+              echo "::error::$id is ignored but no longer reported. Remove it from IGNORED_ADVISORIES."
+              stale=1
+            fi
+          done
+          exit $stale
