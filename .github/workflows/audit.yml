@@ -1,0 +1,54 @@
+name: audit
+
+# RustSec advisories against src-tauri/Cargo.lock.
+#
+# A new advisory lands against an unchanged lockfile, so this runs daily as
+# well as on every PR and push to main. It lives in its own workflow so the
+# cron doesn't run ci.yml's build jobs, and it deliberately has none of
+# ci.yml's docs:/ci:/release-bump skips: a PR title prefix says nothing about
+# whether the lockfile has a vulnerable crate in it.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "23 6 * * *"
+  workflow_dispatch:
+
+env:
+  # Same Node-24 opt-in as ci.yml and release.yml.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          # Dedicated key: this job only caches the cargo-audit binary, not a
+          # build, so it shouldn't share (or invalidate) ci.yml's cache.
+          key: cargo-audit-tool
+
+      - name: install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      # Vulnerabilities fail the job; warnings (unmaintained, unsound, yanked)
+      # are printed but don't. Every --ignore names the ticket that clears it,
+      # and comes out when that ticket lands:
+      #   RUSTSEC-2026-0367, -0368, -0369: zip 2.4.2 (direct dependency and
+      #   ant-core) and zip 4.6.1 (tauri-plugin-updater), V2-1635.
+      - name: cargo audit
+        run: >-
+          cargo audit --file src-tauri/Cargo.lock
+          --ignore RUSTSEC-2026-0367
+          --ignore RUSTSEC-2026-0368
+          --ignore RUSTSEC-2026-0369
