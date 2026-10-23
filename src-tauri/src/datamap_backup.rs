@@ -481,6 +481,24 @@ mod tests {
     }
 
     #[test]
+    fn export_compresses_with_deflate() {
+        // zip is built with default features off and only `deflate-flate2`;
+        // exports must still compress rather than fall back to Stored.
+        let data = vec![b'x'; 4096];
+        let zip = make_zip(&[("a.txt", "0xaaa", &data)]);
+        let mut archive = zip::ZipArchive::new(std::fs::File::open(&zip).unwrap()).unwrap();
+        for i in 0..archive.len() {
+            let f = archive.by_index(i).unwrap();
+            assert_eq!(
+                f.compression(),
+                zip::CompressionMethod::Deflated,
+                "{:?}",
+                f.name()
+            );
+        }
+    }
+
+    #[test]
     fn round_trip_export_import() {
         let zip = make_zip(&[("a.txt", "0xaaa", b"alpha"), ("b.txt", "0xbbb", b"bravo")]);
 
